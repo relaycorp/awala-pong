@@ -1,0 +1,13 @@
+title: Relaynet Pong Service
+
+markdown: kramdown
+
+baseurl: /relaynet-pong
+remote_theme: pmarsceill/just-the-docs@v0.2.7-r
+
+search_enabled: false
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
