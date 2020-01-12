@@ -18,6 +18,8 @@
     "test:ci:unit": "run-s build test:ci:unit:jest cov:send",
     "test:ci:unit:jest": "jest --config jest.config.ci.js --coverage",
     "test:integration": "jest --config jest.config.integration.js",
+    "start": "node build/main/app/main.js",
+    "start:dev": "ts-node-dev --transpile-only src/bin/server.ts",
     "cov": "run-s build test:unit && opn coverage/lcov-report/index.html",
     "cov:send": "codecov",
     "clean": "trash build test"
@@ -61,6 +63,9 @@
   "homepage": "https://docs.relaycorp.tech/relaynet-pong/",
   "dependencies": {
     "bull": "^3.12.1",
-    "fastify": "^2.11.0"
+    "env-var": "^5.2.0",
+    "fastify": "^2.11.0",
+    "fastify-sentry": "^1.4.0",
+    "make-promises-safe": "^5.1.0"
   }
 }
