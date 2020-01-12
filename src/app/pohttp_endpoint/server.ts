@@ -1,11 +1,11 @@
 import { get as getEnvVar } from 'env-var';
 
-import routes from './routes';
 import { FastifyInstance } from 'fastify';
+import routes from './routes';
 
 // I wish I could just do `import * as fastify from 'fastify'` or `import fastify from 'fastify'`
 // but neither worked regardless of the values set in esModuleInterop/allowSyntheticDefaultImports
-const fastify = require('fastify');
+import fastify = require('fastify');
 
 const DEFAULT_REQUEST_ID_HEADER = 'X-Request-Id';
 const DEFAULT_PORT = '3000';
@@ -24,10 +24,16 @@ export function makeServer(): FastifyInstance {
 
   server.register(routes);
 
+  server.addContentTypeParser(
+    'application/vnd.relaynet.parcel',
+    { parseAs: 'buffer' },
+    async (_req: any, rawBody: Buffer) => rawBody,
+  );
+
   return server;
 }
 
-export async function runServer() {
+export async function runServer(): Promise<void> {
   const server = makeServer();
 
   await server.listen({
