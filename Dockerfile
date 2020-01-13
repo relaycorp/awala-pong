@@ -1,11 +1,8 @@
-FROM node:12.14.1-slim as build
+FROM node:12.14.1-slim
 
-WORKDIR /tmp/pong
+WORKDIR /opt/pong
 COPY . ./
-RUN pwd && ls -lA && npm install && npm run build && npm prune --production
+RUN npm install && npm run build && npm prune --production
 
-FROM gcr.io/distroless/nodejs
-
-COPY --from=build /tmp/pong/build/main /opt/pong/
+CMD ["build/main/bin/server.js"]
 EXPOSE 3000
-CMD ["index.js"]
