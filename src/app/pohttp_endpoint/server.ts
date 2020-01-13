@@ -1,6 +1,7 @@
 import { get as getEnvVar } from 'env-var';
-
 import { FastifyInstance } from 'fastify';
+import fastifyUrlData from 'fastify-url-data';
+
 import routes from './routes';
 
 // I wish I could just do `import * as fastify from 'fastify'` or `import fastify from 'fastify'`
@@ -22,6 +23,7 @@ export function makeServer(): FastifyInstance {
     requestIdHeader: getEnvVar('PONG_REQUEST_ID_HEADER', DEFAULT_REQUEST_ID_HEADER).asString(),
   });
 
+  server.register(fastifyUrlData);
   server.register(routes);
 
   server.addContentTypeParser(

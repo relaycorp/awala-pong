@@ -52,10 +52,15 @@ describe('makeServer', () => {
     expect(parser({}, stubBody)).resolves.toBe(stubBody);
   });
 
+  test('fastify-url-data should be registered', () => {
+    server.makeServer();
+
+    expect(mockFastify.register).toBeCalledWith(require('fastify-url-data'));
+  });
+
   test('Routes should be loaded', () => {
     server.makeServer();
 
-    expect(mockFastify.register).toBeCalledTimes(1);
     expect(mockFastify.register).toBeCalledWith(require('./routes').default);
   });
 

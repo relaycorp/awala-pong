@@ -62,10 +62,12 @@
   },
   "homepage": "https://docs.relaycorp.tech/relaynet-pong/",
   "dependencies": {
+    "@relaycorp/relaynet-core": "^1.2.4",
     "bull": "^3.12.1",
     "env-var": "^5.2.0",
     "fastify": "^2.11.0",
     "fastify-sentry": "^1.4.0",
+    "fastify-url-data": "^2.4.0",
     "make-promises-safe": "^5.1.0"
   }
 }
