@@ -1,12 +1,12 @@
 import { get as getEnvVar } from 'env-var';
 import { FastifyInstance } from 'fastify';
-import fastifyUrlData from 'fastify-url-data';
 
 import routes from './routes';
 
 // I wish I could just do `import * as fastify from 'fastify'` or `import fastify from 'fastify'`
 // but neither worked regardless of the values set in esModuleInterop/allowSyntheticDefaultImports
 import fastify = require('fastify');
+import fastifyUrlData = require('fastify-url-data');
 
 const DEFAULT_REQUEST_ID_HEADER = 'X-Request-Id';
 const DEFAULT_PORT = '3000';
