@@ -5,13 +5,15 @@ services:
       dockerfile: Dockerfile.dev
       context: .
     image: relaynet-pong:local-dev
-    command: src/bin/server.ts
+    command: src/bin/pohttp-server.ts
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
       - ./src:/opt/pong-dev/src
     links:
       - redis
+    environment:
+      REDIS_HOST: redis
 
 #  queue:
 #    build:
