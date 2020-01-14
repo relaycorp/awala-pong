@@ -149,7 +149,7 @@ describe('receiveParcel', () => {
           'X-Relaynet-Gateway'
         ],
         senderCertificate: base64Encode(parcel.senderCertificate.serialize()),
-        serviceMessage: base64Encode(parcel.payloadSerialized),
+        serviceMessageCiphertext: base64Encode(parcel.payloadSerialized),
       };
       expect(pongQueueAddSpy).toBeCalledWith(expectedMessageData);
     });
@@ -167,8 +167,8 @@ async function generateStubParcel(recipientAddress: string): Promise<ArrayBuffer
     subjectPublicKey: senderKeyPair.publicKey,
     validityEndDate: tomorrow,
   });
-  const recipientKeyPair = await generateRSAKeyPair();
 
+  const recipientKeyPair = await generateRSAKeyPair();
   const recipientCertificate = await issueNodeCertificate({
     issuerPrivateKey: recipientKeyPair.privateKey,
     serialNumber: 2,

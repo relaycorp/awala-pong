@@ -52,7 +52,7 @@ export default async function registerRoutes(
       pongQueue.add({
         gatewayAddress,
         senderCertificate: Buffer.from(parcel.senderCertificate.serialize()).toString('base64'),
-        serviceMessage: Buffer.from(parcel.payloadSerialized).toString('base64'),
+        serviceMessageCiphertext: Buffer.from(parcel.payloadSerialized).toString('base64'),
       });
       return reply.code(202).send({});
     },
