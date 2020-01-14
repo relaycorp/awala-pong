@@ -1,8 +1,10 @@
-FROM node:12.14.1
-
-WORKDIR /opt/pong-dev
+FROM node:12.14.1 as build
+WORKDIR /tmp/pong-dev
 COPY package.json package-lock.json ./
 RUN npm install
-EXPOSE 3000
 
+FROM node:12.14.1-slim
+WORKDIR /opt/pong-dev
+COPY --from=build /tmp/pong-dev ./
 ENTRYPOINT ["./node_modules/.bin/ts-node-dev", "--transpile-only"]
+EXPOSE 3000
