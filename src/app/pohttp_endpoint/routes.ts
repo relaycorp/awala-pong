@@ -1,5 +1,6 @@
 import { Parcel } from '@relaycorp/relaynet-core';
 import { FastifyInstance, FastifyReply } from 'fastify';
+import { PingProcessingMessage } from '../background_queue/processor';
 import { initQueue } from '../background_queue/queue';
 
 export default async function registerRoutes(
@@ -49,11 +50,17 @@ export default async function registerRoutes(
         return reply.code(400).send({ message: 'Invalid parcel recipient' });
       }
 
-      pongQueue.add({
+      const queueMessage: PingProcessingMessage = {
         gatewayAddress,
         senderCertificate: Buffer.from(parcel.senderCertificate.serialize()).toString('base64'),
         serviceMessageCiphertext: Buffer.from(parcel.payloadSerialized).toString('base64'),
-      });
+      };
+      try {
+        await pongQueue.add(queueMessage);
+      } catch (error) {
+        request.log.error('Failed to queue ping message', { err: error });
+        return reply.code(500).send({ message: 'Could not queue ping message for processing' });
+      }
       return reply.code(202).send({});
     },
   });

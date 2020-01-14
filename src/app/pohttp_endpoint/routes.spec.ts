@@ -153,6 +153,21 @@ describe('receiveParcel', () => {
       };
       expect(pongQueueAddSpy).toBeCalledWith(expectedMessageData);
     });
+
+    test('Failing to queue the ping message should result in a 500 response', async () => {
+      const error = new Error('Oops');
+      pongQueueAddSpy.mockRejectedValueOnce(error);
+
+      const response = await serverInstance.inject(validRequestOptions);
+
+      expect(response).toHaveProperty('statusCode', 500);
+      expect(JSON.parse(response.payload)).toEqual({
+        message: 'Could not queue ping message for processing',
+      });
+
+      // TODO: Find a way to spy on the error logger
+      // expect(pinoErrorLogSpy).toBeCalledWith('Failed to queue ping message', { err: error });
+    });
   });
 });
 
