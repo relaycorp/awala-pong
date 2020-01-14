@@ -1,5 +1,6 @@
 import { Parcel } from '@relaycorp/relaynet-core';
 import { FastifyInstance, FastifyReply } from 'fastify';
+import { initQueue } from '../background_queue/queue';
 
 export default async function registerRoutes(
   fastify: FastifyInstance,
@@ -16,6 +17,7 @@ export default async function registerRoutes(
     },
   });
 
+  const pongQueue = initQueue();
   fastify.route({
     method: 'POST',
     url: '/',
@@ -47,6 +49,11 @@ export default async function registerRoutes(
         return reply.code(400).send({ message: 'Invalid parcel recipient' });
       }
 
+      pongQueue.add({
+        gatewayAddress,
+        senderCertificate: Buffer.from(parcel.senderCertificate.serialize()).toString('base64'),
+        serviceMessage: Buffer.from(parcel.payloadSerialized).toString('base64'),
+      });
       return reply.code(202).send({});
     },
   });
