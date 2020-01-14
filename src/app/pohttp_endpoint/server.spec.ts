@@ -1,6 +1,4 @@
-import envVar from 'env-var';
-
-import { getMockContext } from '../_test_utils';
+import { getMockContext, mockEnvVars } from '../_test_utils';
 import * as server from './server';
 
 import fastify = require('fastify');
@@ -87,12 +85,7 @@ describe('runServer', () => {
 
   test('Custom port can be set via PONG_PORT environment variable', async () => {
     const customPort = '3001';
-    jest.spyOn(envVar, 'get').mockImplementation((...args: readonly any[]) => {
-      const originalEnvVar = jest.requireActual('env-var');
-      const env = originalEnvVar.from({ PONG_PORT: customPort });
-
-      return env.get(...args);
-    });
+    mockEnvVars({ PONG_PORT: customPort });
 
     await server.runServer();
 
@@ -111,12 +104,7 @@ describe('runServer', () => {
 
   test('Custom host can be set via PONG_HOST environment variable', async () => {
     const customHost = '192.0.2.1';
-    jest.spyOn(envVar, 'get').mockImplementation((...args: readonly any[]) => {
-      const originalEnvVar = jest.requireActual('env-var');
-      const env = originalEnvVar.from({ PONG_HOST: customHost });
-
-      return env.get(...args);
-    });
+    mockEnvVars({ PONG_HOST: customHost });
 
     await server.runServer();
 
