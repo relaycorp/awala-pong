@@ -1,8 +1,12 @@
 // tslint:disable-next-line:no-var-requires
 require('make-promises-safe');
 
+import { get as getEnvVar } from 'env-var';
+
 import processPing from '../app/background_queue/processor';
 import { initQueue } from '../app/background_queue/queue';
+
+getEnvVar('ENDPOINT_PRIVATE_KEY').required();
 
 const QUEUE = initQueue();
 const isTypeScript = __filename.endsWith('ts');

@@ -3,16 +3,10 @@ import { initQueue } from './queue';
 
 describe('initQueue', () => {
   const stubRedisHost = 'redis';
-  const stubEndpointPrivateKey = 'secret';
-  const stubEnvVars = { ENDPOINT_PRIVATE_KEY: stubEndpointPrivateKey, REDIS_HOST: stubRedisHost };
+  const stubEnvVars = { REDIS_HOST: stubRedisHost };
 
   afterAll(() => {
     jest.restoreAllMocks();
-  });
-
-  test('Error should be thrown if ENDPOINT_PRIVATE_KEY is absent', () => {
-    mockEnvVars({ ...stubEnvVars, ENDPOINT_PRIVATE_KEY: undefined });
-    expect(initQueue).toThrowWithMessage(Error, /ENDPOINT_PRIVATE_KEY/);
   });
 
   test('Error should be thrown if REDIS_HOST is undefined', () => {
