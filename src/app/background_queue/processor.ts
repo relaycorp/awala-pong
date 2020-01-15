@@ -1,11 +1,17 @@
-import { ServiceMessage, SessionlessEnvelopedData } from '@relaycorp/relaynet-core';
+import {
+  Certificate,
+  Parcel,
+  ServiceMessage,
+  SessionlessEnvelopedData,
+} from '@relaycorp/relaynet-core';
+import { deliverParcel } from '@relaycorp/relaynet-pohttp';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { Job } from 'bull';
 import { get as getEnvVar } from 'env-var';
 import WebCrypto from 'node-webcrypto-ossl';
 import pino = require('pino');
 
-import { deserializePing } from '../pingSerialization';
+import { deserializePing, Ping } from '../pingSerialization';
 
 const logger = pino();
 
@@ -43,13 +49,33 @@ export default async function processPing(job: Job): Promise<void> {
       jobId: job.id,
       messageType: serviceMessage.type,
     });
+    return;
   }
 
+  // tslint:disable-next-line:no-let
+  let ping: Ping;
   try {
-    deserializePing(serviceMessage.value);
+    ping = deserializePing(serviceMessage.value);
   } catch (error) {
     logger.info('Invalid ping message', { err: error, jobId: job.id });
+    return;
   }
+
+  const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', ping.id);
+  const pongRecipientCertificate = Certificate.deserialize(
+    bufferToArray(base64ToDer(queueMessage.senderCertificate)),
+  );
+  const pongServiceMessage = await SessionlessEnvelopedData.encrypt(
+    pongMessage.serialize(),
+    pongRecipientCertificate,
+  );
+  const pongParcel = new Parcel(
+    pongRecipientCertificate.getCommonName(),
+    ping.pda,
+    pongServiceMessage.serialize(),
+  );
+  const parcelSerialized = await pongParcel.serialize(privateKey);
+  await deliverParcel(queueMessage.gatewayAddress, parcelSerialized);
 }
 
 async function extractServiceMessage(
@@ -69,12 +95,15 @@ async function extractServiceMessage(
 
 async function convertPemPrivateKeyToWebCrypto(privateKeyPem: string): Promise<CryptoKey> {
   const privateKeyBase64 = privateKeyPem.replace(/(-----(BEGIN|END) PRIVATE KEY-----|\n)/g, '');
-  const privateKeyDer = Buffer.from(privateKeyBase64, 'base64');
   return crypto.subtle.importKey(
     'pkcs8',
-    privateKeyDer,
+    base64ToDer(privateKeyBase64),
     { name: 'RSA-PSS', hash: 'SHA-256' },
     true,
     ['sign'],
   );
+}
+
+function base64ToDer(base64Value: string): Buffer {
+  return Buffer.from(base64Value, 'base64');
 }
