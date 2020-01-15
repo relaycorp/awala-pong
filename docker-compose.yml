@@ -1,10 +1,11 @@
-version: '3'
+version: '3.7'
 services:
   app:
     build:
       dockerfile: Dockerfile.dev
       context: .
     image: relaynet-pong:local-dev
+    init: true
     command: src/bin/pohttp-server.ts
     ports:
       - '127.0.0.1:3000:3000'
@@ -20,6 +21,7 @@ services:
       dockerfile: Dockerfile.dev
       context: .
     image: relaynet-pong:local-dev
+    init: true
     command: src/bin/background-queue.ts
     volumes:
       - ./src:/opt/pong-dev/src
@@ -62,3 +64,4 @@ services:
 
   redis:
     image: redis:5.0-alpine
+    init: true
