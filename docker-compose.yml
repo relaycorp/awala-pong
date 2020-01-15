@@ -1,4 +1,4 @@
-version: "3"
+version: '3'
 services:
   app:
     build:
@@ -7,7 +7,7 @@ services:
     image: relaynet-pong:local-dev
     command: src/bin/pohttp-server.ts
     ports:
-      - "127.0.0.1:3000:3000"
+      - '127.0.0.1:3000:3000'
     volumes:
       - ./src:/opt/pong-dev/src
     links:
@@ -15,18 +15,50 @@ services:
     environment:
       REDIS_HOST: redis
 
-#  queue:
-#    build:
-#      dockerfile: Dockerfile.dev
-#      context: .
-#    image: relaynet-pong:local-dev
-#    command: app/queue_test.ts
-#    volumes:
-#      - ./src/app:/opt/pong-dev/app
-#    links:
-#      - redis
-#    environment:
-#      REDIS_HOST: redis
+  queue:
+    build:
+      dockerfile: Dockerfile.dev
+      context: .
+    image: relaynet-pong:local-dev
+    command: src/bin/background-queue.ts
+    volumes:
+      - ./src:/opt/pong-dev/src
+    links:
+      - redis
+    environment:
+      REDIS_HOST: redis
+
+      # We should be supporting multiple keys so we can do key rotation.
+      # See: https://github.com/relaycorp/relaynet-pong/issues/14
+      ENDPOINT_PRIVATE_KEY: |
+        -----BEGIN PRIVATE KEY-----
+        MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCeEfYfyxCWbd8m
+        wUT1ZooFnds93sz5UDrn0p0l/a1oIyVLijKpHR+81u8L2SoTiPMGOG1Jq110S3hy
+        QZwPzCVtnzayRaauUdleMQbm4lHjamxzM9RKq/FeO4kTNWFrNPkwTmb2Ip9bFqOC
+        OiC56brDk1ReRw+8qZ0CC5WMRhELOKWeD7Uz1gTjEZh0ZRHa78wuhug3PlWTmKnK
+        TqmcVpMTWP5hMUP3QAMqCXtJLh4wx9USkJr1lQ7t/gqFOEFodZUBt+dtNep1RmjI
+        obMg1w1k48WE0z14AHwKDicpOHSNANdDHlxCNguinHp5y3LL7ppoof1FWda2RyzS
+        1JANDeqBAgMBAAECggEBAI8dwhMtHzqkBfwn1tC9Y1AMiblt5XYBryO/7Gq+UOfN
+        knHfkVjOtrKag9rdZ5xCTY8fPcwKrNWjk00XnD4tXuHu2m30ZCLGlqESkKYw2WWn
+        MMPpdFebcDEahFRw62BOmSOkiNJnrJKjX62EBaduOJvk4+lsO5Jcm3yDkoZr1fiq
+        h9dkK4M4NN9qHF/npuXtqmSAtyBqOmkBVEWIJ93/zdKk8WO2Y4YIxhVQMY5PjG2Z
+        h0zlc/AM0idVfWkhJfuxhg53ueAQvR1oi6PBFLSL1oyoPATbjEktbfBOzngAYNga
+        J160OjesIW28op0hypGgviOLHvbcsvAhu1jne6y5e7ECgYEAzu0l5xMZ9euUsnN5
+        3KifuYUywp+r8anH5+nb8C2R43fVbUG1iHrphH/XspzFPoFN9iDUKfKb4PKFxA+V
+        C9FK+ZehqjdFoTt/RX+M5tqTT/LaglhDP3LnGkSkkKgmQ13C13kPTxe96Kzbcuq7
+        CsFuA0nLCPpEmqY2kOQtYnThtC0CgYEAw46rmxMZIrlHjFjjV/aarNIaYjz6UJsM
+        t4KOwL2SNpjQbTzfoltuXZLOI/RAaSPCukHzCkbAr9Alkgf5JWzjVdQVH+DewHTH
+        J6Z5l4ZPA1Kbbeg/K84MpT6GlMvpnui5a/nutQhx5K3Bi7VFJ6J+wxUVdU80YFsP
+        /pF4/80WYCUCgYEAxYLQ6eZuojBSR583k2qUwwUjtWepPMt9F50+JNuqY/+vBVFy
+        ECqaGLHaVg+TqhzMKIGfYcbECQwUqFbjQltsgB6+3fVSDhr3WYPtHzFE6Uv6S+4p
+        ijeH5afdmIIXu7eUUg2okissRxovgVoSXKrS8mqOVSxlLWQ3s0dJFrBP+6UCgYAI
+        hOOW6tsSdy3VwF2PDHAqjTCXDP7+mfKQ4AAmB1wiQr/5skgvw3noW6fdSxuvON6X
+        zJ2w2eo0/oVUekJxTfANYiLVc69ghPXUFV2Aq1ov095viEmQN/a3ECU+wC9aO9sw
+        CABNJKQJiURAONJdaqfJCdcYeC3Y8L6eoWm7Aw0xfQKBgQDByNIpmYjGnrnsVxhc
+        FhSR7x9TYWUPJ+kZFpRio8w+ihzO7ThkrQRLgiREAcYNjXFzkhjQ/1WwfWZWF8rT
+        arglmN53I93FY3bAKAzuuhF5kUcAONUG/JVnLrWotc/AMJFQF42yr9TkWixJJEAM
+        qJN7R+QylYNMeawcpRVpGU/3nQ==
+        -----END PRIVATE KEY-----
 
   redis:
     image: redis:5.0-alpine

@@ -3,7 +3,7 @@ import { Certificate, generateRSAKeyPair } from '@relaycorp/relaynet-core';
 import { Parser } from 'binary-parser';
 
 import { expectBuffersToEqual, generateStubNodeCertificate } from './_test_utils';
-import { deserializePing, PingSerializationError, serializePing } from './pingSerializer';
+import { deserializePing, PingSerializationError, serializePing } from './pingSerialization';
 
 const pingParser = new Parser()
   .endianess('little')

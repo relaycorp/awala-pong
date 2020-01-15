@@ -7,6 +7,7 @@ import {
 } from '@relaycorp/relaynet-core';
 import { HTTPInjectOptions, HTTPMethod } from 'fastify';
 
+import { PingProcessingMessage } from '../background_queue/processor';
 import * as pongQueue from '../background_queue/queue';
 import { makeServer } from './server';
 
@@ -144,10 +145,11 @@ describe('receiveParcel', () => {
 
       expect(pongQueueAddSpy).toBeCalledTimes(1);
       const parcel = await Parcel.deserialize(validRequestOptions.payload as ArrayBuffer);
-      const expectedMessageData = {
+      const expectedMessageData: PingProcessingMessage = {
         gatewayAddress: (validRequestOptions.headers as { readonly [k: string]: string })[
           'X-Relaynet-Gateway'
         ],
+        parcelId: parcel.id,
         senderCertificate: base64Encode(parcel.senderCertificate.serialize()),
         serviceMessageCiphertext: base64Encode(parcel.payloadSerialized),
       };
