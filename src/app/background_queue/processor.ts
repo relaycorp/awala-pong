@@ -8,7 +8,7 @@ import { deliverParcel } from '@relaycorp/relaynet-pohttp';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { Job } from 'bull';
 import { get as getEnvVar } from 'env-var';
-import WebCrypto from 'node-webcrypto-ossl';
+import WebCrypto = require('node-webcrypto-ossl');
 import pino = require('pino');
 
 import { deserializePing, Ping } from '../pingSerialization';
