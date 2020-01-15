@@ -7,6 +7,8 @@ import {
 } from '@relaycorp/relaynet-core';
 import { HTTPInjectOptions, HTTPMethod } from 'fastify';
 
+import { PingProcessingMessage } from '../background_queue/processor';
+import * as pongQueue from '../background_queue/queue';
 import { makeServer } from './server';
 
 const serverInstance = makeServer();
@@ -20,8 +22,7 @@ const validRequestOptions: HTTPInjectOptions = {
   payload: {},
   url: '/',
 };
-
-beforeEach(async () => {
+beforeAll(async () => {
   const payload = await generateStubParcel('https://localhost/');
   // tslint:disable-next-line:no-object-mutation
   validRequestOptions.payload = payload;
@@ -29,6 +30,16 @@ beforeEach(async () => {
   (validRequestOptions.headers as { [key: string]: string })[
     'Content-Length'
   ] = payload.byteLength.toString();
+});
+
+const pongQueueAddSpy = jest.fn();
+const pongQueueSpy = jest.spyOn(pongQueue, 'initQueue').mockReturnValue(
+  // @ts-ignore
+  { add: pongQueueAddSpy },
+);
+
+afterAll(() => {
+  pongQueueSpy.mockRestore();
 });
 
 describe('receiveParcel', () => {
@@ -129,7 +140,36 @@ describe('receiveParcel', () => {
       expect(JSON.parse(response.payload)).toEqual({});
     });
 
-    test.todo('Parcel payload and metadata should be sent to background queue');
+    test('Parcel payload and metadata should be sent to background queue', async () => {
+      await serverInstance.inject(validRequestOptions);
+
+      expect(pongQueueAddSpy).toBeCalledTimes(1);
+      const parcel = await Parcel.deserialize(validRequestOptions.payload as ArrayBuffer);
+      const expectedMessageData: PingProcessingMessage = {
+        gatewayAddress: (validRequestOptions.headers as { readonly [k: string]: string })[
+          'X-Relaynet-Gateway'
+        ],
+        parcelId: parcel.id,
+        senderCertificate: base64Encode(parcel.senderCertificate.serialize()),
+        serviceMessageCiphertext: base64Encode(parcel.payloadSerialized),
+      };
+      expect(pongQueueAddSpy).toBeCalledWith(expectedMessageData);
+    });
+
+    test('Failing to queue the ping message should result in a 500 response', async () => {
+      const error = new Error('Oops');
+      pongQueueAddSpy.mockRejectedValueOnce(error);
+
+      const response = await serverInstance.inject(validRequestOptions);
+
+      expect(response).toHaveProperty('statusCode', 500);
+      expect(JSON.parse(response.payload)).toEqual({
+        message: 'Could not queue ping message for processing',
+      });
+
+      // TODO: Find a way to spy on the error logger
+      // expect(pinoErrorLogSpy).toBeCalledWith('Failed to queue ping message', { err: error });
+    });
   });
 });
 
@@ -144,8 +184,8 @@ async function generateStubParcel(recipientAddress: string): Promise<ArrayBuffer
     subjectPublicKey: senderKeyPair.publicKey,
     validityEndDate: tomorrow,
   });
-  const recipientKeyPair = await generateRSAKeyPair();
 
+  const recipientKeyPair = await generateRSAKeyPair();
   const recipientCertificate = await issueNodeCertificate({
     issuerPrivateKey: recipientKeyPair.privateKey,
     serialNumber: 2,
@@ -167,4 +207,8 @@ async function generateStubParcel(recipientAddress: string): Promise<ArrayBuffer
   );
 
   return Buffer.from(await parcel.serialize(senderKeyPair.privateKey));
+}
+
+function base64Encode(payload: ArrayBuffer): string {
+  return Buffer.from(payload).toString('base64');
 }
