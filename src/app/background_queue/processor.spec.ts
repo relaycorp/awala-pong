@@ -213,7 +213,7 @@ describe('processPing', () => {
   });
 });
 
-function initJob(data: PingProcessingMessage): Job {
+function initJob(data: PingProcessingMessage): Job<PingProcessingMessage> {
   // @ts-ignore
   return { data, id: 'random-id' };
 }
