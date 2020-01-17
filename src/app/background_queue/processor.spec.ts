@@ -1,6 +1,7 @@
 /* tslint:disable:no-let */
 import {
   Certificate,
+  derSerializePrivateKey,
   generateRSAKeyPair,
   Parcel,
   ServiceMessage,
@@ -8,7 +9,6 @@ import {
 } from '@relaycorp/relaynet-core';
 import * as pohttp from '@relaycorp/relaynet-pohttp';
 import { Job } from 'bull';
-import WebCrypto from 'node-webcrypto-ossl';
 
 import {
   expectBuffersToEqual,
@@ -17,8 +17,6 @@ import {
   mockEnvVars,
 } from '../_test_utils';
 import * as pingSerialization from '../pingSerialization';
-
-const crypto = new WebCrypto();
 
 const mockPino = { info: jest.fn() };
 jest.mock('pino', () => jest.fn().mockImplementation(() => mockPino));
@@ -224,10 +222,7 @@ function initJob(data: { readonly [key: string]: string }): Job {
 }
 
 async function exportPrivateKeyToPem(privateKey: CryptoKey): Promise<string> {
-  const recipientPrivateKeyBuffer = await crypto.subtle.exportKey(
-    'pkcs8',
-    privateKey as NodeWebcryptoOpenSSL.CryptoKey,
-  );
+  const recipientPrivateKeyBuffer = await derSerializePrivateKey(privateKey);
   const recipientPrivateKeyBase64 = Buffer.from(recipientPrivateKeyBuffer).toString('base64');
   return [
     '-----BEGIN PRIVATE KEY-----',

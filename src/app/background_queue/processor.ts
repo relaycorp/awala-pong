@@ -1,5 +1,6 @@
 import {
   Certificate,
+  derDeserializeRSAPrivateKey,
   Parcel,
   ServiceMessage,
   SessionlessEnvelopedData,
@@ -8,14 +9,11 @@ import { deliverParcel } from '@relaycorp/relaynet-pohttp';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { Job } from 'bull';
 import { get as getEnvVar } from 'env-var';
-import WebCrypto = require('node-webcrypto-ossl');
 import pino = require('pino');
 
 import { deserializePing, Ping } from '../pingSerialization';
 
 const logger = pino();
-
-const crypto = new WebCrypto();
 
 export interface PingProcessingMessage {
   readonly gatewayAddress: string;
@@ -95,13 +93,8 @@ async function extractServiceMessage(
 
 async function convertPemPrivateKeyToWebCrypto(privateKeyPem: string): Promise<CryptoKey> {
   const privateKeyBase64 = privateKeyPem.replace(/(-----(BEGIN|END) PRIVATE KEY-----|\n)/g, '');
-  return crypto.subtle.importKey(
-    'pkcs8',
-    base64ToDer(privateKeyBase64),
-    { name: 'RSA-PSS', hash: 'SHA-256' },
-    true,
-    ['sign'],
-  );
+  const privateKeyDer = base64ToDer(privateKeyBase64);
+  return derDeserializeRSAPrivateKey(privateKeyDer, { name: 'RSA-PSS', hash: { name: 'SHA-256' } });
 }
 
 function base64ToDer(base64Value: string): Buffer {
