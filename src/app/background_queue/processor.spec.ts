@@ -20,7 +20,7 @@ import * as pingSerialization from '../pingSerialization';
 
 const mockPino = { info: jest.fn() };
 jest.mock('pino', () => jest.fn().mockImplementation(() => mockPino));
-import processPing from './processor';
+import processPing, { PingProcessingMessage } from './processor';
 
 afterAll(jest.restoreAllMocks);
 
@@ -31,11 +31,7 @@ describe('processPing', () => {
   let recipientCertificate: Certificate;
   let senderCertificate: Certificate;
   let serviceMessageEncrypted: ArrayBuffer;
-  let stubJobData: {
-    readonly gatewayAddress: string;
-    readonly senderCertificate: string;
-    readonly serviceMessageCiphertext: string;
-  };
+  let stubJobData: PingProcessingMessage;
   beforeAll(async () => {
     const senderKeyPair = await generateRSAKeyPair();
     senderCertificate = await generateStubNodeCertificate(
@@ -59,8 +55,9 @@ describe('processPing', () => {
 
     stubJobData = {
       gatewayAddress: 'dummy-gateway',
-      senderCertificate: Buffer.from(senderCertificate.serialize()).toString('base64'),
-      serviceMessageCiphertext: Buffer.from(serviceMessageEncrypted).toString('base64'),
+      parcelId: 'the-id',
+      parcelPayload: Buffer.from(serviceMessageEncrypted).toString('base64'),
+      parcelSenderCertificate: Buffer.from(senderCertificate.serialize()).toString('base64'),
     };
 
     recipientPrivateKeyPem = await exportPrivateKeyToPem(recipientKeyPair.privateKey);
@@ -216,7 +213,7 @@ describe('processPing', () => {
   });
 });
 
-function initJob(data: { readonly [key: string]: string }): Job {
+function initJob(data: PingProcessingMessage): Job {
   // @ts-ignore
   return { data, id: 'random-id' };
 }

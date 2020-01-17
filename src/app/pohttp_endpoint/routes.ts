@@ -53,8 +53,10 @@ export default async function registerRoutes(
       const queueMessage: PingProcessingMessage = {
         gatewayAddress,
         parcelId: parcel.id,
-        senderCertificate: Buffer.from(parcel.senderCertificate.serialize()).toString('base64'),
-        serviceMessageCiphertext: Buffer.from(parcel.payloadSerialized).toString('base64'),
+        parcelPayload: Buffer.from(parcel.payloadSerialized).toString('base64'),
+        parcelSenderCertificate: Buffer.from(parcel.senderCertificate.serialize()).toString(
+          'base64',
+        ),
       };
       try {
         await pongQueue.add(queueMessage);

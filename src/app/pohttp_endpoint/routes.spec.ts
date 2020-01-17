@@ -150,8 +150,8 @@ describe('receiveParcel', () => {
           'X-Relaynet-Gateway'
         ],
         parcelId: parcel.id,
-        senderCertificate: base64Encode(parcel.senderCertificate.serialize()),
-        serviceMessageCiphertext: base64Encode(parcel.payloadSerialized),
+        parcelPayload: base64Encode(parcel.payloadSerialized),
+        parcelSenderCertificate: base64Encode(parcel.senderCertificate.serialize()),
       };
       expect(pongQueueAddSpy).toBeCalledWith(expectedMessageData);
     });

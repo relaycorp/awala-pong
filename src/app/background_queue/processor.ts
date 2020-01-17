@@ -18,8 +18,8 @@ const logger = pino();
 export interface PingProcessingMessage {
   readonly gatewayAddress: string;
   readonly parcelId: string;
-  readonly senderCertificate: string;
-  readonly serviceMessageCiphertext: string;
+  readonly parcelSenderCertificate: string;
+  readonly parcelPayload: string;
 }
 
 export default async function processPing(job: Job): Promise<void> {
@@ -29,14 +29,14 @@ export default async function processPing(job: Job): Promise<void> {
   // See: https://github.com/relaycorp/relaynet-pong/issues/14
   const privateKey = await getEndpointPrivateKey();
 
-  const ping = await unwrapPing(queueMessage.serviceMessageCiphertext, privateKey, job.id);
+  const ping = await unwrapPing(queueMessage.parcelPayload, privateKey, job.id);
   if (ping === undefined) {
     // Service message was invalid; errors were already logged.
     return;
   }
 
   const pongRecipientCertificate = Certificate.deserialize(
-    bufferToArray(base64ToDer(queueMessage.senderCertificate)),
+    bufferToArray(base64ToDer(queueMessage.parcelSenderCertificate)),
   );
   const pongServiceMessage = await generatePongServiceMessage(ping, pongRecipientCertificate);
   const pongParcel = new Parcel(
@@ -56,14 +56,17 @@ async function getEndpointPrivateKey(): Promise<CryptoKey> {
 }
 
 async function unwrapPing(
-  serviceMessageCiphertext: string,
+  parcelPayloadBase64: string,
   privateKey: CryptoKey,
   jobId: string | number,
 ): Promise<Ping | undefined> {
+  // Keep base64-to-der conversion outside try/catch: An invalid base64 encoding would be our fault.
+  const parcelPayload = bufferToArray(Buffer.from(parcelPayloadBase64, 'base64'));
+
   // tslint:disable-next-line:no-let
   let serviceMessage;
   try {
-    serviceMessage = await extractServiceMessage(serviceMessageCiphertext, privateKey);
+    serviceMessage = await extractServiceMessage(parcelPayload, privateKey);
   } catch (error) {
     // The sender didn't create a valid service message, so let's ignore it.
     logger.info('Invalid service message', { err: error, jobId });
@@ -87,17 +90,13 @@ async function unwrapPing(
 }
 
 async function extractServiceMessage(
-  serviceMessageCiphertextBase64: string,
+  parcelPayloadSerialized: ArrayBuffer,
   privateKey: CryptoKey,
 ): Promise<ServiceMessage> {
-  // Keep base64-to-der conversion outside try/catch: An invalid base64 encoding would be our fault.
-  const serviceMessageCiphertextSerialized = bufferToArray(
-    Buffer.from(serviceMessageCiphertextBase64, 'base64'),
-  );
-  const serviceMessageCiphertext = SessionlessEnvelopedData.deserialize(
-    serviceMessageCiphertextSerialized,
+  const parcelPayload = SessionlessEnvelopedData.deserialize(
+    parcelPayloadSerialized,
   ) as SessionlessEnvelopedData;
-  const serviceMessageSerialized = await serviceMessageCiphertext.decrypt(privateKey);
+  const serviceMessageSerialized = await parcelPayload.decrypt(privateKey);
   return ServiceMessage.deserialize(Buffer.from(serviceMessageSerialized));
 }
 
