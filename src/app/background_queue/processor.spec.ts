@@ -20,7 +20,7 @@ import * as pingSerialization from '../pingSerialization';
 
 const mockPino = { info: jest.fn() };
 jest.mock('pino', () => jest.fn().mockImplementation(() => mockPino));
-import processPing, { PingProcessingMessage } from './processor';
+import deliverPongForPing, { PingProcessingMessage } from './processor';
 
 afterAll(jest.restoreAllMocks);
 
@@ -80,7 +80,7 @@ describe('processPing', () => {
     });
 
     const job = initJob(stubJobData);
-    await processPing(job);
+    await deliverPongForPing(job);
 
     expect(mockPino.info).toBeCalledWith('Invalid service message', {
       err: error,
@@ -95,7 +95,7 @@ describe('processPing', () => {
     });
 
     const job = initJob(stubJobData);
-    await processPing(job);
+    await deliverPongForPing(job);
 
     expect(mockPino.info).toBeCalledWith('Invalid service message', {
       err: error,
@@ -110,7 +110,7 @@ describe('processPing', () => {
     });
 
     const job = initJob(stubJobData);
-    await processPing(job);
+    await deliverPongForPing(job);
 
     expect(mockPino.info).toBeCalledWith('Invalid service message', {
       err: error,
@@ -130,7 +130,7 @@ describe('processPing', () => {
       );
 
     const job = initJob(stubJobData);
-    await processPing(job);
+    await deliverPongForPing(job);
 
     expect(mockPino.info).toBeCalledWith('Invalid service message type', {
       jobId: job.id,
@@ -146,7 +146,7 @@ describe('processPing', () => {
     });
 
     const job = initJob(stubJobData);
-    await processPing(job);
+    await deliverPongForPing(job);
 
     expect(mockPino.info).toBeCalledWith('Invalid ping message', {
       err: error,
@@ -161,7 +161,7 @@ describe('processPing', () => {
       jest.spyOn(ServiceMessage.prototype, 'serialize');
       jest.spyOn(Parcel.prototype, 'serialize');
 
-      await processPing(initJob(stubJobData));
+      await deliverPongForPing(initJob(stubJobData));
 
       expect(Parcel.prototype.serialize).toBeCalledTimes(1);
       deliveredParcel = getMockContext(Parcel.prototype.serialize).instances[0];
@@ -209,7 +209,7 @@ describe('processPing', () => {
       throw error;
     });
 
-    await expect(processPing(initJob(stubJobData))).rejects.toEqual(error);
+    await expect(deliverPongForPing(initJob(stubJobData))).rejects.toEqual(error);
   });
 });
 

@@ -3,7 +3,7 @@ require('make-promises-safe');
 
 import { get as getEnvVar } from 'env-var';
 
-import processPing from '../app/background_queue/processor';
+import deliverPongForPing from '../app/background_queue/processor';
 import { initQueue } from '../app/background_queue/queue';
 
 getEnvVar('ENDPOINT_PRIVATE_KEY').required();
@@ -13,7 +13,7 @@ const isTypeScript = __filename.endsWith('ts');
 if (isTypeScript) {
   // Script is being run by ts-node, so we're in development. Run processor in current process and
   // get automatic module reloading.
-  QUEUE.process(processPing);
+  QUEUE.process(deliverPongForPing);
 } else {
   // Script is being run by node. We may be in production, so run processor in separate process.
   QUEUE.process('../app/background_queue/processor');

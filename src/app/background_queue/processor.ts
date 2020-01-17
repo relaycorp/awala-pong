@@ -22,8 +22,8 @@ export interface PingProcessingMessage {
   readonly parcelPayload: string;
 }
 
-export default async function processPing(job: Job): Promise<void> {
-  const queueMessage = job.data as PingProcessingMessage;
+export default async function deliverPongForPing(job: Job): Promise<void> {
+  const queueMessage: PingProcessingMessage = job.data;
 
   // We should be supporting multiple keys so we can do key rotation.
   // See: https://github.com/relaycorp/relaynet-pong/issues/14
@@ -38,7 +38,7 @@ export default async function processPing(job: Job): Promise<void> {
   const pongRecipientCertificate = Certificate.deserialize(
     bufferToArray(base64ToDer(queueMessage.parcelSenderCertificate)),
   );
-  const pongServiceMessage = await generatePongServiceMessage(ping, pongRecipientCertificate);
+  const pongServiceMessage = await generatePongServiceMessage(ping.id, pongRecipientCertificate);
   const pongParcel = new Parcel(
     pongRecipientCertificate.getCommonName(),
     ping.pda,
@@ -101,10 +101,10 @@ async function extractServiceMessage(
 }
 
 async function generatePongServiceMessage(
-  ping: Ping,
+  pingId: Buffer,
   recipientCertificate: Certificate,
 ): Promise<ArrayBuffer> {
-  const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', ping.id);
+  const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', pingId);
   const pongServiceMessage = await SessionlessEnvelopedData.encrypt(
     pongMessage.serialize(),
     recipientCertificate,
