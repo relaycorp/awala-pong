@@ -188,7 +188,9 @@ describe('VaultSessionStore', () => {
       mockAxiosClient.get.mockResolvedValueOnce({
         data: {
           data: {
-            privateKey: base64Encode(await derSerializePrivateKey(sessionKeyPair.privateKey)),
+            data: {
+              privateKey: base64Encode(await derSerializePrivateKey(sessionKeyPair.privateKey)),
+            },
           },
         },
         status: 200,

@@ -47,7 +47,8 @@ export class VaultSessionStore implements SessionStore {
       );
     }
 
-    const privateKeyDer = base64Decode(response.data.data.privateKey);
+    const vaultSecret = response.data.data;
+    const privateKeyDer = base64Decode(vaultSecret.data.privateKey);
     return derDeserializeECDHPrivateKey(privateKeyDer, {
       name: 'ECDH',
       namedCurve: 'P-256',
