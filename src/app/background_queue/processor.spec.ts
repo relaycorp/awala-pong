@@ -17,6 +17,7 @@ import {
   mockEnvVars,
 } from '../_test_utils';
 import * as pingSerialization from '../pingSerialization';
+import { base64Encode } from '../utils';
 
 const mockPino = { info: jest.fn() };
 jest.mock('pino', () => jest.fn().mockImplementation(() => mockPino));
@@ -56,8 +57,8 @@ describe('processPing', () => {
     stubJobData = {
       gatewayAddress: 'dummy-gateway',
       parcelId: 'the-id',
-      parcelPayload: Buffer.from(serviceMessageEncrypted).toString('base64'),
-      parcelSenderCertificate: Buffer.from(senderCertificate.serialize()).toString('base64'),
+      parcelPayload: base64Encode(serviceMessageEncrypted),
+      parcelSenderCertificate: base64Encode(senderCertificate.serialize()),
     };
 
     recipientPrivateKeyPem = await exportPrivateKeyToPem(recipientKeyPair.privateKey);
@@ -211,6 +212,24 @@ describe('processPing', () => {
 
     await expect(deliverPongForPing(initJob(stubJobData))).rejects.toEqual(error);
   });
+
+  describe('Channel session', () => {
+    const mockEnvelopedDataDeserialize = jest.spyOn(SessionlessEnvelopedData, 'deserialize');
+    beforeEach(() => {
+      mockEnvelopedDataDeserialize.mockReset();
+    });
+    afterAll(() => {
+      mockEnvelopedDataDeserialize.mockRestore();
+    });
+
+    test.skip('Payloads encrypted with session keys should be supported', async () => {
+      await deliverPongForPing(initJob(stubJobData));
+
+      fail('Incomplete');
+    });
+
+    test.todo('Payloads encrypted with unknown public key ids should be ignored');
+  });
 });
 
 function initJob(data: PingProcessingMessage): Job<PingProcessingMessage> {
@@ -220,7 +239,7 @@ function initJob(data: PingProcessingMessage): Job<PingProcessingMessage> {
 
 async function exportPrivateKeyToPem(privateKey: CryptoKey): Promise<string> {
   const recipientPrivateKeyBuffer = await derSerializePrivateKey(privateKey);
-  const recipientPrivateKeyBase64 = Buffer.from(recipientPrivateKeyBuffer).toString('base64');
+  const recipientPrivateKeyBase64 = base64Encode(recipientPrivateKeyBuffer);
   return [
     '-----BEGIN PRIVATE KEY-----',
     ...(recipientPrivateKeyBase64.match(/.{1,64}/g) as readonly string[]),

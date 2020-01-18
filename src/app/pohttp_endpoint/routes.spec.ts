@@ -9,6 +9,7 @@ import { HTTPInjectOptions, HTTPMethod } from 'fastify';
 
 import { PingProcessingMessage } from '../background_queue/processor';
 import * as pongQueue from '../background_queue/queue';
+import { base64Encode } from '../utils';
 import { makeServer } from './server';
 
 const serverInstance = makeServer();
@@ -207,8 +208,4 @@ async function generateStubParcel(recipientAddress: string): Promise<ArrayBuffer
   );
 
   return Buffer.from(await parcel.serialize(senderKeyPair.privateKey));
-}
-
-function base64Encode(payload: ArrayBuffer): string {
-  return Buffer.from(payload).toString('base64');
 }

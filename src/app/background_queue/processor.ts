@@ -12,6 +12,7 @@ import { get as getEnvVar } from 'env-var';
 import pino = require('pino');
 
 import { deserializePing, Ping } from '../pingSerialization';
+import { base64Decode } from '../utils';
 
 const logger = pino();
 
@@ -34,7 +35,7 @@ export default async function deliverPongForPing(job: Job<PingProcessingMessage>
   }
 
   const pongRecipientCertificate = Certificate.deserialize(
-    bufferToArray(base64ToDer(job.data.parcelSenderCertificate)),
+    bufferToArray(base64Decode(job.data.parcelSenderCertificate)),
   );
   const pongServiceMessage = await generatePongServiceMessage(ping.id, pongRecipientCertificate);
   const pongParcel = new Parcel(
@@ -58,8 +59,7 @@ async function unwrapPing(
   privateKey: CryptoKey,
   jobId: string | number,
 ): Promise<Ping | undefined> {
-  // Keep base64-to-der conversion outside try/catch: An invalid base64 encoding would be our fault.
-  const parcelPayload = bufferToArray(Buffer.from(parcelPayloadBase64, 'base64'));
+  const parcelPayload = bufferToArray(base64Decode(parcelPayloadBase64));
 
   // tslint:disable-next-line:no-let
   let serviceMessage;
@@ -112,10 +112,6 @@ async function generatePongServiceMessage(
 
 async function convertPemPrivateKeyToWebCrypto(privateKeyPem: string): Promise<CryptoKey> {
   const privateKeyBase64 = privateKeyPem.replace(/(-----(BEGIN|END) PRIVATE KEY-----|\n)/g, '');
-  const privateKeyDer = base64ToDer(privateKeyBase64);
+  const privateKeyDer = base64Decode(privateKeyBase64);
   return derDeserializeRSAPrivateKey(privateKeyDer, { name: 'RSA-PSS', hash: { name: 'SHA-256' } });
-}
-
-function base64ToDer(base64Value: string): Buffer {
-  return Buffer.from(base64Value, 'base64');
 }

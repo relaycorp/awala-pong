@@ -1,8 +1,19 @@
-import axios, { AxiosInstance } from 'axios';
+/* tslint:disable:max-classes-per-file */
+import {
+  derSerializePrivateKey,
+  derSerializePublicKey,
+  RelaynetError,
+  SessionStore,
+} from '@relaycorp/relaynet-core';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import { createHash } from 'crypto';
 import { Agent as HttpAgent } from 'http';
 import { Agent as HttpsAgent } from 'https';
+import { base64Encode } from './utils';
 
-export class VaultSessionStore {
+export class VaultStoreError extends RelaynetError {}
+
+export class VaultSessionStore implements SessionStore {
   protected readonly axiosClient: AxiosInstance;
 
   constructor(vaultUrl: string, vaultToken: string, kvPath: string) {
@@ -15,10 +26,45 @@ export class VaultSessionStore {
       timeout: 3000,
     });
   }
+
+  // @ts-ignore
+  public getPrivateKey(dhKeyPairId: number, recipientPublicKey: CryptoKey): Promise<CryptoKey> {
+    // @ts-ignore
+    return;
+  }
+
+  public async savePrivateKey(
+    dhPrivateKey: CryptoKey,
+    dhKeyPairId: number,
+    recipientPublicKey: CryptoKey,
+  ): Promise<void> {
+    const recipientPublicKeyDigest = sha256Hex(await derSerializePublicKey(recipientPublicKey));
+    const dhPrivateKeyBase64 = base64Encode(await derSerializePrivateKey(dhPrivateKey));
+    const vaultEndpointPath = `/${recipientPublicKeyDigest}/${dhKeyPairId}`;
+    const requestBody = { data: { privateKey: dhPrivateKeyBase64 } };
+    // tslint:disable-next-line:no-let
+    let response: AxiosResponse;
+    try {
+      response = await this.axiosClient.post(vaultEndpointPath, requestBody);
+    } catch (error) {
+      throw new VaultStoreError(error, `Failed to save private key ${dhKeyPairId}`);
+    }
+    if (response.status !== 200 && response.status !== 204) {
+      throw new VaultStoreError(
+        `Failed to save private key ${dhKeyPairId}: Vault returned a ${response.status} response`,
+      );
+    }
+  }
 }
 
 function buildBaseVaultUrl(vaultUrl: string, kvPath: string): string {
   const sanitizedVaultUrl = vaultUrl.replace(/\/+$/, '');
   const sanitizedKvPath = kvPath.replace(/^\/+/, '').replace(/\/+/, '');
-  return `${sanitizedVaultUrl}/v1/${sanitizedKvPath}/data/`;
+  return `${sanitizedVaultUrl}/v1/${sanitizedKvPath}/data`;
+}
+
+export function sha256Hex(plaintext: Buffer): string {
+  return createHash('sha256')
+    .update(plaintext)
+    .digest('hex');
 }
