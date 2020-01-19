@@ -13,17 +13,11 @@ import pino = require('pino');
 
 import { deserializePing, Ping } from '../pingSerialization';
 import { base64Decode } from '../utils';
+import { QueuedPing } from './QueuedPing';
 
 const logger = pino();
 
-export interface PingProcessingMessage {
-  readonly gatewayAddress: string;
-  readonly parcelId: string;
-  readonly parcelSenderCertificate: string;
-  readonly parcelPayload: string;
-}
-
-export default async function deliverPongForPing(job: Job<PingProcessingMessage>): Promise<void> {
+export default async function deliverPongForPing(job: Job<QueuedPing>): Promise<void> {
   // We should be supporting multiple keys so we can do key rotation.
   // See: https://github.com/relaycorp/relaynet-pong/issues/14
   const privateKey = await getEndpointPrivateKey();

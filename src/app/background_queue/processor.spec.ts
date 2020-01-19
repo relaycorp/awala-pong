@@ -18,6 +18,7 @@ import {
 } from '../_test_utils';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utils';
+import { QueuedPing } from './QueuedPing';
 
 const mockPino = { info: jest.fn() };
 jest.mock('pino', () => jest.fn().mockImplementation(() => mockPino));
@@ -32,7 +33,7 @@ describe('processPing', () => {
   let recipientCertificate: Certificate;
   let senderCertificate: Certificate;
   let serviceMessageEncrypted: ArrayBuffer;
-  let stubJobData: PingProcessingMessage;
+  let stubJobData: QueuedPing;
   beforeAll(async () => {
     const senderKeyPair = await generateRSAKeyPair();
     senderCertificate = await generateStubNodeCertificate(
@@ -232,7 +233,7 @@ describe('processPing', () => {
   });
 });
 
-function initJob(data: PingProcessingMessage): Job<PingProcessingMessage> {
+function initJob(data: QueuedPing): Job<QueuedPing> {
   // @ts-ignore
   return { data, id: 'random-id' };
 }
