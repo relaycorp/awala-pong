@@ -225,9 +225,9 @@ describe('PingProcessor', () => {
 
     describe('Channel session', () => {
       const recipientSessionCert1serialNumber = 135;
-      let senderSessionKeyPair1Id: number;
       let recipientSessionKeyPair1: CryptoKeyPair;
       let stubSessionParcelPayload: SessionEnvelopedData;
+      let stubJob: Job<QueuedPing>;
       beforeAll(async () => {
         recipientSessionKeyPair1 = await generateECDHKeyPair();
         const recipientSessionCert1 = await issueInitialDHKeyCertificate({
@@ -242,7 +242,8 @@ describe('PingProcessor', () => {
           recipientSessionCert1,
         );
         stubSessionParcelPayload = encryptionResult.envelopedData;
-        senderSessionKeyPair1Id = encryptionResult.dhKeyId;
+
+        stubJob = await initJob({ parcelPayload: stubSessionParcelPayload });
       });
 
       test('Payloads encrypted with valid session keys should be decrypted', async () => {
@@ -250,9 +251,7 @@ describe('PingProcessor', () => {
         const encryptSpy = jest.spyOn(SessionEnvelopedData, 'encrypt');
         mockSessionStore.getPrivateKey.mockResolvedValueOnce(recipientSessionKeyPair1.privateKey);
 
-        await processor.deliverPongForPing(
-          await initJob({ parcelPayload: stubSessionParcelPayload }),
-        );
+        await processor.deliverPongForPing(stubJob);
 
         // Check the right private key was retrieved
         expect(mockSessionStore.getPrivateKey).toBeCalledTimes(1);
@@ -286,31 +285,29 @@ describe('PingProcessor', () => {
 
       test.todo('New ephemeral keys should be saved');
 
+      test('Retrieving an invalid originator key should be gracefully logged', async () => {
+        const err = new Error('Denied');
+        jest.spyOn(SessionEnvelopedData.prototype, 'getOriginatorKey').mockRejectedValueOnce(err);
+
+        await processor.deliverPongForPing(stubJob);
+        expect(mockPino.info).toBeCalledTimes(1);
+
+        expect(mockPino.info).toBeCalledWith('Invalid service message', {
+          err,
+          jobId: stubJob.id,
+        });
+      });
+
       test('Use of unknown public key ids should be gracefully logged', async () => {
         const err = new Error('Denied');
         mockSessionStore.getPrivateKey.mockRejectedValueOnce(err);
 
-        const job = await initJob();
-        await processor.deliverPongForPing(job);
+        await processor.deliverPongForPing(stubJob);
 
-        expect(mockPino.info).toBeCalledWith('Could not find private key', {
+        expect(mockPino.info).toBeCalledTimes(1);
+        expect(mockPino.info).toBeCalledWith('Invalid service message', {
           err,
-          jobId: job.id,
-          keyId: senderSessionKeyPair1Id,
-        });
-      });
-
-      test('Decryption errors should be gracefully logged', async () => {
-        const err = new Error('Denied');
-        const mockDecrypt = jest.spyOn(stubSessionParcelPayload, 'decrypt');
-        mockDecrypt.mockRejectedValueOnce(err);
-
-        const job = await initJob();
-        await processor.deliverPongForPing(job);
-
-        expect(mockPino.info).toBeCalledWith('Could not decrypt service message', {
-          err,
-          jobId: job.id,
+          jobId: stubJob.id,
         });
       });
     });
