@@ -24,6 +24,7 @@ export async function generateStubNodeCertificate(
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   return issueNodeCertificate({
+    isCA: true,
     issuerPrivateKey: privateKey,
     serialNumber: 1,
     subjectPublicKey: publicKey,

@@ -2,11 +2,16 @@
 import {
   Certificate,
   derSerializePrivateKey,
+  derSerializePublicKey,
   EnvelopedData,
+  generateECDHKeyPair,
   generateRSAKeyPair,
+  issueInitialDHKeyCertificate,
   Parcel,
   ServiceMessage,
+  SessionEnvelopedData,
   SessionlessEnvelopedData,
+  SessionOriginatorKey,
 } from '@relaycorp/relaynet-core';
 import * as pohttp from '@relaycorp/relaynet-pohttp';
 import { Job } from 'bull';
@@ -25,24 +30,25 @@ afterAll(jest.restoreAllMocks);
 
 describe('PingProcessor', () => {
   describe('deliverPongForPing', () => {
-    const sessionStore = new VaultSessionStore('https://example.com:8200', 'letmein', 'foo');
+    const mockSessionStore = { getPrivateKey: jest.fn() };
 
     const pingId = Buffer.from('a'.repeat(36));
 
-    let recipientPrivateKeyDer: Buffer;
+    let recipientKeyPair: CryptoKeyPair;
     let recipientCertificate: Certificate;
+    let senderKeyPair: CryptoKeyPair;
     let senderCertificate: Certificate;
-    let serviceMessageEncrypted: ArrayBuffer;
-    let stubJobData: QueuedPing;
+    let serviceMessageSerialized: ArrayBuffer;
+    let stubParcelPayload: EnvelopedData;
     let processor: PingProcessor;
     beforeAll(async () => {
-      const senderKeyPair = await generateRSAKeyPair();
+      senderKeyPair = await generateRSAKeyPair();
       senderCertificate = await generateStubNodeCertificate(
         senderKeyPair.publicKey,
         senderKeyPair.privateKey,
       );
 
-      const recipientKeyPair = await generateRSAKeyPair();
+      recipientKeyPair = await generateRSAKeyPair();
       recipientCertificate = await generateStubNodeCertificate(
         recipientKeyPair.publicKey,
         recipientKeyPair.privateKey,
@@ -52,20 +58,17 @@ describe('PingProcessor', () => {
         'application/vnd.relaynet.ping-v1.ping',
         pingSerialization.serializePing(recipientCertificate, pingId),
       );
-      serviceMessageEncrypted = (
-        await SessionlessEnvelopedData.encrypt(serviceMessage.serialize(), recipientCertificate)
-      ).serialize();
+      serviceMessageSerialized = serviceMessage.serialize();
+      stubParcelPayload = await SessionlessEnvelopedData.encrypt(
+        serviceMessageSerialized,
+        recipientCertificate,
+      );
 
-      stubJobData = {
-        gatewayAddress: 'dummy-gateway',
-        parcelId: 'the-id',
-        parcelPayload: base64Encode(serviceMessageEncrypted),
-        parcelSenderCertificate: base64Encode(senderCertificate.serialize()),
-      };
-
-      recipientPrivateKeyDer = await derSerializePrivateKey(recipientKeyPair.privateKey);
-
-      processor = new PingProcessor(recipientPrivateKeyDer, sessionStore);
+      const recipientPrivateKeyDer = await derSerializePrivateKey(recipientKeyPair.privateKey);
+      processor = new PingProcessor(
+        recipientPrivateKeyDer,
+        (mockSessionStore as unknown) as VaultSessionStore,
+      );
     });
 
     beforeEach(() => {
@@ -83,7 +86,7 @@ describe('PingProcessor', () => {
         throw error;
       });
 
-      const job = initJob(stubJobData);
+      const job = await initJob();
       await processor.deliverPongForPing(job);
 
       expect(mockPino.info).toBeCalledWith('Invalid service message', {
@@ -98,7 +101,7 @@ describe('PingProcessor', () => {
         throw error;
       });
 
-      const job = initJob(stubJobData);
+      const job = await initJob();
       await processor.deliverPongForPing(job);
 
       expect(mockPino.info).toBeCalledWith('Invalid service message', {
@@ -113,7 +116,7 @@ describe('PingProcessor', () => {
         throw error;
       });
 
-      const job = initJob(stubJobData);
+      const job = await initJob();
       await processor.deliverPongForPing(job);
 
       expect(mockPino.info).toBeCalledWith('Invalid service message', {
@@ -133,7 +136,7 @@ describe('PingProcessor', () => {
           ),
         );
 
-      const job = initJob(stubJobData);
+      const job = await initJob();
       await processor.deliverPongForPing(job);
 
       expect(mockPino.info).toBeCalledWith('Invalid service message type', {
@@ -149,7 +152,7 @@ describe('PingProcessor', () => {
         throw error;
       });
 
-      const job = initJob(stubJobData);
+      const job = await initJob();
       await processor.deliverPongForPing(job);
 
       expect(mockPino.info).toBeCalledWith('Invalid ping message', {
@@ -159,13 +162,14 @@ describe('PingProcessor', () => {
     });
 
     describe('Successful pong delivery', () => {
+      const stubGatewayAddress = 'https://example.com';
       let deliveredParcel: Parcel;
       beforeEach(async () => {
         jest.spyOn(SessionlessEnvelopedData, 'encrypt');
         jest.spyOn(ServiceMessage.prototype, 'serialize');
         jest.spyOn(Parcel.prototype, 'serialize');
 
-        await processor.deliverPongForPing(initJob(stubJobData));
+        await processor.deliverPongForPing(await initJob({ gatewayAddress: stubGatewayAddress }));
 
         expect(Parcel.prototype.serialize).toBeCalledTimes(1);
         deliveredParcel = getMockContext(Parcel.prototype.serialize).instances[0];
@@ -204,7 +208,7 @@ describe('PingProcessor', () => {
 
       test('Parcel should be delivered to the specified gateway', () => {
         const deliverParcelCall = getMockContext(pohttp.deliverParcel).calls[0];
-        expect(deliverParcelCall[0]).toEqual(stubJobData.gatewayAddress);
+        expect(deliverParcelCall[0]).toEqual(stubGatewayAddress);
       });
     });
 
@@ -216,39 +220,116 @@ describe('PingProcessor', () => {
         throw error;
       });
 
-      await expect(processor.deliverPongForPing(initJob(stubJobData))).rejects.toEqual(error);
+      await expect(processor.deliverPongForPing(await initJob())).rejects.toEqual(error);
     });
 
     describe('Channel session', () => {
-      const mockDeserialize = jest.spyOn(EnvelopedData, 'deserialize');
-      beforeEach(() => {
-        mockDeserialize.mockReset();
+      const recipientSessionCert1serialNumber = 135;
+      let senderSessionKeyPair1Id: number;
+      let recipientSessionKeyPair1: CryptoKeyPair;
+      let stubSessionParcelPayload: SessionEnvelopedData;
+      beforeAll(async () => {
+        recipientSessionKeyPair1 = await generateECDHKeyPair();
+        const recipientSessionCert1 = await issueInitialDHKeyCertificate({
+          dhPublicKey: recipientSessionKeyPair1.publicKey,
+          nodeCertificate: recipientCertificate,
+          nodePrivateKey: recipientKeyPair.privateKey,
+          serialNumber: recipientSessionCert1serialNumber,
+        });
+
+        const encryptionResult = await SessionEnvelopedData.encrypt(
+          serviceMessageSerialized,
+          recipientSessionCert1,
+        );
+        stubSessionParcelPayload = encryptionResult.envelopedData;
+        senderSessionKeyPair1Id = encryptionResult.dhKeyId;
       });
-      afterAll(() => {
-        mockDeserialize.mockRestore();
+
+      test('Payloads encrypted with valid session keys should be decrypted', async () => {
+        const decryptSpy = jest.spyOn(SessionEnvelopedData.prototype, 'decrypt');
+        const encryptSpy = jest.spyOn(SessionEnvelopedData, 'encrypt');
+        mockSessionStore.getPrivateKey.mockResolvedValueOnce(recipientSessionKeyPair1.privateKey);
+
+        await processor.deliverPongForPing(
+          await initJob({ parcelPayload: stubSessionParcelPayload }),
+        );
+
+        // Check the right private key was retrieved
+        expect(mockSessionStore.getPrivateKey).toBeCalledTimes(1);
+        const getKeyCallArgs = mockSessionStore.getPrivateKey.mock.calls[0];
+        expect(getKeyCallArgs[0]).toEqual(recipientSessionCert1serialNumber);
+        expectBuffersToEqual(
+          await derSerializePublicKey(getKeyCallArgs[1]),
+          await derSerializePublicKey(senderKeyPair.publicKey),
+        );
+        expect(decryptSpy).toBeCalledTimes(1);
+        expect(decryptSpy).toBeCalledWith(recipientSessionKeyPair1.privateKey);
+
+        // Check pong message was encrypted properly
+        expect(encryptSpy).toBeCalledTimes(1);
+        const encryptCallArgs = encryptSpy.mock.calls[0];
+        const expectedPongMessage = new ServiceMessage(
+          'application/vnd.relaynet.ping-v1.pong',
+          pingId,
+        );
+        expectBuffersToEqual(encryptCallArgs[0], expectedPongMessage.serialize());
+        const expectedOriginatorKey = await stubSessionParcelPayload.getOriginatorKey();
+        const actualOriginatorKey = encryptCallArgs[1] as SessionOriginatorKey;
+        expect(actualOriginatorKey).toHaveProperty('keyId', expectedOriginatorKey.keyId);
+        expectBuffersToEqual(
+          await derSerializePublicKey(actualOriginatorKey.publicKey),
+          await derSerializePublicKey(expectedOriginatorKey.publicKey),
+        );
+
+        expect(pohttp.deliverParcel).toBeCalled();
       });
 
-      test.skip('Payloads encrypted with valid session keys should be decrypted', async () => {
-        const recipientKeyId = 98765;
-        const mockEnvelopedData = {
-          getRecipientKeyId: jest.fn().mockReturnValueOnce(recipientKeyId),
-        };
-        // @ts-ignore
-        mockDeserialize.mockResolvedValueOnce(mockEnvelopedData);
+      test.todo('New ephemeral keys should be saved');
 
-        await processor.deliverPongForPing(initJob(stubJobData));
+      test('Use of unknown public key ids should be gracefully logged', async () => {
+        const err = new Error('Denied');
+        mockSessionStore.getPrivateKey.mockRejectedValueOnce(err);
 
-        fail('Incomplete');
+        const job = await initJob();
+        await processor.deliverPongForPing(job);
+
+        expect(mockPino.info).toBeCalledWith('Could not find private key', {
+          err,
+          jobId: job.id,
+          keyId: senderSessionKeyPair1Id,
+        });
       });
 
-      test.todo('Payloads encrypted with unknown public key ids should be ignored');
+      test('Decryption errors should be gracefully logged', async () => {
+        const err = new Error('Denied');
+        const mockDecrypt = jest.spyOn(stubSessionParcelPayload, 'decrypt');
+        mockDecrypt.mockRejectedValueOnce(err);
 
-      test.todo('Decryption errors should be gracefully logged');
+        const job = await initJob();
+        await processor.deliverPongForPing(job);
+
+        expect(mockPino.info).toBeCalledWith('Could not decrypt service message', {
+          err,
+          jobId: job.id,
+        });
+      });
     });
+
+    async function initJob(
+      options: Partial<{
+        readonly parcelPayload: EnvelopedData;
+        readonly gatewayAddress: string;
+      }> = {},
+    ): Promise<Job<QueuedPing>> {
+      const finalPayload = options.parcelPayload ?? stubParcelPayload;
+      const data: QueuedPing = {
+        gatewayAddress: options.gatewayAddress ?? 'dummy-gateway',
+        parcelId: 'the-id',
+        parcelPayload: base64Encode(finalPayload.serialize()),
+        parcelSenderCertificate: base64Encode(senderCertificate.serialize()),
+      };
+      // @ts-ignore
+      return { data, id: 'random-id' };
+    }
   });
 });
-
-function initJob(data: QueuedPing): Job<QueuedPing> {
-  // @ts-ignore
-  return { data, id: 'random-id' };
-}

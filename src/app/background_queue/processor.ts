@@ -3,7 +3,9 @@ import {
   derDeserializeRSAPrivateKey,
   Parcel,
   ServiceMessage,
+  SessionEnvelopedData,
   SessionlessEnvelopedData,
+  SessionOriginatorKey,
 } from '@relaycorp/relaynet-core';
 import { deliverParcel } from '@relaycorp/relaynet-pohttp';
 import bufferToArray from 'buffer-to-arraybuffer';
@@ -31,78 +33,127 @@ export class PingProcessor {
       name: 'RSA-PSS',
     });
 
-    const ping = await unwrapPing(job.data.parcelPayload, privateKey, job.id);
-    if (ping === undefined) {
+    const pongRecipientCertificate = Certificate.deserialize(
+      bufferToArray(base64Decode(job.data.parcelSenderCertificate)),
+    );
+
+    const unwrappingResult = await this.unwrapPing(
+      job.data.parcelPayload,
+      privateKey,
+      await pongRecipientCertificate.getPublicKey(),
+      job.id,
+    );
+    if (unwrappingResult === undefined) {
       // Service message was invalid; errors were already logged.
       return;
     }
 
-    const pongRecipientCertificate = Certificate.deserialize(
-      bufferToArray(base64Decode(job.data.parcelSenderCertificate)),
+    const ping = unwrappingResult.ping;
+    const pongParcelPayload = await this.generatePongParcelPayload(
+      ping.id,
+      unwrappingResult.originatorKey ?? pongRecipientCertificate,
     );
-    const pongServiceMessage = await generatePongServiceMessage(ping.id, pongRecipientCertificate);
     const pongParcel = new Parcel(
       pongRecipientCertificate.getCommonName(),
       ping.pda,
-      pongServiceMessage,
+      pongParcelPayload.payloadSerialized,
     );
     const parcelSerialized = await pongParcel.serialize(privateKey);
     await deliverParcel(job.data.gatewayAddress, parcelSerialized);
   }
-}
 
-async function unwrapPing(
-  parcelPayloadBase64: string,
-  privateKey: CryptoKey,
-  jobId: string | number,
-): Promise<Ping | undefined> {
-  const parcelPayload = bufferToArray(base64Decode(parcelPayloadBase64));
+  protected async unwrapPing(
+    parcelPayloadBase64: string,
+    recipientPrivateKey: CryptoKey,
+    senderPublicKey: CryptoKey,
+    jobId: string | number,
+  ): Promise<
+    { readonly ping: Ping; readonly originatorKey: SessionOriginatorKey | undefined } | undefined
+  > {
+    const parcelPayload = bufferToArray(base64Decode(parcelPayloadBase64));
 
-  // tslint:disable-next-line:no-let
-  let serviceMessage;
-  try {
-    serviceMessage = await extractServiceMessage(parcelPayload, privateKey);
-  } catch (error) {
-    // The sender didn't create a valid service message, so let's ignore it.
-    logger.info('Invalid service message', { err: error, jobId });
-    return;
+    // tslint:disable-next-line:no-let
+    let decryptionResult;
+    try {
+      decryptionResult = await this.decryptServiceMessage(
+        parcelPayload,
+        recipientPrivateKey,
+        senderPublicKey,
+      );
+    } catch (error) {
+      // The sender didn't create a valid service message, so let's ignore it.
+      logger.info('Invalid service message', { err: error, jobId });
+      return;
+    }
+
+    const serviceMessage = decryptionResult.message;
+
+    if (serviceMessage.type !== 'application/vnd.relaynet.ping-v1.ping') {
+      logger.info('Invalid service message type', {
+        jobId,
+        messageType: serviceMessage.type,
+      });
+      return;
+    }
+
+    // tslint:disable-next-line:no-let
+    let ping: Ping;
+    try {
+      ping = deserializePing(serviceMessage.value);
+    } catch (error) {
+      logger.info('Invalid ping message', { err: error, jobId });
+      return;
+    }
+    return { ping, originatorKey: decryptionResult.originatorKey };
   }
 
-  if (serviceMessage.type !== 'application/vnd.relaynet.ping-v1.ping') {
-    logger.info('Invalid service message type', {
-      jobId,
-      messageType: serviceMessage.type,
-    });
-    return;
+  protected async decryptServiceMessage(
+    parcelPayloadSerialized: ArrayBuffer,
+    recipientPrivateKey: CryptoKey,
+    senderPublicKey: CryptoKey,
+  ): Promise<{ readonly message: ServiceMessage; readonly originatorKey?: SessionOriginatorKey }> {
+    const parcelPayload = SessionlessEnvelopedData.deserialize(parcelPayloadSerialized);
+
+    // tslint:disable-next-line:no-let
+    let originatorKey;
+    // tslint:disable-next-line:no-let
+    let privateKey;
+    if (parcelPayload instanceof SessionlessEnvelopedData) {
+      privateKey = recipientPrivateKey;
+    } else {
+      originatorKey = await (parcelPayload as SessionEnvelopedData).getOriginatorKey();
+
+      const recipientSessionKeyId = (parcelPayload as SessionEnvelopedData).getRecipientKeyId();
+      privateKey = await this.sessionStore.getPrivateKey(recipientSessionKeyId, senderPublicKey);
+    }
+
+    const serviceMessageSerialized = await parcelPayload.decrypt(privateKey);
+    const message = ServiceMessage.deserialize(Buffer.from(serviceMessageSerialized));
+    return { message, originatorKey };
   }
 
-  try {
-    return deserializePing(serviceMessage.value);
-  } catch (error) {
-    logger.info('Invalid ping message', { err: error, jobId });
-    return;
+  protected async generatePongParcelPayload(
+    pingId: Buffer,
+    recipientCertificateOrKey: Certificate | SessionOriginatorKey,
+  ): Promise<{ readonly payloadSerialized: ArrayBuffer }> {
+    const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', pingId);
+    const pongMessageSerialized = pongMessage.serialize();
+
+    // tslint:disable-next-line:no-let
+    let pongParcelPayload;
+    if (recipientCertificateOrKey instanceof Certificate) {
+      pongParcelPayload = await SessionlessEnvelopedData.encrypt(
+        pongMessageSerialized,
+        recipientCertificateOrKey,
+      );
+    } else {
+      const encryptionResult = await SessionEnvelopedData.encrypt(
+        pongMessageSerialized,
+        recipientCertificateOrKey,
+      );
+      pongParcelPayload = encryptionResult.envelopedData;
+    }
+    const payloadSerialized = pongParcelPayload.serialize();
+    return { payloadSerialized };
   }
-}
-
-async function extractServiceMessage(
-  parcelPayloadSerialized: ArrayBuffer,
-  privateKey: CryptoKey,
-): Promise<ServiceMessage> {
-  const parcelPayload = SessionlessEnvelopedData.deserialize(
-    parcelPayloadSerialized,
-  ) as SessionlessEnvelopedData;
-  const serviceMessageSerialized = await parcelPayload.decrypt(privateKey);
-  return ServiceMessage.deserialize(Buffer.from(serviceMessageSerialized));
-}
-
-async function generatePongServiceMessage(
-  pingId: Buffer,
-  recipientCertificate: Certificate,
-): Promise<ArrayBuffer> {
-  const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', pingId);
-  const pongServiceMessage = await SessionlessEnvelopedData.encrypt(
-    pongMessage.serialize(),
-    recipientCertificate,
-  );
-  return pongServiceMessage.serialize();
 }
