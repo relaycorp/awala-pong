@@ -83,8 +83,8 @@ function isParcelRecipientValid(
   requireTlsUrls: boolean,
 ): boolean {
   const urlData = request.urlData();
-  if (parcelRecipient === `https://${urlData.host}${urlData.path}`) {
+  if (parcelRecipient === `https://${request.headers.host}${urlData.path}`) {
     return true;
   }
-  return !requireTlsUrls && parcelRecipient === `http://${urlData.host}${urlData.path}`;
+  return !requireTlsUrls && parcelRecipient === `http://${request.headers.host}${urlData.path}`;
 }

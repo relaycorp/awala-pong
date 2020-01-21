@@ -16,9 +16,11 @@ import { makeServer } from './server';
 
 const serverInstance = makeServer();
 
+const endpointAddress = 'ping.example.com:8000';
 const validRequestOptions: HTTPInjectOptions = {
   headers: {
     'Content-Type': 'application/vnd.relaynet.parcel',
+    Host: endpointAddress,
     'X-Relaynet-Gateway': 'https://gateway.example',
   },
   method: 'POST',
@@ -33,7 +35,10 @@ beforeAll(async () => {
     recipientKeyPair.privateKey,
   );
 
-  const payload = await generateStubPingParcel('https://localhost/', stubRecipientCertificate);
+  const payload = await generateStubPingParcel(
+    `https://${endpointAddress}/`,
+    stubRecipientCertificate,
+  );
   // tslint:disable-next-line:no-object-mutation
   validRequestOptions.payload = payload;
   // tslint:disable-next-line:readonly-keyword no-object-mutation
@@ -193,7 +198,10 @@ describe('receiveParcel', () => {
 
   test('Non-TLS URLs should be allowed when POHTTP_TLS_REQUIRED=false', async () => {
     mockEnvVars({ POHTTP_TLS_REQUIRED: 'false' });
-    const stubPayload = await generateStubPingParcel('http://localhost/', stubRecipientCertificate);
+    const stubPayload = await generateStubPingParcel(
+      `http://${endpointAddress}/`,
+      stubRecipientCertificate,
+    );
 
     const response = await serverInstance.inject({
       ...validRequestOptions,
