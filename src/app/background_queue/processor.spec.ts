@@ -30,7 +30,7 @@ afterAll(jest.restoreAllMocks);
 
 describe('PingProcessor', () => {
   describe('deliverPongForPing', () => {
-    const mockSessionStore = { getPrivateKey: jest.fn() };
+    const mockSessionStore = { getPrivateKey: jest.fn(), savePrivateKey: jest.fn() };
 
     const pingId = Buffer.from('a'.repeat(36));
 
@@ -246,10 +246,13 @@ describe('PingProcessor', () => {
         stubJob = await initJob({ parcelPayload: stubSessionParcelPayload });
       });
 
+      beforeEach(() => {
+        mockSessionStore.getPrivateKey.mockResolvedValueOnce(recipientSessionKeyPair1.privateKey);
+      });
+
       test('Payloads encrypted with valid session keys should be decrypted', async () => {
         const decryptSpy = jest.spyOn(SessionEnvelopedData.prototype, 'decrypt');
         const encryptSpy = jest.spyOn(SessionEnvelopedData, 'encrypt');
-        mockSessionStore.getPrivateKey.mockResolvedValueOnce(recipientSessionKeyPair1.privateKey);
 
         await processor.deliverPongForPing(stubJob);
 
@@ -283,7 +286,23 @@ describe('PingProcessor', () => {
         expect(pohttp.deliverParcel).toBeCalled();
       });
 
-      test.todo('New ephemeral keys should be saved');
+      test('New ephemeral keys should be saved', async () => {
+        const encryptSpy = jest.spyOn(SessionEnvelopedData, 'encrypt');
+        const getPublicKeySpy = jest.spyOn(Certificate.prototype, 'getPublicKey');
+
+        await processor.deliverPongForPing(stubJob);
+
+        expect(pohttp.deliverParcel).toBeCalled();
+
+        expect(mockSessionStore.savePrivateKey).toBeCalledTimes(1);
+        expect(encryptSpy).toBeCalledTimes(1);
+        const encryptCallResult = await encryptSpy.mock.results[0].value;
+        expect(mockSessionStore.savePrivateKey).toBeCalledWith(
+          encryptCallResult.dhPrivateKey,
+          encryptCallResult.dhKeyId,
+          await getPublicKeySpy.mock.results[0].value,
+        );
+      });
 
       test('Retrieving an invalid originator key should be gracefully logged', async () => {
         const err = new Error('Denied');
@@ -300,6 +319,7 @@ describe('PingProcessor', () => {
 
       test('Use of unknown public key ids should be gracefully logged', async () => {
         const err = new Error('Denied');
+        mockSessionStore.getPrivateKey.mockReset();
         mockSessionStore.getPrivateKey.mockRejectedValueOnce(err);
 
         await processor.deliverPongForPing(stubJob);

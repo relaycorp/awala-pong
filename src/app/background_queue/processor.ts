@@ -37,10 +37,11 @@ export class PingProcessor {
       bufferToArray(base64Decode(job.data.parcelSenderCertificate)),
     );
 
+    const pongRecipientPublicKey = await pongRecipientCertificate.getPublicKey();
     const unwrappingResult = await this.unwrapPing(
       job.data.parcelPayload,
       privateKey,
-      await pongRecipientCertificate.getPublicKey(),
+      pongRecipientPublicKey,
       job.id,
     );
     if (unwrappingResult === undefined) {
@@ -52,6 +53,7 @@ export class PingProcessor {
     const pongParcelPayload = await this.generatePongParcelPayload(
       ping.id,
       unwrappingResult.originatorKey ?? pongRecipientCertificate,
+      pongRecipientPublicKey,
     );
     const pongParcel = new Parcel(
       pongRecipientCertificate.getCommonName(),
@@ -134,24 +136,30 @@ export class PingProcessor {
 
   protected async generatePongParcelPayload(
     pingId: Buffer,
-    recipientCertificateOrKey: Certificate | SessionOriginatorKey,
+    recipientCertificateOrSessionKey: Certificate | SessionOriginatorKey,
+    recipientPublicKey: CryptoKey,
   ): Promise<{ readonly payloadSerialized: ArrayBuffer }> {
     const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', pingId);
     const pongMessageSerialized = pongMessage.serialize();
 
     // tslint:disable-next-line:no-let
     let pongParcelPayload;
-    if (recipientCertificateOrKey instanceof Certificate) {
+    if (recipientCertificateOrSessionKey instanceof Certificate) {
       pongParcelPayload = await SessionlessEnvelopedData.encrypt(
         pongMessageSerialized,
-        recipientCertificateOrKey,
+        recipientCertificateOrSessionKey,
       );
     } else {
       const encryptionResult = await SessionEnvelopedData.encrypt(
         pongMessageSerialized,
-        recipientCertificateOrKey,
+        recipientCertificateOrSessionKey,
       );
       pongParcelPayload = encryptionResult.envelopedData;
+      await this.sessionStore.savePrivateKey(
+        encryptionResult.dhPrivateKey,
+        encryptionResult.dhKeyId,
+        recipientPublicKey,
+      );
     }
     const payloadSerialized = pongParcelPayload.serialize();
     return { payloadSerialized };
