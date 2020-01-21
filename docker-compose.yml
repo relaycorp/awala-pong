@@ -30,6 +30,10 @@ services:
     environment:
       REDIS_HOST: redis
 
+      VAULT_URL: http://vault:8200
+      VAULT_TOKEN: letmein
+      VAULT_KV_PREFIX: 'session-keys'
+
       # We should be supporting multiple keys so we can do key rotation.
       # See: https://github.com/relaycorp/relaynet-pong/issues/14
       ENDPOINT_PRIVATE_KEY: |

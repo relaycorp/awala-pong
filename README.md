@@ -13,6 +13,9 @@ Environment variables:
 
 ### Background queue
 
+- `VAULT_URL`
+- `VAULT_TOKEN`
+- `VAULT_KV_PREFIX`
 
 ### Common environment variables
 
