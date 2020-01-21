@@ -21,6 +21,7 @@ Environment variables:
 
 - `REDIS_HOST` (required).
 - `REDIS_PORT` (`6379`)
+- `POHTTP_TLS_REQUIRED` (default: `true`)
 
 ## Development
 

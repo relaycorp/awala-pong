@@ -1,12 +1,14 @@
-import {
-  generateRSAKeyPair,
-  issueNodeCertificate,
-  Parcel,
-  ServiceMessage,
-  SessionlessEnvelopedData,
-} from '@relaycorp/relaynet-core';
+/* tslint:disable:no-let */
+import { Certificate, generateRSAKeyPair, Parcel } from '@relaycorp/relaynet-core';
+import * as envVar from 'env-var';
 import { HTTPInjectOptions, HTTPMethod } from 'fastify';
 
+import {
+  generateStubNodeCertificate,
+  generateStubPingParcel,
+  getMockContext,
+  mockEnvVars,
+} from '../_test_utils';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utils';
@@ -23,8 +25,15 @@ const validRequestOptions: HTTPInjectOptions = {
   payload: {},
   url: '/',
 };
+let stubRecipientCertificate: Certificate;
 beforeAll(async () => {
-  const payload = await generateStubParcel('https://localhost/');
+  const recipientKeyPair = await generateRSAKeyPair();
+  stubRecipientCertificate = await generateStubNodeCertificate(
+    recipientKeyPair.publicKey,
+    recipientKeyPair.privateKey,
+  );
+
+  const payload = await generateStubPingParcel('https://localhost/', stubRecipientCertificate);
   // tslint:disable-next-line:no-object-mutation
   validRequestOptions.payload = payload;
   // tslint:disable-next-line:readonly-keyword no-object-mutation
@@ -34,13 +43,20 @@ beforeAll(async () => {
 });
 
 const pongQueueAddSpy = jest.fn();
-const pongQueueSpy = jest.spyOn(pongQueue, 'initQueue').mockReturnValue(
+jest.spyOn(pongQueue, 'initQueue').mockReturnValue(
   // @ts-ignore
   { add: pongQueueAddSpy },
 );
 
+beforeEach(() => {
+  const mockGetEnvVar = getMockContext(envVar.get);
+  if (mockGetEnvVar) {
+    // @ts-ignore
+    mockGetEnvVar.mockReset();
+  }
+});
 afterAll(() => {
-  pongQueueSpy.mockRestore();
+  jest.restoreAllMocks();
 });
 
 describe('receiveParcel', () => {
@@ -49,7 +65,6 @@ describe('receiveParcel', () => {
     async method => {
       const response = await serverInstance.inject({
         ...validRequestOptions,
-        headers: { ...validRequestOptions.headers },
         method,
       });
 
@@ -122,7 +137,10 @@ describe('receiveParcel', () => {
   });
 
   test('Parcel should be refused if target is not current endpoint', async () => {
-    const payload = await generateStubParcel('https://invalid.com/endpoint');
+    const payload = await generateStubPingParcel(
+      'https://invalid.com/endpoint',
+      stubRecipientCertificate,
+    );
     const response = await serverInstance.inject({
       ...validRequestOptions,
       headers: { ...validRequestOptions.headers, 'Content-Length': payload.byteLength.toString() },
@@ -172,40 +190,21 @@ describe('receiveParcel', () => {
       // expect(pinoErrorLogSpy).toBeCalledWith('Failed to queue ping message', { err: error });
     });
   });
+
+  test('Non-TLS URLs should be allowed when POHTTP_TLS_REQUIRED=false', async () => {
+    mockEnvVars({ POHTTP_TLS_REQUIRED: 'false' });
+    const stubPayload = await generateStubPingParcel('http://localhost/', stubRecipientCertificate);
+
+    const response = await serverInstance.inject({
+      ...validRequestOptions,
+      headers: {
+        ...validRequestOptions.headers,
+        'Content-Length': stubPayload.byteLength.toString(),
+        'X-Relaynet-Gateway': 'http://example.com',
+      },
+      payload: stubPayload,
+    });
+
+    expect(response).toHaveProperty('statusCode', 202);
+  });
 });
-
-async function generateStubParcel(recipientAddress: string): Promise<ArrayBuffer> {
-  const senderKeyPair = await generateRSAKeyPair();
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const senderCertificate = await issueNodeCertificate({
-    issuerPrivateKey: senderKeyPair.privateKey,
-    serialNumber: 1,
-    subjectPublicKey: senderKeyPair.publicKey,
-    validityEndDate: tomorrow,
-  });
-
-  const recipientKeyPair = await generateRSAKeyPair();
-  const recipientCertificate = await issueNodeCertificate({
-    issuerPrivateKey: recipientKeyPair.privateKey,
-    serialNumber: 2,
-    subjectPublicKey: recipientKeyPair.publicKey,
-    validityEndDate: tomorrow,
-  });
-  const serviceMessage = new ServiceMessage(
-    'application/vnd.relaynet.ping.ping',
-    Buffer.from('abc'),
-  );
-  const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
-    serviceMessage.serialize(),
-    recipientCertificate,
-  );
-  const parcel = new Parcel(
-    recipientAddress,
-    senderCertificate,
-    serviceMessageEncrypted.serialize(),
-  );
-
-  return Buffer.from(await parcel.serialize(senderKeyPair.privateKey));
-}

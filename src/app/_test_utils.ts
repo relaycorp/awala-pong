@@ -1,4 +1,11 @@
-import { Certificate, issueNodeCertificate } from '@relaycorp/relaynet-core';
+import {
+  Certificate,
+  generateRSAKeyPair,
+  issueNodeCertificate,
+  Parcel,
+  ServiceMessage,
+  SessionlessEnvelopedData,
+} from '@relaycorp/relaynet-core';
 import { createHash } from 'crypto';
 import envVar from 'env-var';
 
@@ -26,7 +33,7 @@ export async function generateStubNodeCertificate(
   return issueNodeCertificate({
     isCA: true,
     issuerPrivateKey: privateKey,
-    serialNumber: 1,
+    serialNumber: Math.floor(Math.random()),
     subjectPublicKey: publicKey,
     validityEndDate: tomorrow,
   });
@@ -67,4 +74,31 @@ export async function expectPromiseToReject(
     return;
   }
   throw new Error(`Expected promise to throw error ${expectedError}`);
+}
+
+export async function generateStubPingParcel(
+  recipientAddress: string,
+  recipientCertificate: Certificate,
+): Promise<Buffer> {
+  const senderKeyPair = await generateRSAKeyPair();
+  const senderCertificate = await generateStubNodeCertificate(
+    senderKeyPair.publicKey,
+    senderKeyPair.privateKey,
+  );
+
+  const serviceMessage = new ServiceMessage(
+    'application/vnd.relaynet.ping.ping',
+    Buffer.from('abc'),
+  );
+  const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
+    serviceMessage.serialize(),
+    recipientCertificate,
+  );
+  const parcel = new Parcel(
+    recipientAddress,
+    senderCertificate,
+    serviceMessageEncrypted.serialize(),
+  );
+
+  return Buffer.from(await parcel.serialize(senderKeyPair.privateKey));
 }
