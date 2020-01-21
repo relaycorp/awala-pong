@@ -7,8 +7,9 @@ import {
 } from '@relaycorp/relaynet-core';
 import { HTTPInjectOptions, HTTPMethod } from 'fastify';
 
-import { PingProcessingMessage } from '../background_queue/processor';
 import * as pongQueue from '../background_queue/queue';
+import { QueuedPing } from '../background_queue/QueuedPing';
+import { base64Encode } from '../utils';
 import { makeServer } from './server';
 
 const serverInstance = makeServer();
@@ -145,13 +146,13 @@ describe('receiveParcel', () => {
 
       expect(pongQueueAddSpy).toBeCalledTimes(1);
       const parcel = await Parcel.deserialize(validRequestOptions.payload as ArrayBuffer);
-      const expectedMessageData: PingProcessingMessage = {
+      const expectedMessageData: QueuedPing = {
         gatewayAddress: (validRequestOptions.headers as { readonly [k: string]: string })[
           'X-Relaynet-Gateway'
         ],
         parcelId: parcel.id,
-        senderCertificate: base64Encode(parcel.senderCertificate.serialize()),
-        serviceMessageCiphertext: base64Encode(parcel.payloadSerialized),
+        parcelPayload: base64Encode(parcel.payloadSerialized),
+        parcelSenderCertificate: base64Encode(parcel.senderCertificate.serialize()),
       };
       expect(pongQueueAddSpy).toBeCalledWith(expectedMessageData);
     });
@@ -207,8 +208,4 @@ async function generateStubParcel(recipientAddress: string): Promise<ArrayBuffer
   );
 
   return Buffer.from(await parcel.serialize(senderKeyPair.privateKey));
-}
-
-function base64Encode(payload: ArrayBuffer): string {
-  return Buffer.from(payload).toString('base64');
 }
