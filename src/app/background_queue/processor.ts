@@ -58,7 +58,7 @@ export class PingProcessor {
     const pongParcel = new Parcel(
       pongRecipientCertificate.getCommonName(),
       ping.pda,
-      pongParcelPayload.payloadSerialized,
+      pongParcelPayload,
     );
     const parcelSerialized = await pongParcel.serialize(privateKey);
     await deliverParcel(job.data.gatewayAddress, parcelSerialized);
@@ -69,9 +69,7 @@ export class PingProcessor {
     recipientPrivateKey: CryptoKey,
     senderPublicKey: CryptoKey,
     jobId: string | number,
-  ): Promise<
-    { readonly ping: Ping; readonly originatorKey: SessionOriginatorKey | undefined } | undefined
-  > {
+  ): Promise<{ readonly ping: Ping; readonly originatorKey?: SessionOriginatorKey } | undefined> {
     const parcelPayload = bufferToArray(base64Decode(parcelPayloadBase64));
 
     // tslint:disable-next-line:no-let
@@ -138,7 +136,7 @@ export class PingProcessor {
     pingId: Buffer,
     recipientCertificateOrSessionKey: Certificate | SessionOriginatorKey,
     recipientPublicKey: CryptoKey,
-  ): Promise<{ readonly payloadSerialized: ArrayBuffer }> {
+  ): Promise<ArrayBuffer> {
     const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', pingId);
     const pongMessageSerialized = pongMessage.serialize();
 
@@ -161,7 +159,6 @@ export class PingProcessor {
         recipientPublicKey,
       );
     }
-    const payloadSerialized = pongParcelPayload.serialize();
-    return { payloadSerialized };
+    return pongParcelPayload.serialize();
   }
 }
