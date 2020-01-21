@@ -250,13 +250,12 @@ describe('PingProcessor', () => {
         mockSessionStore.getPrivateKey.mockResolvedValueOnce(recipientSessionKeyPair1.privateKey);
       });
 
-      test('Payloads encrypted with valid session keys should be decrypted', async () => {
+      test('The right DH private key should be retrieved and used for decryption', async () => {
         const decryptSpy = jest.spyOn(SessionEnvelopedData.prototype, 'decrypt');
-        const encryptSpy = jest.spyOn(SessionEnvelopedData, 'encrypt');
 
         await processor.deliverPongForPing(stubJob);
 
-        // Check the right private key was retrieved
+        // Check key retrieval
         expect(mockSessionStore.getPrivateKey).toBeCalledTimes(1);
         const getKeyCallArgs = mockSessionStore.getPrivateKey.mock.calls[0];
         expect(getKeyCallArgs[0]).toEqual(recipientSessionCert1serialNumber);
@@ -264,17 +263,29 @@ describe('PingProcessor', () => {
           await derSerializePublicKey(getKeyCallArgs[1]),
           await derSerializePublicKey(senderKeyPair.publicKey),
         );
+
+        // Check use for decryption
         expect(decryptSpy).toBeCalledTimes(1);
         expect(decryptSpy).toBeCalledWith(recipientSessionKeyPair1.privateKey);
+      });
 
-        // Check pong message was encrypted properly
+      test('Pong message should be encrypted with public key from ping sender', async () => {
+        const encryptSpy = jest.spyOn(SessionEnvelopedData, 'encrypt');
+
+        await processor.deliverPongForPing(stubJob);
+
         expect(encryptSpy).toBeCalledTimes(1);
+        expect(encryptSpy.mock.results[0].value).toResolve();
+
+        // Check plaintext
         const encryptCallArgs = encryptSpy.mock.calls[0];
         const expectedPongMessage = new ServiceMessage(
           'application/vnd.relaynet.ping-v1.pong',
           pingId,
         );
         expectBuffersToEqual(encryptCallArgs[0], expectedPongMessage.serialize());
+
+        // Check public key used
         const expectedOriginatorKey = await stubSessionParcelPayload.getOriginatorKey();
         const actualOriginatorKey = encryptCallArgs[1] as SessionOriginatorKey;
         expect(actualOriginatorKey).toHaveProperty('keyId', expectedOriginatorKey.keyId);
@@ -282,8 +293,6 @@ describe('PingProcessor', () => {
           await derSerializePublicKey(actualOriginatorKey.publicKey),
           await derSerializePublicKey(expectedOriginatorKey.publicKey),
         );
-
-        expect(pohttp.deliverParcel).toBeCalled();
       });
 
       test('New ephemeral keys should be saved', async () => {
@@ -292,10 +301,7 @@ describe('PingProcessor', () => {
 
         await processor.deliverPongForPing(stubJob);
 
-        expect(pohttp.deliverParcel).toBeCalled();
-
         expect(mockSessionStore.savePrivateKey).toBeCalledTimes(1);
-        expect(encryptSpy).toBeCalledTimes(1);
         const encryptCallResult = await encryptSpy.mock.results[0].value;
         expect(mockSessionStore.savePrivateKey).toBeCalledWith(
           encryptCallResult.dhPrivateKey,
