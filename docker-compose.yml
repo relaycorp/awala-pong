@@ -15,6 +15,7 @@ services:
       - redis
     environment:
       REDIS_HOST: redis
+      POHTTP_TLS_REQUIRED: 'false'
 
   queue:
     build:
@@ -28,6 +29,8 @@ services:
     links:
       - redis
     environment:
+      POHTTP_TLS_REQUIRED: 'false'
+
       REDIS_HOST: redis
 
       VAULT_URL: http://vault:8200
