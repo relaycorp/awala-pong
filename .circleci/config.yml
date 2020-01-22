@@ -18,7 +18,6 @@ jobs:
     machine: true
     steps:
       - checkout
-      - run: npm ci
       - run:
           name: Install Docker Compose
           command: |
