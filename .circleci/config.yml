@@ -14,6 +14,19 @@ jobs:
     steps:
       - test:
           nodeVersion: '12'
+  'functional-tests':
+    machine: true
+    steps:
+      - checkout
+      - run: npm ci
+      - run:
+          name: Install Docker Compose
+          command: |
+            curl -L https://github.com/docker/compose/releases/download/1.25.1/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
+            chmod +x ~/docker-compose
+            sudo mv ~/docker-compose /usr/local/bin/docker-compose
+      - setup_remote_docker
+      - run: npm run test:functional
 
 commands:
   test:
