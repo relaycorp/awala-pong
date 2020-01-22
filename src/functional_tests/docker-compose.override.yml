@@ -1,0 +1,19 @@
+version: '3.7'
+services:
+  app:
+    links:
+      - gateway
+
+  gateway:
+    build:
+      dockerfile: Dockerfile.dev
+      context: .
+    image: relaynet-pong:local-dev
+    init: true
+#    tty: true # So we can get coloured output
+    entrypoint: ''
+    command: jest --config jest.config.functional.js
+    volumes:
+      - .:/opt/pong-dev:ro
+    environment:
+      POHTTP_TLS_REQUIRED: 'false'

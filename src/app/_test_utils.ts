@@ -9,6 +9,8 @@ import {
 import { createHash } from 'crypto';
 import envVar from 'env-var';
 
+import { serializePing } from './pingSerialization';
+
 export function getMockContext(mockedObject: any): jest.MockContext<any, any> {
   const mockInstance = (mockedObject as unknown) as jest.MockInstance<any, any>;
   return mockInstance.mock;
@@ -24,17 +26,19 @@ export function mockEnvVars(envVars: { readonly [key: string]: string | undefine
 }
 
 export async function generateStubNodeCertificate(
-  publicKey: CryptoKey,
-  privateKey: CryptoKey,
+  subjectPublicKey: CryptoKey,
+  issuerPrivateKey: CryptoKey,
+  options: Partial<{ readonly issuerCertificate: Certificate }> = {},
 ): Promise<Certificate> {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   return issueNodeCertificate({
     isCA: true,
-    issuerPrivateKey: privateKey,
+    issuerCertificate: options.issuerCertificate,
+    issuerPrivateKey,
     serialNumber: Math.floor(Math.random()),
-    subjectPublicKey: publicKey,
+    subjectPublicKey,
     validityEndDate: tomorrow,
   });
 }
@@ -79,16 +83,32 @@ export async function expectPromiseToReject(
 export async function generateStubPingParcel(
   recipientAddress: string,
   recipientCertificate: Certificate,
+  sender?: { readonly privateKey: CryptoKey; readonly certificate: Certificate },
 ): Promise<Buffer> {
-  const senderKeyPair = await generateRSAKeyPair();
-  const senderCertificate = await generateStubNodeCertificate(
-    senderKeyPair.publicKey,
-    senderKeyPair.privateKey,
-  );
+  // tslint:disable-next-line:no-let
+  let senderPrivateKey;
+  // tslint:disable-next-line:no-let
+  let senderCertificate;
+  if (sender) {
+    senderPrivateKey = sender.privateKey;
+    senderCertificate = sender.certificate;
+  } else {
+    const senderKeyPair = await generateRSAKeyPair();
+    senderPrivateKey = senderKeyPair.privateKey;
+    senderCertificate = await generateStubNodeCertificate(
+      senderKeyPair.publicKey,
+      senderPrivateKey,
+    );
+  }
 
+  const pda = await generateStubNodeCertificate(
+    await recipientCertificate.getPublicKey(),
+    senderPrivateKey,
+    { issuerCertificate: senderCertificate },
+  );
   const serviceMessage = new ServiceMessage(
-    'application/vnd.relaynet.ping.ping',
-    Buffer.from('abc'),
+    'application/vnd.relaynet.ping-v1.ping',
+    serializePing(pda),
   );
   const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
     serviceMessage.serialize(),
@@ -100,5 +120,5 @@ export async function generateStubPingParcel(
     serviceMessageEncrypted.serialize(),
   );
 
-  return Buffer.from(await parcel.serialize(senderKeyPair.privateKey));
+  return Buffer.from(await parcel.serialize(senderPrivateKey));
 }

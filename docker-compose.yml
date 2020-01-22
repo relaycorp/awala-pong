@@ -10,7 +10,7 @@ services:
     ports:
       - '127.0.0.1:3000:3000'
     volumes:
-      - ./src:/opt/pong-dev/src
+      - ./src:/opt/pong-dev/src:ro
     links:
       - redis
     environment:
@@ -25,7 +25,7 @@ services:
     init: true
     command: src/bin/background-queue.ts
     volumes:
-      - ./src:/opt/pong-dev/src
+      - ./src:/opt/pong-dev/src:ro
     links:
       - redis
     environment:
