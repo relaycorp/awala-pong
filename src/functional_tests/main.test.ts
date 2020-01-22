@@ -16,7 +16,9 @@ import { generateStubNodeCertificate, generateStubPingParcel } from '../app/_tes
 const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
 const PONG_SERVICE_ENDPOINT = 'http://app:3000/';
-const ENDPOINT_CERTIFICATE_DER = fs.readFileSync(__dirname + '/endpoint-certificate.der');
+const ENDPOINT_CERTIFICATE_DER = fs.readFileSync(
+  process.cwd() + '/src/functional_tests/endpoint-certificate.der',
+);
 
 describe('End-to-end test for successful delivery of ping and pong messages', () => {
   const mockGatewayServer = new Stubborn({ host: '0.0.0.0' });
@@ -48,6 +50,11 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
   });
 
+  beforeAll(async () => {
+    // Wait a little longer for backing services to become available
+    await sleep(1);
+  });
+
   test('Gateway should receive pong message', async () => {
     const pingParcel = bufferToArray(
       await generateStubPingParcel(PONG_SERVICE_ENDPOINT, endpointCertificate, {
@@ -55,11 +62,12 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
         privateKey: pingSenderPrivateKey,
       }),
     );
+
     await deliverParcel(PONG_SERVICE_ENDPOINT, pingParcel, {
       relayAddress: GATEWAY_ADDRESS,
     });
 
-    await sleep(2000);
+    await sleep(2);
     expect(gatewayEndpointRoute.countCalls()).toEqual(1);
 
     const pongParcelSerialized = (gatewayEndpointRoute.getCall(0).body as unknown) as Buffer;
@@ -79,6 +87,6 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
   test.todo('Channel session protocol');
 });
 
-async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+async function sleep(seconds: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, seconds * 1_000));
 }
