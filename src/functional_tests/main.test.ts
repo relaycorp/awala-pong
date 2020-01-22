@@ -53,6 +53,9 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
   beforeAll(async () => {
     // Wait a little longer for backing services to become available
     await sleep(1);
+
+    // tslint:disable-next-line:no-object-mutation
+    process.env.POHTTP_TLS_REQUIRED = 'false';
   });
 
   test('Gateway should receive pong message', async () => {
