@@ -3,6 +3,7 @@
 
 import { Job } from 'bull';
 import { get as getEnvVar } from 'env-var';
+import pino = require('pino');
 
 import { VaultSessionStore } from '../channelSessionKeys';
 import { base64Decode } from '../utils';
@@ -28,6 +29,14 @@ const sessionStore = new VaultSessionStore(vaultUrl, vaultToken, vaultKvPrefix);
 
 const processor = new PingProcessor(privateKeyDer, sessionStore);
 
+const logger = pino();
+
 export default async function(job: Job<QueuedPing>): Promise<void> {
-  return processor.deliverPongForPing(job);
+  try {
+    return await processor.deliverPongForPing(job);
+  } catch (err) {
+    // tslint:disable-next-line:no-console
+    logger.error({ err }, 'Error processing job');
+    throw err;
+  }
 }
