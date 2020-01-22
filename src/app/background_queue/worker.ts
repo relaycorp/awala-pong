@@ -12,7 +12,7 @@ import { QueuedPing } from './QueuedPing';
 const privateKeyPem = getEnvVar('ENDPOINT_PRIVATE_KEY')
   .required()
   .asString();
-const privateKeyBase64 = privateKeyPem.replace(/(-----(BEGIN|END) PRIVATE KEY-----|\n)/g, '');
+const privateKeyBase64 = privateKeyPem.replace(/(-----(BEGIN|END) PRIVATE KEY-----|\\n)/g, '');
 const privateKeyDer = base64Decode(privateKeyBase64);
 
 const vaultUrl = getEnvVar('VAULT_URL')
