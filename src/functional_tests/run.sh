@@ -9,6 +9,9 @@ export COMPOSE_FILE='docker-compose.yml:src/functional_tests/docker-compose.over
 
 trap "docker-compose down --remove-orphans" INT TERM EXIT
 
+docker-compose pull
+docker-compose build
+
 docker-compose up --detach vault
 sleep 2s
 docker-compose exec -e 'VAULT_ADDR=http://127.0.0.1:8200' -e 'VAULT_TOKEN=letmein' vault \
