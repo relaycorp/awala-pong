@@ -43,7 +43,6 @@ commands:
           key: v1-dependencies-node<< parameters.nodeVersion >>-{{ checksum "package.json" }}
       - run: npm run static-checks
       - run: npm run test:ci:unit
-      - run: npm run test:functional
 
 workflows:
   version: 2
