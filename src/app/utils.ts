@@ -1,4 +1,4 @@
-export function base64Encode(payload: ArrayBuffer): string {
+export function base64Encode(payload: ArrayBuffer | Buffer): string {
   return Buffer.from(payload).toString('base64');
 }
 
