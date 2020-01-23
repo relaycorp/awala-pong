@@ -26,17 +26,12 @@ const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
 const PONG_SERVICE_ENDPOINT = 'http://app:3000/';
 
-const ENDPOINT_CERTIFICATE_DER = fs.readFileSync(
+const PONG_ENDPOINT_CERTIFICATE_DER = fs.readFileSync(
   process.cwd() + '/src/functional_tests/endpoint-certificate.der',
 );
-const ENDPOINT_PRIVATE_KEY_PEM = getEnvVar('ENDPOINT_PRIVATE_KEY')
+const PONG_ENDPOINT_PRIVATE_KEY_PEM = getEnvVar('ENDPOINT_PRIVATE_KEY')
   .required()
   .asString();
-const ENDPOINT_PRIVATE_KEY_BASE64 = ENDPOINT_PRIVATE_KEY_PEM.replace(
-  /(-----(BEGIN|END) PRIVATE KEY-----|\\n)/g,
-  '',
-);
-const ENDPOINT_PRIVATE_KEY_DER = base64Decode(ENDPOINT_PRIVATE_KEY_BASE64);
 
 describe('End-to-end test for successful delivery of ping and pong messages', () => {
   const mockGatewayServer = new Stubborn({ host: '0.0.0.0' });
@@ -54,11 +49,11 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     logDiffOn501(mockGatewayServer, gatewayEndpointRoute);
   });
 
-  let endpointCertificate: Certificate;
+  let pongEndpointCertificate: Certificate;
   let pingSenderPrivateKey: CryptoKey;
   let pingSenderCertificate: Certificate;
   beforeAll(async () => {
-    endpointCertificate = Certificate.deserialize(bufferToArray(ENDPOINT_CERTIFICATE_DER));
+    pongEndpointCertificate = Certificate.deserialize(bufferToArray(PONG_ENDPOINT_CERTIFICATE_DER));
 
     const pingSenderKeyPair = await generateRSAKeyPair();
     pingSenderPrivateKey = pingSenderKeyPair.privateKey;
@@ -78,7 +73,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
 
   test('Gateway should receive pong message', async () => {
     const pingParcel = bufferToArray(
-      await generateStubPingParcel(PONG_SERVICE_ENDPOINT, endpointCertificate, {
+      await generateStubPingParcel(PONG_SERVICE_ENDPOINT, pongEndpointCertificate, {
         certificate: pingSenderCertificate,
         privateKey: pingSenderPrivateKey,
       }),
@@ -91,18 +86,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     await sleep(2);
     expect(gatewayEndpointRoute.countCalls()).toEqual(1);
 
-    const pongParcelSerialized = (gatewayEndpointRoute.getCall(0).body as unknown) as Buffer;
-    const pongParcel = await Parcel.deserialize(bufferToArray(pongParcelSerialized));
-    expect(pongParcel).toHaveProperty('recipientAddress', pingSenderCertificate.getCommonName());
-    const pongParcelPayload = EnvelopedData.deserialize(
-      bufferToArray(pongParcel.payloadSerialized as Buffer),
-    );
-    const pongServiceMessageSerialized = await pongParcelPayload.decrypt(pingSenderPrivateKey);
-    const pongServiceMessage = ServiceMessage.deserialize(
-      Buffer.from(pongServiceMessageSerialized),
-    );
-    expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.relaynet.ping-v1.pong');
-    expect(pongServiceMessage).toHaveProperty('value.byteLength', 36);
+    await validatePongDelivery(pingSenderPrivateKey);
   });
 
   describe('Channel session protocol', () => {
@@ -120,19 +104,17 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       await vaultClient.delete('/sys/mounts/session-keys');
     });
 
+    const sessionStore = new VaultSessionStore('http://vault:8200', 'letmein', 'session-keys');
+    const endpointInitialSessionKeyPairId = 98765;
+
     test('Session keys should be used as expected', async () => {
       const endpointInitialSessionKeyPair = await generateECDHKeyPair();
-      const endpointInitialSessionKeyPairId = 98765;
       const endpointInitialSessionCertificate = await issueInitialDHKeyCertificate({
         dhPublicKey: endpointInitialSessionKeyPair.publicKey,
-        nodeCertificate: endpointCertificate,
-        nodePrivateKey: await derDeserializeRSAPrivateKey(ENDPOINT_PRIVATE_KEY_DER, {
-          hash: { name: 'SHA-256' },
-          name: 'RSA-PSS',
-        }),
+        nodeCertificate: pongEndpointCertificate,
+        nodePrivateKey: await getPongEndpointPrivateKey(),
         serialNumber: endpointInitialSessionKeyPairId,
       });
-      const sessionStore = new VaultSessionStore('http://vault:8200', 'letmein', 'session-keys');
       await sessionStore.savePrivateKey(
         endpointInitialSessionKeyPair.privateKey,
         endpointInitialSessionKeyPairId,
@@ -146,21 +128,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
         relayAddress: GATEWAY_ADDRESS,
       });
 
-      await sleep(2);
-      expect(gatewayEndpointRoute.countCalls()).toEqual(1);
-
-      const pongParcelSerialized = (gatewayEndpointRoute.getCall(0).body as unknown) as Buffer;
-      const pongParcel = await Parcel.deserialize(bufferToArray(pongParcelSerialized));
-      expect(pongParcel).toHaveProperty('recipientAddress', pingSenderCertificate.getCommonName());
-      const pongParcelPayload = EnvelopedData.deserialize(
-        bufferToArray(pongParcel.payloadSerialized as Buffer),
-      );
-      const pongServiceMessageSerialized = await pongParcelPayload.decrypt(dhPrivateKey);
-      const pongServiceMessage = ServiceMessage.deserialize(
-        Buffer.from(pongServiceMessageSerialized),
-      );
-      expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.relaynet.ping-v1.pong');
-      expect(pongServiceMessage).toHaveProperty('value.byteLength', 36);
+      await validatePongDelivery(dhPrivateKey);
     });
 
     async function generateSessionPingParcel(
@@ -168,10 +136,9 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     ): Promise<{
       readonly pingParcelSerialized: Buffer;
       readonly dhPrivateKey: CryptoKey;
-      readonly dhKeyId: number;
     }> {
       const pda = await generateStubNodeCertificate(
-        await endpointCertificate.getPublicKey(),
+        await pongEndpointCertificate.getPublicKey(),
         pingSenderPrivateKey,
         { issuerCertificate: pingSenderCertificate },
       );
@@ -179,25 +146,56 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
         'application/vnd.relaynet.ping-v1.ping',
         serializePing(pda),
       );
-      const encryptionResult = await SessionEnvelopedData.encrypt(
+      const { dhPrivateKey, envelopedData } = await SessionEnvelopedData.encrypt(
         serviceMessage.serialize(),
         initialDhCertificate,
       );
       const parcel = new Parcel(
         PONG_SERVICE_ENDPOINT,
         pingSenderCertificate,
-        encryptionResult.envelopedData.serialize(),
+        envelopedData.serialize(),
       );
 
       return {
-        dhKeyId: encryptionResult.dhKeyId,
-        dhPrivateKey: encryptionResult.dhPrivateKey,
+        dhPrivateKey,
         pingParcelSerialized: Buffer.from(await parcel.serialize(pingSenderPrivateKey)),
       };
     }
   });
+
+  async function validatePongDelivery(recipientPrivateKey: CryptoKey): Promise<void> {
+    // Allow sufficient time for the background job to deliver the message
+    await sleep(2);
+
+    expect(gatewayEndpointRoute.countCalls()).toEqual(1);
+
+    const pongParcelSerialized = (gatewayEndpointRoute.getCall(0).body as unknown) as Buffer;
+    const pongParcel = await Parcel.deserialize(bufferToArray(pongParcelSerialized));
+    expect(pongParcel).toHaveProperty('recipientAddress', pingSenderCertificate.getCommonName());
+    const pongParcelPayload = EnvelopedData.deserialize(
+      bufferToArray(pongParcel.payloadSerialized as Buffer),
+    );
+    const pongServiceMessageSerialized = await pongParcelPayload.decrypt(recipientPrivateKey);
+    const pongServiceMessage = ServiceMessage.deserialize(
+      Buffer.from(pongServiceMessageSerialized),
+    );
+    expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.relaynet.ping-v1.pong');
+    expect(pongServiceMessage).toHaveProperty('value.byteLength', 36);
+  }
 });
 
 async function sleep(seconds: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, seconds * 1_000));
+}
+
+async function getPongEndpointPrivateKey(): Promise<CryptoKey> {
+  const privateKeyBase64 = PONG_ENDPOINT_PRIVATE_KEY_PEM.replace(
+    /(-----(BEGIN|END) PRIVATE KEY-----|\\n)/g,
+    '',
+  );
+  const privateKeyDer = base64Decode(privateKeyBase64);
+  return derDeserializeRSAPrivateKey(privateKeyDer, {
+    hash: { name: 'SHA-256' },
+    name: 'RSA-PSS',
+  });
 }
