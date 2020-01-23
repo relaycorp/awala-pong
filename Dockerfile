@@ -7,4 +7,4 @@ FROM node:12.14.1-slim
 WORKDIR /opt/pong
 COPY --from=build /tmp/pong ./
 CMD ["node", "build/main/bin/pohttp-server.js"]
-EXPOSE 3000
+EXPOSE 8080

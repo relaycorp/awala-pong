@@ -1,4 +1,4 @@
-import { getMockContext, mockEnvVars } from '../_test_utils';
+import { getMockContext } from '../_test_utils';
 import * as server from './server';
 
 import fastify = require('fastify');
@@ -76,41 +76,19 @@ describe('runServer', () => {
     expect(mockFastify.listen).toBeCalledTimes(1);
   });
 
-  test('Port 3000 should be used by default', async () => {
+  test('Server should listen on port 8080', async () => {
     await server.runServer();
 
     const listenCallArgs = getMockContext(mockFastify.listen).calls[0];
-    expect(listenCallArgs[0]).toHaveProperty('port', 3000);
+    expect(listenCallArgs[0]).toHaveProperty('port', 8080);
   });
 
-  test('Custom port can be set via PONG_PORT environment variable', async () => {
-    const customPort = '3001';
-    mockEnvVars({ PONG_PORT: customPort });
-
-    await server.runServer();
-
-    expect(mockFastify.listen).toBeCalledTimes(1);
-    const listenCallArgs = getMockContext(mockFastify.listen).calls[0];
-    expect(listenCallArgs[0]).toHaveProperty('port', parseInt(customPort, 10));
-  });
-
-  test('Host 0.0.0.0 should be used by default', async () => {
+  test('Server should listen on 0.0.0.0', async () => {
     await server.runServer();
 
     expect(mockFastify.listen).toBeCalledTimes(1);
     const listenCallArgs = getMockContext(mockFastify.listen).calls[0];
     expect(listenCallArgs[0]).toHaveProperty('host', '0.0.0.0');
-  });
-
-  test('Custom host can be set via PONG_HOST environment variable', async () => {
-    const customHost = '192.0.2.1';
-    mockEnvVars({ PONG_HOST: customHost });
-
-    await server.runServer();
-
-    expect(mockFastify.listen).toBeCalledTimes(1);
-    const listenCallArgs = getMockContext(mockFastify.listen).calls[0];
-    expect(listenCallArgs[0]).toHaveProperty('host', customHost);
   });
 
   test('listen() call should be "awaited" for', async () => {

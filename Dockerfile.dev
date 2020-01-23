@@ -9,4 +9,4 @@ COPY --from=build /tmp/node_modules ${NODE_PATH}
 ENV PATH="${NODE_PATH}/.bin:${PATH}"
 ENTRYPOINT ["ts-node-dev", "--transpile-only"]
 WORKDIR /opt/pong-dev
-EXPOSE 3000
+EXPOSE 8080

@@ -9,8 +9,8 @@ import fastify = require('fastify');
 import fastifyUrlData = require('fastify-url-data');
 
 const DEFAULT_REQUEST_ID_HEADER = 'X-Request-Id';
-const DEFAULT_PORT = '3000';
-const DEFAULT_HOST = '0.0.0.0';
+const SERVER_PORT = 8080;
+const SERVER_HOST = '0.0.0.0';
 
 /**
  * Initialize a Fastify server instance.
@@ -38,8 +38,5 @@ export function makeServer(): FastifyInstance {
 export async function runServer(): Promise<void> {
   const server = makeServer();
 
-  await server.listen({
-    host: getEnvVar('PONG_HOST', DEFAULT_HOST).asString(),
-    port: getEnvVar('PONG_PORT', DEFAULT_PORT).asIntPositive(),
-  });
+  await server.listen({ host: SERVER_HOST, port: SERVER_PORT });
 }

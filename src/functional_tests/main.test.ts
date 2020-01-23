@@ -24,7 +24,7 @@ import { base64Decode } from '../app/utils';
 
 const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
-const PONG_SERVICE_ENDPOINT = 'http://app:3000/';
+const PONG_SERVICE_ENDPOINT = 'http://app:8080/';
 
 const PONG_ENDPOINT_CERTIFICATE_DER = fs.readFileSync(
   process.cwd() + '/src/functional_tests/endpoint-certificate.der',
