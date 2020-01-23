@@ -17,8 +17,8 @@
     "static-checks:prettier": "prettier \"src/**/*.ts\" --list-different",
     "test:ci:unit": "run-s build test:ci:unit:jest cov:send",
     "test:ci:unit:jest": "jest --config jest.config.ci.js --coverage",
-    "pretest:functional": "run-s build",
-    "test:functional": "./src/functional_tests/run.sh",
+    "test:functional": "run-s build test:functional:docker",
+    "test:functional:docker": "./src/functional_tests/run.sh",
     "cov": "run-s build test:unit && opn coverage/lcov-report/index.html",
     "cov:send": "codecov",
     "clean": "trash build test"

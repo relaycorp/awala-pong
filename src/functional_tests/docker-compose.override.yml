@@ -11,8 +11,9 @@ services:
     image: relaynet-pong:local-dev
     init: true
     entrypoint: ''
-    command: bash -c 'pwd && ls -lA && jest --config jest.config.functional.js'
+    command: jest --config jest.config.functional.js
     volumes:
       - .:/opt/pong-dev:ro
     environment:
       POHTTP_TLS_REQUIRED: 'false'
+      ENDPOINT_PRIVATE_KEY: ${ENDPOINT_PRIVATE_KEY}
