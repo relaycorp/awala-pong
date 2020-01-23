@@ -13,11 +13,15 @@ Environment variables:
 
 ### Background queue
 
+- `VAULT_URL`
+- `VAULT_TOKEN`
+- `VAULT_KV_PREFIX`
 
 ### Common environment variables
 
 - `REDIS_HOST` (required).
 - `REDIS_PORT` (`6379`)
+- `POHTTP_TLS_REQUIRED` (default: `true`)
 
 ## Development
 
@@ -28,3 +32,7 @@ docker-compose up --build --remove-orphan
 ```
 
 Then go to http://127.0.0.1:3000/
+
+### Endpoint key pair
+
+A mock RSA key pair has been created for development purposes. The private key can be found PEM-encoded in [`.env`](./.env) and the public key can be found in [the DER-encoded, self-issued X.509 certificate used in the functional tests](./src/functional_tests/endpoint-certificate.der).

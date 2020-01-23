@@ -6,7 +6,7 @@ jest.*.js
 **/*.spec.*
 _test_utils.*
 coverage/
-build/*/integration_tests/**
+build/*/functional_tests/**
 
 tsconfig*.json
 tslint.json

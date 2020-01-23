@@ -1,5 +1,6 @@
 import { Parcel } from '@relaycorp/relaynet-core';
-import { FastifyInstance, FastifyReply } from 'fastify';
+import { get as getEnvVar } from 'env-var';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { initQueue } from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utils';
@@ -28,10 +29,10 @@ export default async function registerRoutes(
         return reply.code(415).send();
       }
 
+      const requireTlsUrls = getEnvVar('POHTTP_TLS_REQUIRED', 'true').asBool();
+
       const gatewayAddress = request.headers['x-relaynet-gateway'] || '';
-      try {
-        validateGatewayAddress(gatewayAddress);
-      } catch (error) {
+      if (!isValidGatewayAddress(gatewayAddress, requireTlsUrls)) {
         return reply
           .code(400)
           .send({ message: 'X-Relaynet-Gateway should be set to a valid PoHTTP endpoint' });
@@ -44,10 +45,7 @@ export default async function registerRoutes(
       } catch (error) {
         return reply.code(400).send({ message: 'Payload is not a valid RAMF-serialized parcel' });
       }
-
-      const urlData = request.urlData();
-      const endpointInternetAddress = `https://${urlData.host}${urlData.path}`;
-      if (parcel.recipientAddress !== endpointInternetAddress) {
+      if (!isParcelRecipientValid(parcel.recipientAddress, request, requireTlsUrls)) {
         return reply.code(400).send({ message: 'Invalid parcel recipient' });
       }
 
@@ -68,9 +66,25 @@ export default async function registerRoutes(
   });
 }
 
-function validateGatewayAddress(gatewayAddress: string): void {
-  const urlParsed = new URL(gatewayAddress);
-  if (urlParsed.protocol !== 'https:') {
-    throw new Error(`Invalid protocol ${urlParsed.protocol}`);
+function isValidGatewayAddress(gatewayAddress: string, requireTlsUrls: boolean): boolean {
+  // tslint:disable-next-line:no-let
+  let urlParsed;
+  try {
+    urlParsed = new URL(gatewayAddress);
+  } catch (_error) {
+    return false;
   }
+  return urlParsed.protocol === 'https:' || (!requireTlsUrls && urlParsed.protocol === 'http:');
+}
+
+function isParcelRecipientValid(
+  parcelRecipient: string,
+  request: FastifyRequest<any, any, any, any, any>,
+  requireTlsUrls: boolean,
+): boolean {
+  const urlData = request.urlData();
+  if (parcelRecipient === `https://${request.headers.host}${urlData.path}`) {
+    return true;
+  }
+  return !requireTlsUrls && parcelRecipient === `http://${request.headers.host}${urlData.path}`;
 }

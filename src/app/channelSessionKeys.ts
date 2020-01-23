@@ -32,11 +32,10 @@ export class VaultSessionStore implements SessionStore {
     dhKeyPairId: number,
     recipientPublicKey: CryptoKey,
   ): Promise<CryptoKey> {
-    const vaultEndpointPath = await buildKeyEndpointPath(dhKeyPairId, recipientPublicKey);
     // tslint:disable-next-line
     let response;
     try {
-      response = await this.axiosClient.get(vaultEndpointPath);
+      response = await this.axiosClient.get(`/${dhKeyPairId}`);
     } catch (error) {
       throw new VaultStoreError(error, `Failed to retrieve private key ${dhKeyPairId}`);
     }
@@ -48,22 +47,39 @@ export class VaultSessionStore implements SessionStore {
     }
 
     const vaultSecret = response.data.data;
+    const boundRecipientPublicKeyDigest = vaultSecret.data.recipientPublicKeyDigest;
+    if (boundRecipientPublicKeyDigest) {
+      const recipientPublicKeyDigest = sha256Hex(await derSerializePublicKey(recipientPublicKey));
+      if (boundRecipientPublicKeyDigest !== recipientPublicKeyDigest) {
+        throw new VaultStoreError(`Key ${dhKeyPairId} belongs to a different session`);
+      }
+    }
     const privateKeyDer = base64Decode(vaultSecret.data.privateKey);
     return derDeserializeECDHPrivateKey(privateKeyDer);
   }
 
+  /**
+   * Save private key `dhPrivateKey` in Vault.
+   *
+   * @param dhPrivateKey
+   * @param dhKeyPairId
+   * @param recipientPublicKey If the new DH key pair belong to an existing session; if it is for
+   *   an initial session, it must be absent.
+   */
   public async savePrivateKey(
     dhPrivateKey: CryptoKey,
     dhKeyPairId: number,
-    recipientPublicKey: CryptoKey,
+    recipientPublicKey?: CryptoKey,
   ): Promise<void> {
-    const vaultEndpointPath = await buildKeyEndpointPath(dhKeyPairId, recipientPublicKey);
+    const recipientPublicKeyDigest = recipientPublicKey
+      ? sha256Hex(await derSerializePublicKey(recipientPublicKey))
+      : undefined;
     const dhPrivateKeyBase64 = base64Encode(await derSerializePrivateKey(dhPrivateKey));
-    const requestBody = { data: { privateKey: dhPrivateKeyBase64 } };
+    const requestBody = { data: { privateKey: dhPrivateKeyBase64, recipientPublicKeyDigest } };
     // tslint:disable-next-line:no-let
     let response: AxiosResponse;
     try {
-      response = await this.axiosClient.post(vaultEndpointPath, requestBody);
+      response = await this.axiosClient.post(`/${dhKeyPairId}`, requestBody);
     } catch (error) {
       throw new VaultStoreError(error, `Failed to save private key ${dhKeyPairId}`);
     }
@@ -79,14 +95,6 @@ function buildBaseVaultUrl(vaultUrl: string, kvPath: string): string {
   const sanitizedVaultUrl = vaultUrl.replace(/\/+$/, '');
   const sanitizedKvPath = kvPath.replace(/^\/+/, '').replace(/\/+/, '');
   return `${sanitizedVaultUrl}/v1/${sanitizedKvPath}/data`;
-}
-
-async function buildKeyEndpointPath(
-  dhKeyPairId: number,
-  recipientPublicKey: CryptoKey,
-): Promise<string> {
-  const recipientPublicKeyDigest = sha256Hex(await derSerializePublicKey(recipientPublicKey));
-  return `/${recipientPublicKeyDigest}/${dhKeyPairId}`;
 }
 
 export function sha256Hex(plaintext: Buffer): string {

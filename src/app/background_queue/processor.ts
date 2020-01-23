@@ -1,6 +1,7 @@
 import {
   Certificate,
   derDeserializeRSAPrivateKey,
+  EnvelopedData,
   Parcel,
   ServiceMessage,
   SessionEnvelopedData,
@@ -8,7 +9,7 @@ import {
   SessionOriginatorKey,
 } from '@relaycorp/relaynet-core';
 import { deliverParcel } from '@relaycorp/relaynet-pohttp';
-import bufferToArray from 'buffer-to-arraybuffer';
+import bufferToArray = require('buffer-to-arraybuffer');
 import { Job } from 'bull';
 import pino = require('pino');
 
@@ -112,7 +113,7 @@ export class PingProcessor {
     recipientPrivateKey: CryptoKey,
     senderPublicKey: CryptoKey,
   ): Promise<{ readonly message: ServiceMessage; readonly originatorKey?: SessionOriginatorKey }> {
-    const parcelPayload = SessionlessEnvelopedData.deserialize(parcelPayloadSerialized);
+    const parcelPayload = EnvelopedData.deserialize(parcelPayloadSerialized);
 
     // tslint:disable-next-line:no-let
     let originatorKey;
