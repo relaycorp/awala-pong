@@ -16,5 +16,5 @@ if (isTypeScript) {
   QUEUE.process(worker);
 } else {
   // Script is being run by node. We may be in production, so run processor in separate process.
-  QUEUE.process('../app/background_queue/worker');
+  QUEUE.process(__dirname + '/../app/background_queue/worker');
 }

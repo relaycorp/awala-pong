@@ -1,14 +1,24 @@
 version: '3.7'
 services:
   app:
+    build:
+      dockerfile: Dockerfile
+    image: relaynet-pong:production
+    command: ['node', 'build/main/bin/pohttp-server.js']
     links:
       - gateway
+
+  queue:
+    build:
+      dockerfile: Dockerfile
+    image: relaynet-pong:production
+    command: ['node', 'build/main/bin/background-queue.js']
 
   gateway:
     build:
       dockerfile: Dockerfile.dev
       context: .
-    image: relaynet-pong:local-dev
+    image: relaynet-pong:development
     init: true
     entrypoint: ''
     command: jest --config jest.config.functional.js

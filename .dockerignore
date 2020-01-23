@@ -3,3 +3,4 @@ build/
 docs/
 .*
 Dockerfile*
+src/functional_tests/
