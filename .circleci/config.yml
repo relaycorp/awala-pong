@@ -18,7 +18,9 @@ jobs:
             chmod +x ~/docker-compose
             sudo mv ~/docker-compose /usr/local/bin/docker-compose
       - run: npm install
-      - run: npm run test:functional
+      - run: npm run build
+      - run: rm -rf node_modules
+      - run: ./src/functional_tests/run.sh
 
 commands:
   unit-test:
