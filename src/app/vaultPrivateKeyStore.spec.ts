@@ -4,16 +4,17 @@ import {
   derSerializePublicKey,
   generateECDHKeyPair,
   generateRSAKeyPair,
+  PrivateKeyStoreError,
 } from '@relaycorp/relaynet-core';
 import axios, { AxiosRequestConfig } from 'axios';
 import * as http from 'http';
 import * as https from 'https';
 
 import { expectBuffersToEqual, expectPromiseToReject, sha256Hex } from './_test_utils';
-import { VaultSessionStore, VaultStoreError } from './channelSessionKeys';
 import { base64Encode } from './utils';
+import { VaultPrivateKeyStore } from './vaultPrivateKeyStore';
 
-describe('VaultSessionStore', () => {
+describe('VaultPrivateKeyStore', () => {
   const mockAxiosCreate = jest.spyOn(axios, 'create');
   beforeEach(() => {
     mockAxiosCreate.mockReset();
@@ -26,7 +27,7 @@ describe('VaultSessionStore', () => {
   const stubKvPath = 'pohttp-private-keys';
   const stubVaultToken = 'letmein';
 
-  const sessionKeyPairId = 12345;
+  const sessionKeyPairId = '12345';
   let sessionKeyPair: CryptoKeyPair;
   let recipientKeyPair: CryptoKeyPair;
   beforeAll(async () => {
@@ -51,7 +52,7 @@ describe('VaultSessionStore', () => {
       let axiosCreateCallOptions: AxiosRequestConfig;
       beforeEach(() => {
         // tslint:disable-next-line:no-unused-expression
-        new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+        new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
         expect(mockAxiosCreate).toBeCalledTimes(1);
         axiosCreateCallOptions = mockAxiosCreate.mock.calls[0][0] as AxiosRequestConfig;
@@ -80,7 +81,7 @@ describe('VaultSessionStore', () => {
         mockAxiosCreate.mockClear();
 
         // tslint:disable-next-line:no-unused-expression
-        new VaultSessionStore(`${stubVaultUrl}/`, stubVaultToken, `/${stubKvPath}/`);
+        new VaultPrivateKeyStore(`${stubVaultUrl}/`, stubVaultToken, `/${stubKvPath}/`);
 
         expect(mockAxiosCreate.mock.calls[0][0]).toHaveProperty(
           'baseURL',
@@ -110,7 +111,7 @@ describe('VaultSessionStore', () => {
     });
   });
 
-  describe('savePrivateKey', () => {
+  describe('saveKey', () => {
     const mockAxiosClient = { post: jest.fn(), interceptors: { response: { use: jest.fn() } } };
     beforeEach(() => {
       mockAxiosClient.post.mockReset();
@@ -120,18 +121,18 @@ describe('VaultSessionStore', () => {
       mockAxiosCreate.mockReturnValueOnce(mockAxiosClient);
     });
 
-    test('Endpoint path should be "session-keys" followed by the key id', async () => {
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
-      await store.savePrivateKey(sessionKeyPair.privateKey, sessionKeyPairId);
+    test('Endpoint path should be the key id', async () => {
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      await store.saveSessionKey(sessionKeyPair.privateKey, sessionKeyPairId);
 
       expect(mockAxiosClient.post).toBeCalledTimes(1);
       const postCallArgs = mockAxiosClient.post.mock.calls[0];
-      expect(postCallArgs[0]).toEqual(`/session-keys/${sessionKeyPairId}`);
+      expect(postCallArgs[0]).toEqual(`/${sessionKeyPairId}`);
     });
 
     test('Private key should be saved', async () => {
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
-      await store.savePrivateKey(
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      await store.saveSessionKey(
         sessionKeyPair.privateKey,
         sessionKeyPairId,
         recipientKeyPair.publicKey,
@@ -146,8 +147,8 @@ describe('VaultSessionStore', () => {
     });
 
     test('Recipient key hash should be included in secret if present', async () => {
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
-      await store.savePrivateKey(
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      await store.saveSessionKey(
         sessionKeyPair.privateKey,
         sessionKeyPairId,
         recipientKeyPair.publicKey,
@@ -165,8 +166,8 @@ describe('VaultSessionStore', () => {
     });
 
     test('Recipient key hash should be missing from secret if unset', async () => {
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
-      await store.savePrivateKey(sessionKeyPair.privateKey, sessionKeyPairId);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      await store.saveSessionKey(sessionKeyPair.privateKey, sessionKeyPairId);
 
       expect(mockAxiosClient.post).toBeCalledTimes(1);
       const postCallArgs = mockAxiosClient.post.mock.calls[0];
@@ -176,24 +177,24 @@ describe('VaultSessionStore', () => {
     test('Axios errors should be wrapped', async () => {
       mockAxiosClient.post.mockReset();
       mockAxiosClient.post.mockRejectedValueOnce(new Error('Denied'));
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
       await expectPromiseToReject(
-        store.savePrivateKey(
+        store.saveSessionKey(
           sessionKeyPair.privateKey,
           sessionKeyPairId,
           recipientKeyPair.publicKey,
         ),
-        new VaultStoreError(`Failed to save private key ${sessionKeyPairId}: Denied`),
+        new PrivateKeyStoreError(`Failed to save session key ${sessionKeyPairId}: Denied`),
       );
     });
 
     test('A 200 OK response should be treated as success', async () => {
       mockAxiosClient.post.mockReset();
       mockAxiosClient.post.mockResolvedValueOnce({ status: 200 });
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
-      await store.savePrivateKey(
+      await store.saveSessionKey(
         sessionKeyPair.privateKey,
         sessionKeyPairId,
         recipientKeyPair.publicKey,
@@ -203,9 +204,9 @@ describe('VaultSessionStore', () => {
     test('A 204 No Content response should be treated as success', async () => {
       mockAxiosClient.post.mockReset();
       mockAxiosClient.post.mockResolvedValueOnce({ status: 204 });
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
-      await store.savePrivateKey(
+      await store.saveSessionKey(
         sessionKeyPair.privateKey,
         sessionKeyPairId,
         recipientKeyPair.publicKey,
@@ -215,22 +216,22 @@ describe('VaultSessionStore', () => {
     test('A non-200/204 response should raise an error', async () => {
       mockAxiosClient.post.mockReset();
       mockAxiosClient.post.mockResolvedValueOnce({ status: 400 });
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
       await expectPromiseToReject(
-        store.savePrivateKey(
+        store.saveSessionKey(
           sessionKeyPair.privateKey,
           sessionKeyPairId,
           recipientKeyPair.publicKey,
         ),
-        new VaultStoreError(
-          `Failed to save private key ${sessionKeyPairId}: Vault returned a 400 response`,
+        new PrivateKeyStoreError(
+          `Failed to save session key ${sessionKeyPairId}: Vault returned a 400 response`,
         ),
       );
     });
   });
 
-  describe('getPrivateKey', () => {
+  describe('fetchKey', () => {
     const mockAxiosClient = { get: jest.fn(), interceptors: { response: { use: jest.fn() } } };
     beforeEach(async () => {
       mockAxiosClient.get.mockReset();
@@ -242,6 +243,7 @@ describe('VaultSessionStore', () => {
               recipientPublicKeyDigest: sha256Hex(
                 await derSerializePublicKey(recipientKeyPair.publicKey),
               ),
+              type: 'session',
             },
           },
         },
@@ -253,9 +255,9 @@ describe('VaultSessionStore', () => {
     });
 
     test('Private key should be returned decoded', async () => {
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
-      const privateKey = await store.getPrivateKey(sessionKeyPairId, recipientKeyPair.publicKey);
+      const privateKey = await store.fetchSessionKey(sessionKeyPairId, recipientKeyPair.publicKey);
 
       expectBuffersToEqual(
         await derSerializePrivateKey(privateKey),
@@ -263,27 +265,27 @@ describe('VaultSessionStore', () => {
       );
     });
 
-    test('Endpoint path should be "session-keys" followed by the key id', async () => {
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+    test('Endpoint path should be the key id', async () => {
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
-      await store.getPrivateKey(sessionKeyPairId, recipientKeyPair.publicKey);
+      await store.fetchSessionKey(sessionKeyPairId, recipientKeyPair.publicKey);
 
       expect(mockAxiosClient.get).toBeCalledTimes(1);
       const getCallArgs = mockAxiosClient.get.mock.calls[0];
-      expect(getCallArgs[0]).toEqual(`/session-keys/${sessionKeyPairId}`);
+      expect(getCallArgs[0]).toEqual(`/${sessionKeyPairId}`);
     });
 
     test('Retrieval should fail if recipient public key does not match secret', async () => {
       const differentRecipientKeyPair = await generateRSAKeyPair();
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
       await expectPromiseToReject(
-        store.getPrivateKey(sessionKeyPairId, differentRecipientKeyPair.publicKey),
-        new VaultStoreError(`Key ${sessionKeyPairId} belongs to a different session`),
+        store.fetchSessionKey(sessionKeyPairId, differentRecipientKeyPair.publicKey),
+        new PrivateKeyStoreError(`Key ${sessionKeyPairId} is bound to another recipient`),
       );
     });
 
-    test('Recipient public key should be skipped when session key is initial', async () => {
+    test('Recipient public key should be ignored when session key is initial', async () => {
       // "Initial" means the key isn't bound to any specific session/recipient
       mockAxiosClient.get.mockReset();
       mockAxiosClient.get.mockResolvedValueOnce({
@@ -291,14 +293,15 @@ describe('VaultSessionStore', () => {
           data: {
             data: {
               privateKey: base64Encode(await derSerializePrivateKey(sessionKeyPair.privateKey)),
+              type: 'session',
             },
           },
         },
         status: 200,
       });
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
-      const privateKey = await store.getPrivateKey(sessionKeyPairId, recipientKeyPair.publicKey);
+      const privateKey = await store.fetchSessionKey(sessionKeyPairId, recipientKeyPair.publicKey);
 
       expectBuffersToEqual(
         await derSerializePrivateKey(privateKey),
@@ -309,23 +312,23 @@ describe('VaultSessionStore', () => {
     test('Axios errors should be wrapped', async () => {
       mockAxiosClient.get.mockReset();
       mockAxiosClient.get.mockRejectedValueOnce(new Error('Denied'));
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
       await expectPromiseToReject(
-        store.getPrivateKey(sessionKeyPairId, recipientKeyPair.publicKey),
-        new VaultStoreError(`Failed to retrieve private key ${sessionKeyPairId}: Denied`),
+        store.fetchSessionKey(sessionKeyPairId, recipientKeyPair.publicKey),
+        new PrivateKeyStoreError(`Failed to retrieve session key ${sessionKeyPairId}: Denied`),
       );
     });
 
     test('A non-200 response should raise an error', async () => {
       mockAxiosClient.get.mockReset();
       mockAxiosClient.get.mockResolvedValueOnce({ status: 204 });
-      const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
+      const store = new VaultPrivateKeyStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
       await expectPromiseToReject(
-        store.getPrivateKey(sessionKeyPairId, recipientKeyPair.publicKey),
-        new VaultStoreError(
-          `Failed to save key ${sessionKeyPairId}: Vault returned a 204 response`,
+        store.fetchSessionKey(sessionKeyPairId, recipientKeyPair.publicKey),
+        new PrivateKeyStoreError(
+          `Failed to retrieve session key ${sessionKeyPairId}: Vault returned a 204 response`,
         ),
       );
     });

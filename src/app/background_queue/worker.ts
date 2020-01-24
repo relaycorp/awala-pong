@@ -5,8 +5,8 @@ import { Job } from 'bull';
 import { get as getEnvVar } from 'env-var';
 import pino = require('pino');
 
-import { VaultSessionStore } from '../channelSessionKeys';
 import { base64Decode } from '../utils';
+import { VaultPrivateKeyStore } from '../vaultPrivateKeyStore';
 import { PingProcessor } from './processor';
 import { QueuedPing } from './QueuedPing';
 
@@ -25,7 +25,7 @@ const vaultToken = getEnvVar('VAULT_TOKEN')
 const vaultKvPrefix = getEnvVar('VAULT_KV_PREFIX')
   .required()
   .asString();
-const sessionStore = new VaultSessionStore(vaultUrl, vaultToken, vaultKvPrefix);
+const sessionStore = new VaultPrivateKeyStore(vaultUrl, vaultToken, vaultKvPrefix);
 
 const processor = new PingProcessor(privateKeyDer, sessionStore);
 

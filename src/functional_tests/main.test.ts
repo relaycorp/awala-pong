@@ -18,9 +18,9 @@ import * as fs from 'fs';
 import { logDiffOn501, Route, Stubborn } from 'stubborn-ws';
 
 import { generateStubNodeCertificate, generateStubPingParcel } from '../app/_test_utils';
-import { VaultSessionStore } from '../app/channelSessionKeys';
 import { serializePing } from '../app/pingSerialization';
 import { base64Decode } from '../app/utils';
+import { VaultPrivateKeyStore } from '../app/vaultPrivateKeyStore';
 
 const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
@@ -104,7 +104,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       await vaultClient.delete('/sys/mounts/session-keys');
     });
 
-    const sessionStore = new VaultSessionStore('http://vault:8200', 'letmein', 'session-keys');
+    const sessionStore = new VaultPrivateKeyStore('http://vault:8200', 'letmein', 'session-keys');
     const endpointInitialSessionKeyPairId = 98765;
 
     test('Session keys should be used as expected', async () => {
@@ -115,7 +115,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
         nodePrivateKey: await getPongEndpointPrivateKey(),
         serialNumber: endpointInitialSessionKeyPairId,
       });
-      await sessionStore.savePrivateKey(
+      await sessionStore.saveSessionKey(
         endpointInitialSessionKeyPair.privateKey,
         endpointInitialSessionKeyPairId,
       );
@@ -153,7 +153,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       const parcel = new Parcel(
         PONG_SERVICE_ENDPOINT,
         pingSenderCertificate,
-        envelopedData.serialize(),
+        Buffer.from(envelopedData.serialize()),
       );
 
       return {

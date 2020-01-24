@@ -17,9 +17,9 @@ import * as pohttp from '@relaycorp/relaynet-pohttp';
 import { Job } from 'bull';
 
 import { expectBuffersToEqual, generateStubNodeCertificate, getMockContext } from '../_test_utils';
-import { VaultSessionStore } from '../channelSessionKeys';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utils';
+import { VaultPrivateKeyStore } from '../vaultPrivateKeyStore';
 import { QueuedPing } from './QueuedPing';
 
 const mockPino = { info: jest.fn() };
@@ -30,7 +30,7 @@ afterAll(jest.restoreAllMocks);
 
 describe('PingProcessor', () => {
   describe('deliverPongForPing', () => {
-    const mockSessionStore = { getPrivateKey: jest.fn(), savePrivateKey: jest.fn() };
+    const mockSessionStore = { fetchSessionKey: jest.fn(), saveSessionKey: jest.fn() };
 
     const pingId = Buffer.from('a'.repeat(36));
 
@@ -67,7 +67,7 @@ describe('PingProcessor', () => {
       const recipientPrivateKeyDer = await derSerializePrivateKey(recipientKeyPair.privateKey);
       processor = new PingProcessor(
         recipientPrivateKeyDer,
-        (mockSessionStore as unknown) as VaultSessionStore,
+        (mockSessionStore as unknown) as VaultPrivateKeyStore,
       );
     });
 
@@ -247,7 +247,7 @@ describe('PingProcessor', () => {
       });
 
       beforeEach(() => {
-        mockSessionStore.getPrivateKey.mockResolvedValueOnce(recipientSessionKeyPair1.privateKey);
+        mockSessionStore.fetchSessionKey.mockResolvedValueOnce(recipientSessionKeyPair1.privateKey);
       });
 
       test('The right DH private key should be retrieved and used for decryption', async () => {
@@ -256,8 +256,8 @@ describe('PingProcessor', () => {
         await processor.deliverPongForPing(stubJob);
 
         // Check key retrieval
-        expect(mockSessionStore.getPrivateKey).toBeCalledTimes(1);
-        const getKeyCallArgs = mockSessionStore.getPrivateKey.mock.calls[0];
+        expect(mockSessionStore.fetchSessionKey).toBeCalledTimes(1);
+        const getKeyCallArgs = mockSessionStore.fetchSessionKey.mock.calls[0];
         expect(getKeyCallArgs[0]).toEqual(recipientSessionCert1serialNumber);
         expectBuffersToEqual(
           await derSerializePublicKey(getKeyCallArgs[1]),
@@ -301,9 +301,9 @@ describe('PingProcessor', () => {
 
         await processor.deliverPongForPing(stubJob);
 
-        expect(mockSessionStore.savePrivateKey).toBeCalledTimes(1);
+        expect(mockSessionStore.saveSessionKey).toBeCalledTimes(1);
         const encryptCallResult = await encryptSpy.mock.results[0].value;
-        expect(mockSessionStore.savePrivateKey).toBeCalledWith(
+        expect(mockSessionStore.saveSessionKey).toBeCalledWith(
           encryptCallResult.dhPrivateKey,
           encryptCallResult.dhKeyId,
           await getPublicKeySpy.mock.results[0].value,
@@ -325,8 +325,8 @@ describe('PingProcessor', () => {
 
       test('Use of unknown public key ids should be gracefully logged', async () => {
         const err = new Error('Denied');
-        mockSessionStore.getPrivateKey.mockReset();
-        mockSessionStore.getPrivateKey.mockRejectedValueOnce(err);
+        mockSessionStore.fetchSessionKey.mockReset();
+        mockSessionStore.fetchSessionKey.mockRejectedValueOnce(err);
 
         await processor.deliverPongForPing(stubJob);
 
