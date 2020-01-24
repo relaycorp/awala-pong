@@ -23,7 +23,7 @@ describe('VaultSessionStore', () => {
   });
 
   const stubVaultUrl = 'http://localhost:8200';
-  const stubKvPath = 'session-keys';
+  const stubKvPath = 'pohttp-private-keys';
   const stubVaultToken = 'letmein';
 
   const sessionKeyPairId = 12345;
@@ -120,13 +120,13 @@ describe('VaultSessionStore', () => {
       mockAxiosCreate.mockReturnValueOnce(mockAxiosClient);
     });
 
-    test('Endpoint path should be the key id', async () => {
+    test('Endpoint path should be "session-keys" followed by the key id', async () => {
       const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
       await store.savePrivateKey(sessionKeyPair.privateKey, sessionKeyPairId);
 
       expect(mockAxiosClient.post).toBeCalledTimes(1);
       const postCallArgs = mockAxiosClient.post.mock.calls[0];
-      expect(postCallArgs[0]).toEqual(`/${sessionKeyPairId}`);
+      expect(postCallArgs[0]).toEqual(`/session-keys/${sessionKeyPairId}`);
     });
 
     test('Private key should be saved', async () => {
@@ -263,14 +263,14 @@ describe('VaultSessionStore', () => {
       );
     });
 
-    test('Endpoint path should be the key id', async () => {
+    test('Endpoint path should be "session-keys" followed by the key id', async () => {
       const store = new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
       await store.getPrivateKey(sessionKeyPairId, recipientKeyPair.publicKey);
 
       expect(mockAxiosClient.get).toBeCalledTimes(1);
       const getCallArgs = mockAxiosClient.get.mock.calls[0];
-      expect(getCallArgs[0]).toEqual(`/${sessionKeyPairId}`);
+      expect(getCallArgs[0]).toEqual(`/session-keys/${sessionKeyPairId}`);
     });
 
     test('Retrieval should fail if recipient public key does not match secret', async () => {

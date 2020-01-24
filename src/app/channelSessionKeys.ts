@@ -41,7 +41,7 @@ export class VaultSessionStore implements SessionStore {
     // tslint:disable-next-line
     let response;
     try {
-      response = await this.axiosClient.get(`/${dhKeyPairId}`);
+      response = await this.axiosClient.get(`/session-keys/${dhKeyPairId}`);
     } catch (error) {
       throw new VaultStoreError(error, `Failed to retrieve private key ${dhKeyPairId}`);
     }
@@ -85,7 +85,7 @@ export class VaultSessionStore implements SessionStore {
     // tslint:disable-next-line:no-let
     let response: AxiosResponse;
     try {
-      response = await this.axiosClient.post(`/${dhKeyPairId}`, requestBody);
+      response = await this.axiosClient.post(`/session-keys/${dhKeyPairId}`, requestBody);
     } catch (error) {
       throw new VaultStoreError(error, `Failed to save private key ${dhKeyPairId}`);
     }
