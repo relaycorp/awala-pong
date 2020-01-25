@@ -26,6 +26,12 @@ export class VaultSessionStore implements SessionStore {
       httpsAgent: new HttpsAgent({ keepAlive: true }),
       timeout: 3000,
     });
+
+    // Sanitize errors to avoid leaking sensitive data, which apparently is a feature:
+    // https://github.com/axios/axios/issues/2602
+    this.axiosClient.interceptors.response.use(undefined, async error =>
+      Promise.reject(new Error(error.message)),
+    );
   }
 
   public async getPrivateKey(

@@ -36,8 +36,20 @@ describe('VaultSessionStore', () => {
 
   describe('constructor', () => {
     describe('Axios client', () => {
+      const mockResponseInterceptorUse = jest.fn();
+      beforeEach(() => {
+        mockAxiosCreate.mockReturnValue({
+          interceptors: {
+            // @ts-ignore
+            response: {
+              use: mockResponseInterceptorUse,
+            },
+          },
+        });
+      });
+
       let axiosCreateCallOptions: AxiosRequestConfig;
-      beforeAll(() => {
+      beforeEach(() => {
         // tslint:disable-next-line:no-unused-expression
         new VaultSessionStore(stubVaultUrl, stubVaultToken, stubKvPath);
 
@@ -65,7 +77,7 @@ describe('VaultSessionStore', () => {
       });
 
       test('Base URL should be normalized', () => {
-        mockAxiosCreate.mockReset();
+        mockAxiosCreate.mockClear();
 
         // tslint:disable-next-line:no-unused-expression
         new VaultSessionStore(`${stubVaultUrl}/`, stubVaultToken, `/${stubKvPath}/`);
@@ -79,11 +91,27 @@ describe('VaultSessionStore', () => {
       test('Vault token should be included in the headers', () => {
         expect(axiosCreateCallOptions).toHaveProperty('headers.X-Vault-Token', stubVaultToken);
       });
+
+      test('An error interceptor that removes sensitive data should be registered', async () => {
+        const stubError = { message: 'Denied', sensitive: 's3cr3t' };
+
+        expect(mockResponseInterceptorUse).toBeCalledTimes(1);
+
+        const responseInterceptorCallArgs = mockResponseInterceptorUse.mock.calls[0];
+        const errorInterceptor = responseInterceptorCallArgs[1];
+        try {
+          await errorInterceptor(stubError);
+          fail('Expected interceptor to reject');
+        } catch (error) {
+          expect(error).toHaveProperty('message', stubError.message);
+          expect(error).not.toHaveProperty('sensitive');
+        }
+      });
     });
   });
 
   describe('savePrivateKey', () => {
-    const mockAxiosClient = { post: jest.fn() };
+    const mockAxiosClient = { post: jest.fn(), interceptors: { response: { use: jest.fn() } } };
     beforeEach(() => {
       mockAxiosClient.post.mockReset();
       mockAxiosClient.post.mockResolvedValueOnce({ status: 204 });
@@ -203,7 +231,7 @@ describe('VaultSessionStore', () => {
   });
 
   describe('getPrivateKey', () => {
-    const mockAxiosClient = { get: jest.fn() };
+    const mockAxiosClient = { get: jest.fn(), interceptors: { response: { use: jest.fn() } } };
     beforeEach(async () => {
       mockAxiosClient.get.mockReset();
       mockAxiosClient.get.mockResolvedValueOnce({
