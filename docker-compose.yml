@@ -36,7 +36,7 @@ services:
 
       VAULT_URL: http://vault:8200
       VAULT_TOKEN: letmein
-      VAULT_KV_PREFIX: 'session-keys'
+      VAULT_KV_PREFIX: 'pong-keys'
 
       ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}
 

@@ -28,7 +28,7 @@ const PONG_ENDPOINT_KEY_ID = getEnvVar('ENDPOINT_KEY_ID')
   .required()
   .asString();
 
-const privateKeyStore = new VaultPrivateKeyStore('http://vault:8200', 'letmein', 'session-keys');
+const privateKeyStore = new VaultPrivateKeyStore('http://vault:8200', 'letmein', 'pong-keys');
 
 describe('End-to-end test for successful delivery of ping and pong messages', () => {
   const mockGatewayServer = new Stubborn({ host: '0.0.0.0' });
@@ -194,12 +194,12 @@ function configureVault(): void {
     headers: { 'X-Vault-Token': 'letmein' },
   });
   beforeAll(async () => {
-    await vaultClient.post('/sys/mounts/session-keys', {
+    await vaultClient.post('/sys/mounts/pong-keys', {
       options: { version: '2' },
       type: 'kv',
     });
   });
   afterAll(async () => {
-    await vaultClient.delete('/sys/mounts/session-keys');
+    await vaultClient.delete('/sys/mounts/pong-keys');
   });
 }
