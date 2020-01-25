@@ -1,5 +1,6 @@
 version: '3.7'
 services:
+  # Test against the production image
   app:
     build:
       dockerfile: Dockerfile
@@ -23,7 +24,9 @@ services:
     entrypoint: ''
     command: jest --config jest.config.functional.js
     volumes:
-      - .:/opt/pong-dev:ro
+      - .:/opt/pong-dev
+      # Use `node_modules` from container; trailing slash is required.
+      - /opt/pong-dev/node_modules/
     environment:
       POHTTP_TLS_REQUIRED: 'false'
-      ENDPOINT_PRIVATE_KEY: ${ENDPOINT_PRIVATE_KEY}
+      ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}

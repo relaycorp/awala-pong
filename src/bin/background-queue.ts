@@ -6,7 +6,7 @@ import { get as getEnvVar } from 'env-var';
 import { initQueue } from '../app/background_queue/queue';
 import worker from '../app/background_queue/worker';
 
-getEnvVar('ENDPOINT_PRIVATE_KEY').required();
+getEnvVar('ENDPOINT_KEY_ID').required();
 
 const QUEUE = initQueue();
 const isTypeScript = __filename.endsWith('ts');

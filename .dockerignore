@@ -4,3 +4,4 @@ docs/
 .*
 Dockerfile*
 src/functional_tests/
+docker-compose.yml

@@ -1,7 +1,6 @@
 /* tslint:disable:no-let */
 import {
   Certificate,
-  derSerializePrivateKey,
   derSerializePublicKey,
   EnvelopedData,
   generateECDHKeyPair,
@@ -17,9 +16,9 @@ import * as pohttp from '@relaycorp/relaynet-pohttp';
 import { Job } from 'bull';
 
 import { expectBuffersToEqual, generateStubNodeCertificate, getMockContext } from '../_test_utils';
-import { VaultSessionStore } from '../channelSessionKeys';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utils';
+import { VaultPrivateKeyStore } from '../vaultPrivateKeyStore';
 import { QueuedPing } from './QueuedPing';
 
 const mockPino = { info: jest.fn() };
@@ -30,7 +29,11 @@ afterAll(jest.restoreAllMocks);
 
 describe('PingProcessor', () => {
   describe('deliverPongForPing', () => {
-    const mockSessionStore = { getPrivateKey: jest.fn(), savePrivateKey: jest.fn() };
+    const mockPrivateKeyStore = {
+      fetchNodeKey: jest.fn(),
+      fetchSessionKey: jest.fn(),
+      saveSessionKey: jest.fn(),
+    };
 
     const pingId = Buffer.from('a'.repeat(36));
 
@@ -64,19 +67,30 @@ describe('PingProcessor', () => {
         recipientCertificate,
       );
 
-      const recipientPrivateKeyDer = await derSerializePrivateKey(recipientKeyPair.privateKey);
       processor = new PingProcessor(
-        recipientPrivateKeyDer,
-        (mockSessionStore as unknown) as VaultSessionStore,
+        recipientCertificate.getSerialNumberHex(),
+        (mockPrivateKeyStore as unknown) as VaultPrivateKeyStore,
       );
     });
 
     beforeEach(() => {
       jest.restoreAllMocks();
 
+      mockPrivateKeyStore.fetchNodeKey.mockResolvedValueOnce(recipientKeyPair.privateKey);
+
       jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(
         // @ts-ignore
         undefined,
+      );
+    });
+
+    test('The right node private key should be retrieved from the store', async () => {
+      const job = await initJob();
+      await processor.deliverPongForPing(job);
+
+      expect(mockPrivateKeyStore.fetchNodeKey).toBeCalledTimes(1);
+      expect(mockPrivateKeyStore.fetchNodeKey).toBeCalledWith(
+        recipientCertificate.getSerialNumberHex(),
       );
     });
 
@@ -247,7 +261,9 @@ describe('PingProcessor', () => {
       });
 
       beforeEach(() => {
-        mockSessionStore.getPrivateKey.mockResolvedValueOnce(recipientSessionKeyPair1.privateKey);
+        mockPrivateKeyStore.fetchSessionKey.mockResolvedValueOnce(
+          recipientSessionKeyPair1.privateKey,
+        );
       });
 
       test('The right DH private key should be retrieved and used for decryption', async () => {
@@ -256,8 +272,8 @@ describe('PingProcessor', () => {
         await processor.deliverPongForPing(stubJob);
 
         // Check key retrieval
-        expect(mockSessionStore.getPrivateKey).toBeCalledTimes(1);
-        const getKeyCallArgs = mockSessionStore.getPrivateKey.mock.calls[0];
+        expect(mockPrivateKeyStore.fetchSessionKey).toBeCalledTimes(1);
+        const getKeyCallArgs = mockPrivateKeyStore.fetchSessionKey.mock.calls[0];
         expect(getKeyCallArgs[0]).toEqual(recipientSessionCert1serialNumber);
         expectBuffersToEqual(
           await derSerializePublicKey(getKeyCallArgs[1]),
@@ -301,9 +317,9 @@ describe('PingProcessor', () => {
 
         await processor.deliverPongForPing(stubJob);
 
-        expect(mockSessionStore.savePrivateKey).toBeCalledTimes(1);
+        expect(mockPrivateKeyStore.saveSessionKey).toBeCalledTimes(1);
         const encryptCallResult = await encryptSpy.mock.results[0].value;
-        expect(mockSessionStore.savePrivateKey).toBeCalledWith(
+        expect(mockPrivateKeyStore.saveSessionKey).toBeCalledWith(
           encryptCallResult.dhPrivateKey,
           encryptCallResult.dhKeyId,
           await getPublicKeySpy.mock.results[0].value,
@@ -325,8 +341,8 @@ describe('PingProcessor', () => {
 
       test('Use of unknown public key ids should be gracefully logged', async () => {
         const err = new Error('Denied');
-        mockSessionStore.getPrivateKey.mockReset();
-        mockSessionStore.getPrivateKey.mockRejectedValueOnce(err);
+        mockPrivateKeyStore.fetchSessionKey.mockReset();
+        mockPrivateKeyStore.fetchSessionKey.mockRejectedValueOnce(err);
 
         await processor.deliverPongForPing(stubJob);
 

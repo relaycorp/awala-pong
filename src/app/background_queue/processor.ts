@@ -1,6 +1,5 @@
 import {
   Certificate,
-  derDeserializeRSAPrivateKey,
   EnvelopedData,
   Parcel,
   ServiceMessage,
@@ -13,26 +12,23 @@ import bufferToArray = require('buffer-to-arraybuffer');
 import { Job } from 'bull';
 import pino = require('pino');
 
-import { VaultSessionStore } from '../channelSessionKeys';
 import { deserializePing, Ping } from '../pingSerialization';
 import { base64Decode } from '../utils';
+import { VaultPrivateKeyStore } from '../vaultPrivateKeyStore';
 import { QueuedPing } from './QueuedPing';
 
 const logger = pino();
 
 export class PingProcessor {
   constructor(
-    protected readonly endpointPrivateKeyDer: Buffer,
-    protected readonly sessionStore: VaultSessionStore,
+    protected readonly currentEndpointKeyId: string,
+    protected readonly privateKeyStore: VaultPrivateKeyStore,
   ) {}
 
   public async deliverPongForPing(job: Job<QueuedPing>): Promise<void> {
     // We should be supporting multiple keys so we can do key rotation.
     // See: https://github.com/relaycorp/relaynet-pong/issues/14
-    const privateKey = await derDeserializeRSAPrivateKey(this.endpointPrivateKeyDer, {
-      hash: { name: 'SHA-256' },
-      name: 'RSA-PSS',
-    });
+    const privateKey = await this.privateKeyStore.fetchNodeKey(this.currentEndpointKeyId);
 
     const pongRecipientCertificate = Certificate.deserialize(
       bufferToArray(base64Decode(job.data.parcelSenderCertificate)),
@@ -125,7 +121,10 @@ export class PingProcessor {
       originatorKey = await (parcelPayload as SessionEnvelopedData).getOriginatorKey();
 
       const recipientSessionKeyId = (parcelPayload as SessionEnvelopedData).getRecipientKeyId();
-      privateKey = await this.sessionStore.getPrivateKey(recipientSessionKeyId, senderPublicKey);
+      privateKey = await this.privateKeyStore.fetchSessionKey(
+        recipientSessionKeyId,
+        senderPublicKey,
+      );
     }
 
     const serviceMessageSerialized = await parcelPayload.decrypt(privateKey);
@@ -137,7 +136,7 @@ export class PingProcessor {
     pingId: Buffer,
     recipientCertificateOrSessionKey: Certificate | SessionOriginatorKey,
     recipientPublicKey: CryptoKey,
-  ): Promise<ArrayBuffer> {
+  ): Promise<Buffer> {
     const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', pingId);
     const pongMessageSerialized = pongMessage.serialize();
 
@@ -154,12 +153,12 @@ export class PingProcessor {
         recipientCertificateOrSessionKey,
       );
       pongParcelPayload = encryptionResult.envelopedData;
-      await this.sessionStore.savePrivateKey(
+      await this.privateKeyStore.saveSessionKey(
         encryptionResult.dhPrivateKey,
         encryptionResult.dhKeyId,
         recipientPublicKey,
       );
     }
-    return pongParcelPayload.serialize();
+    return Buffer.from(pongParcelPayload.serialize());
   }
 }

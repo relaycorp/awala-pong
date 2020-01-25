@@ -17,9 +17,12 @@ jobs:
             curl -L https://github.com/docker/compose/releases/download/1.25.1/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
             chmod +x ~/docker-compose
             sudo mv ~/docker-compose /usr/local/bin/docker-compose
+
+      # Install dependencies just so we can transpile the TS files to JS; then remove the deps.
       - run: npm install
       - run: npm run build
       - run: rm -rf node_modules
+
       - run: ./src/functional_tests/run.sh
 
 commands:

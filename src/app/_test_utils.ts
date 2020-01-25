@@ -117,7 +117,7 @@ export async function generateStubPingParcel(
   const parcel = new Parcel(
     recipientAddress,
     senderCertificate,
-    serviceMessageEncrypted.serialize(),
+    Buffer.from(serviceMessageEncrypted.serialize()),
   );
 
   return Buffer.from(await parcel.serialize(senderPrivateKey));
