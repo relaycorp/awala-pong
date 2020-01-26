@@ -1,4 +1,6 @@
-// tslint:disable-next-line:no-var-requires
+// tslint:disable:no-console
+
+// tslint:disable-next-line:no-var-requires no-console
 require('make-promises-safe');
 
 import { base64Encode } from '../app/utils';
@@ -23,6 +25,16 @@ const vaultKvPrefix = getEnvVar('VAULT_KV_PREFIX')
 const sessionStore = new VaultPrivateKeyStore(vaultUrl, vaultToken, vaultKvPrefix);
 
 async function main(): Promise<void> {
+  if (PONG_ENDPOINT_KEY_ID) {
+    try {
+      await sessionStore.fetchNodeKey(PONG_ENDPOINT_KEY_ID);
+      console.warn(`Endpoint key ${PONG_ENDPOINT_KEY_ID} already exists`);
+      return;
+    } catch (error) {
+      console.log(`Endpoint key ${PONG_ENDPOINT_KEY_ID} doesn't exist so it'll be created`);
+    }
+  }
+
   const endpointKeyPair = await generateRSAKeyPair();
 
   const endDate = new Date();
@@ -33,11 +45,10 @@ async function main(): Promise<void> {
     validityEndDate: endDate,
   });
 
-  const keyId = PONG_ENDPOINT_KEY_ID ?? endpointCertificate.getSerialNumberHex();
+  const keyId = endpointCertificate.getSerialNumberHex();
 
   await sessionStore.saveNodeKey(endpointKeyPair.privateKey, keyId);
 
-  // tslint:disable-next-line:no-console
   console.log(
     JSON.stringify({
       certificate: base64Encode(endpointCertificate.serialize()),
