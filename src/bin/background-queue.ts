@@ -18,3 +18,6 @@ if (isTypeScript) {
   // Script is being run by node. We may be in production, so run processor in separate process.
   QUEUE.process(__dirname + '/../app/background_queue/worker');
 }
+
+// tslint:disable-next-line:no-console
+console.log('Master process started');
