@@ -7,6 +7,10 @@ remote_theme: pmarsceill/just-the-docs@v0.2.7-r
 
 footer_content: "Copyright &copy; 2020 Relaycorp, Inc."
 
+aux_links:
+  "Relaynet Pong on GitHub":
+    - "https://github.com/relaycorp/relaynet-pong"
+
 search_enabled: false
 
 exclude:
