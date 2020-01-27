@@ -6,9 +6,9 @@ title: Relaynet Pong
 
 This is a server-side implementation of the [Relaynet Ping service](https://specs.relaynet.link/RS-014), meant to be used as a public endpoint with the [PoHTTP binding](https://specs.relaynet.link/RS-007). This application only sends [pong messages](https://specs.relaynet.link/RS-014#pong) in response to [pings](https://specs.relaynet.link/RS-014#ping).
 
-[Relaycorp](https://relaycorp.tech/) plans to host a public instance of this application as a service to the Relaynet community by the end of 2020, but anyone is welcome to deploy private or public instances of this service.
-
 This documentation is meant for contributors. If you're interested in deploying Relaynet Pong, please do so using [the Helm chart](https://github.com/relaycorp/relaynet-pong-chart) as that's the only official way to deploy the app. Using the [Docker image](https://hub.docker.com/r/relaycorp/relaynet-pong) directly works but is not recommended, as backwardly compatible changes will be likely until the project stabilizes.
+
+[Relaycorp](https://relaycorp.tech/) plans to host a public instance of this application as a service to the Relaynet community by the end of 2020, but anyone is welcome to deploy private or public instances of this service.
 
 ## Architecture and Backing Services
 
