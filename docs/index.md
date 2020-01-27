@@ -21,7 +21,7 @@ The [PoHTTP endpoint](https://github.com/relaycorp/relaynet-pong/tree/master/src
 
 The [background queue](https://github.com/relaycorp/relaynet-pong/tree/master/src/app/background_queue) is powered by [Bull](https://github.com/OptimalBits/bull), which is configured with a single job that processes the queued ping messages by producing a corresponding pong response.
 
-This application uses [@relaycorp/relaynet-core](https://docs.relaycorp.tech/relaynet-core-js/) behind the scenes, so it only supports the cryptographic algorithms supported by that library.
+This application uses [@relaycorp/relaynet-core](https://docs.relaycorp.tech/relaynet-core-js/) behind the scenes, so it supports all the cryptographic algorithms supported by that library.
 
 ## Releases
 
