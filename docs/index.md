@@ -14,8 +14,8 @@ This documentation is meant for contributors. If you're interested in deploying 
 
 This project is implemented with Node.js and the following backing services:
 
-- Hashicorp Vault, to manage private keys securely. Vault itself can in turn be configured to use additional backing services, such as MongoDB for persistent storage.
-- Redis, to run background jobs using its pubsub functionality.
+- [Hashicorp Vault](https://www.vaultproject.io/), to manage private keys securely. Vault itself can in turn be configured to use additional backing services, such as MongoDB for persistent storage.
+- [Redis](https://redis.io/), to run background jobs using its pubsub functionality.
 
 The [PoHTTP endpoint](https://github.com/relaycorp/relaynet-pong/tree/master/src/app/pohttp_endpoint) is implemented with the [Fastify](https://www.fastify.io/) framework. When a valid parcel is received, the relevant data is added to a Redis-backed background job so the pong message can be processed out of band.
 
