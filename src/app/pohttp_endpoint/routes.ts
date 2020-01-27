@@ -10,13 +10,24 @@ export default async function registerRoutes(
   _options: any,
 ): Promise<void> {
   fastify.route({
-    method: ['HEAD', 'PUT', 'DELETE', 'PATCH', 'GET'],
+    method: ['PUT', 'DELETE', 'PATCH'],
     url: '/',
     async handler(_req, reply): Promise<void> {
       reply
         .code(405)
-        .header('Allow', 'POST')
+        .header('Allow', 'HEAD, GET, POST')
         .send();
+    },
+  });
+
+  fastify.route({
+    method: ['HEAD', 'GET'],
+    url: '/',
+    async handler(_req, reply): Promise<void> {
+      reply
+        .code(200)
+        .header('Content-Type', 'text/plain')
+        .send('Success! This PoHTTP endpoint for the pong service works.');
     },
   });
 

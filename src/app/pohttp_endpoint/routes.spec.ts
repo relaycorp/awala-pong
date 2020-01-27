@@ -65,7 +65,7 @@ afterAll(() => {
 });
 
 describe('receiveParcel', () => {
-  test.each(['GET', 'HEAD', 'PUT', 'PATCH', 'DELETE'] as readonly HTTPMethod[])(
+  test.each(['PUT', 'PATCH', 'DELETE'] as readonly HTTPMethod[])(
     '%s requests should be refused',
     async method => {
       const response = await serverInstance.inject({
@@ -74,9 +74,25 @@ describe('receiveParcel', () => {
       });
 
       expect(response).toHaveProperty('statusCode', 405);
-      expect(response).toHaveProperty('headers.allow', 'POST');
+      expect(response).toHaveProperty('headers.allow', 'HEAD, GET, POST');
     },
   );
+
+  test('A plain simple HEAD request should provide some diagnostic information', async () => {
+    const response = await serverInstance.inject({ method: 'HEAD', url: '/' });
+
+    expect(response).toHaveProperty('statusCode', 200);
+    expect(response).toHaveProperty('headers.content-type', 'text/plain');
+  });
+
+  test('A plain simple GET request should provide some diagnostic information', async () => {
+    const response = await serverInstance.inject({ method: 'GET', url: '/' });
+
+    expect(response).toHaveProperty('statusCode', 200);
+    expect(response).toHaveProperty('headers.content-type', 'text/plain');
+    expect(response.payload).toContain('Success');
+    expect(response.payload).toContain('PoHTTP');
+  });
 
   test('Content-Type other than application/vnd.relaynet.parcel should be refused', async () => {
     const response = await serverInstance.inject({
