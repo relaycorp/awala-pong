@@ -34,10 +34,8 @@ export async function generateStubNodeCertificate(
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   return issueNodeCertificate({
-    isCA: true,
     issuerCertificate: options.issuerCertificate,
     issuerPrivateKey,
-    serialNumber: Math.floor(Math.random()),
     subjectPublicKey,
     validityEndDate: tomorrow,
   });
