@@ -5,6 +5,7 @@ require('make-promises-safe');
 
 import { base64Encode } from '../app/utils';
 
+import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   generateECDHKeyPair,
   generateRSAKeyPair,
@@ -12,8 +13,6 @@ import {
   issueNodeCertificate,
 } from '@relaycorp/relaynet-core';
 import { get as getEnvVar } from 'env-var';
-
-import { VaultPrivateKeyStore } from '../app/vaultPrivateKeyStore';
 
 const NODE_CERTIFICATE_TTL_DAYS = 180;
 const SESSION_CERTIFICATE_TTL_DAYS = 60;

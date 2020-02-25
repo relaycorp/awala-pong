@@ -1,11 +1,11 @@
 /* istanbul ignore file */
 // Can't unit test this file because logic runs at the module level. I don't like this about Bull.
 
+import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import { Job } from 'bull';
 import { get as getEnvVar } from 'env-var';
 import pino = require('pino');
 
-import { VaultPrivateKeyStore } from '../vaultPrivateKeyStore';
 import { PingProcessor } from './processor';
 import { QueuedPing } from './QueuedPing';
 

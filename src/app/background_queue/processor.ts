@@ -1,3 +1,4 @@
+import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
   EnvelopedData,
@@ -14,7 +15,6 @@ import pino = require('pino');
 
 import { deserializePing, Ping } from '../pingSerialization';
 import { base64Decode } from '../utils';
-import { VaultPrivateKeyStore } from '../vaultPrivateKeyStore';
 import { QueuedPing } from './QueuedPing';
 
 const logger = pino();

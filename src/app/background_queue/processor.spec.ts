@@ -1,4 +1,5 @@
 /* tslint:disable:no-let */
+import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
   derSerializePublicKey,
@@ -18,7 +19,6 @@ import { Job } from 'bull';
 import { expectBuffersToEqual, generateStubNodeCertificate, getMockContext } from '../_test_utils';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utils';
-import { VaultPrivateKeyStore } from '../vaultPrivateKeyStore';
 import { QueuedPing } from './QueuedPing';
 
 const mockPino = { info: jest.fn() };

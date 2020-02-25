@@ -1,4 +1,5 @@
 /* tslint:disable:no-let */
+import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
   EnvelopedData,
@@ -18,7 +19,6 @@ import { logDiffOn501, Route, Stubborn } from 'stubborn-ws';
 
 import { generateStubNodeCertificate, generateStubPingParcel } from '../app/_test_utils';
 import { serializePing } from '../app/pingSerialization';
-import { VaultPrivateKeyStore } from '../app/vaultPrivateKeyStore';
 
 const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
