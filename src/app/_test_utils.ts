@@ -1,7 +1,7 @@
 import {
   Certificate,
   generateRSAKeyPair,
-  issueNodeCertificate,
+  issueGatewayCertificate,
   Parcel,
   ServiceMessage,
   SessionlessEnvelopedData,
@@ -32,7 +32,7 @@ export async function generateStubNodeCertificate(
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  return issueNodeCertificate({
+  return issueGatewayCertificate({
     issuerCertificate: options.issuerCertificate,
     issuerPrivateKey,
     subjectPublicKey,

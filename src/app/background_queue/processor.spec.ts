@@ -68,7 +68,7 @@ describe('PingProcessor', () => {
       );
 
       processor = new PingProcessor(
-        recipientCertificate.getSerialNumberHex(),
+        recipientCertificate.getSerialNumber(),
         (mockPrivateKeyStore as unknown) as VaultPrivateKeyStore,
       );
     });
@@ -90,7 +90,7 @@ describe('PingProcessor', () => {
 
       expect(mockPrivateKeyStore.fetchNodeKey).toBeCalledTimes(1);
       expect(mockPrivateKeyStore.fetchNodeKey).toBeCalledWith(
-        recipientCertificate.getSerialNumberHex(),
+        recipientCertificate.getSerialNumber(),
       );
     });
 
@@ -238,17 +238,19 @@ describe('PingProcessor', () => {
     });
 
     describe('Channel session', () => {
-      const recipientSessionCert1serialNumber = 135;
       let recipientSessionKeyPair1: CryptoKeyPair;
+      let recipientSessionCert1: Certificate;
       let stubSessionParcelPayload: SessionEnvelopedData;
       let stubJob: Job<QueuedPing>;
       beforeAll(async () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
         recipientSessionKeyPair1 = await generateECDHKeyPair();
-        const recipientSessionCert1 = await issueInitialDHKeyCertificate({
-          dhPublicKey: recipientSessionKeyPair1.publicKey,
-          nodeCertificate: recipientCertificate,
-          nodePrivateKey: recipientKeyPair.privateKey,
-          serialNumber: recipientSessionCert1serialNumber,
+        recipientSessionCert1 = await issueInitialDHKeyCertificate({
+          issuerCertificate: recipientCertificate,
+          issuerPrivateKey: recipientKeyPair.privateKey,
+          subjectPublicKey: recipientSessionKeyPair1.publicKey,
+          validityEndDate: tomorrow,
         });
 
         const encryptionResult = await SessionEnvelopedData.encrypt(
@@ -274,7 +276,7 @@ describe('PingProcessor', () => {
         // Check key retrieval
         expect(mockPrivateKeyStore.fetchSessionKey).toBeCalledTimes(1);
         const getKeyCallArgs = mockPrivateKeyStore.fetchSessionKey.mock.calls[0];
-        expect(getKeyCallArgs[0]).toEqual(recipientSessionCert1serialNumber);
+        expect(getKeyCallArgs[0]).toEqual(recipientSessionCert1.getSerialNumber());
         expectBuffersToEqual(
           await derSerializePublicKey(getKeyCallArgs[1]),
           await derSerializePublicKey(senderKeyPair.publicKey),
@@ -321,7 +323,7 @@ describe('PingProcessor', () => {
         const encryptCallResult = await encryptSpy.mock.results[0].value;
         expect(mockPrivateKeyStore.saveSessionKey).toBeCalledWith(
           encryptCallResult.dhPrivateKey,
-          encryptCallResult.dhKeyId,
+          Buffer.from(encryptCallResult.dhKeyId),
           await getPublicKeySpy.mock.results[0].value,
         );
       });

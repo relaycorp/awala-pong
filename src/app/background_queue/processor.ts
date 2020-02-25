@@ -21,7 +21,7 @@ const logger = pino();
 
 export class PingProcessor {
   constructor(
-    protected readonly currentEndpointKeyId: string,
+    protected readonly currentEndpointKeyId: Buffer,
     protected readonly privateKeyStore: VaultPrivateKeyStore,
   ) {}
 
@@ -155,7 +155,7 @@ export class PingProcessor {
       pongParcelPayload = encryptionResult.envelopedData;
       await this.privateKeyStore.saveSessionKey(
         encryptionResult.dhPrivateKey,
-        encryptionResult.dhKeyId,
+        Buffer.from(encryptionResult.dhKeyId),
         recipientPublicKey,
       );
     }
