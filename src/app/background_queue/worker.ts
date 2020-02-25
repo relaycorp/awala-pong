@@ -9,7 +9,7 @@ import pino = require('pino');
 import { PingProcessor } from './processor';
 import { QueuedPing } from './QueuedPing';
 
-const endpointKeyId = getEnvVar('ENDPOINT_KEY_ID')
+const endpointKeyIdBase64 = getEnvVar('ENDPOINT_KEY_ID')
   .required()
   .asString();
 
@@ -24,7 +24,7 @@ const vaultKvPrefix = getEnvVar('VAULT_KV_PREFIX')
   .asString();
 const privateKeyStore = new VaultPrivateKeyStore(vaultUrl, vaultToken, vaultKvPrefix);
 
-const processor = new PingProcessor(endpointKeyId, privateKeyStore);
+const processor = new PingProcessor(Buffer.from(endpointKeyIdBase64, 'base64'), privateKeyStore);
 
 const logger = pino();
 

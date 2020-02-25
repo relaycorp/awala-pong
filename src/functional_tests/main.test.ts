@@ -5,8 +5,8 @@ import {
   EnvelopedData,
   generateECDHKeyPair,
   generateRSAKeyPair,
+  issueEndpointCertificate,
   issueInitialDHKeyCertificate,
-  issueNodeCertificate,
   Parcel,
   ServiceMessage,
   SessionEnvelopedData,
@@ -24,11 +24,14 @@ const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
 const PONG_SERVICE_ENDPOINT = 'http://app:8080/';
 
-const PONG_ENDPOINT_KEY_ID = getEnvVar('ENDPOINT_KEY_ID')
+const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID')
   .required()
   .asString();
 
 const privateKeyStore = new VaultPrivateKeyStore('http://vault:8200', 'letmein', 'pong-keys');
+
+const TOMORROW = new Date();
+TOMORROW.setDate(TOMORROW.getDate() + 1);
 
 describe('End-to-end test for successful delivery of ping and pong messages', () => {
   const mockGatewayServer = new Stubborn({ host: '0.0.0.0' });
@@ -54,15 +57,15 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     const pongEndpointKeyPair = await generateRSAKeyPair();
     pongEndpointPrivateKey = pongEndpointKeyPair.privateKey;
 
-    await privateKeyStore.saveNodeKey(pongEndpointPrivateKey, PONG_ENDPOINT_KEY_ID);
+    await privateKeyStore.saveNodeKey(
+      pongEndpointPrivateKey,
+      Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64'),
+    );
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    pongEndpointCertificate = await issueNodeCertificate({
-      isCA: true,
+    pongEndpointCertificate = await issueEndpointCertificate({
       issuerPrivateKey: pongEndpointPrivateKey,
       subjectPublicKey: pongEndpointKeyPair.publicKey,
-      validityEndDate: tomorrow,
+      validityEndDate: TOMORROW,
     });
 
     const pingSenderKeyPair = await generateRSAKeyPair();
@@ -92,18 +95,16 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
   });
 
   test('Ping pong with channel session protocol', async () => {
-    const endpointInitialSessionKeyPairId = 98765;
-
     const endpointInitialSessionKeyPair = await generateECDHKeyPair();
     const endpointInitialSessionCertificate = await issueInitialDHKeyCertificate({
-      dhPublicKey: endpointInitialSessionKeyPair.publicKey,
-      nodeCertificate: pongEndpointCertificate,
-      nodePrivateKey: pongEndpointPrivateKey,
-      serialNumber: endpointInitialSessionKeyPairId,
+      issuerCertificate: pongEndpointCertificate,
+      issuerPrivateKey: pongEndpointPrivateKey,
+      subjectPublicKey: endpointInitialSessionKeyPair.publicKey,
+      validityEndDate: TOMORROW,
     });
     await privateKeyStore.saveSessionKey(
       endpointInitialSessionKeyPair.privateKey,
-      endpointInitialSessionKeyPairId,
+      endpointInitialSessionCertificate.getSerialNumber(),
     );
 
     const { pingParcelSerialized, dhPrivateKey } = await generateSessionPingParcel(
