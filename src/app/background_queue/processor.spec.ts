@@ -278,8 +278,8 @@ describe('PingProcessor', () => {
         const getKeyCallArgs = mockPrivateKeyStore.fetchSessionKey.mock.calls[0];
         expect(getKeyCallArgs[0]).toEqual(recipientSessionCert1.getSerialNumber());
         expectBuffersToEqual(
-          await derSerializePublicKey(getKeyCallArgs[1]),
-          await derSerializePublicKey(senderKeyPair.publicKey),
+          await getKeyCallArgs[1].serialize(),
+          await senderCertificate.serialize(),
         );
 
         // Check use for decryption
@@ -315,7 +315,6 @@ describe('PingProcessor', () => {
 
       test('New ephemeral keys should be saved', async () => {
         const encryptSpy = jest.spyOn(SessionEnvelopedData, 'encrypt');
-        const getPublicKeySpy = jest.spyOn(Certificate.prototype, 'getPublicKey');
 
         await processor.deliverPongForPing(stubJob);
 
@@ -324,8 +323,11 @@ describe('PingProcessor', () => {
         expect(mockPrivateKeyStore.saveSessionKey).toBeCalledWith(
           encryptCallResult.dhPrivateKey,
           Buffer.from(encryptCallResult.dhKeyId),
-          await getPublicKeySpy.mock.results[0].value,
+          expect.anything(),
         );
+        expect(
+          senderCertificate.isEqual(mockPrivateKeyStore.saveSessionKey.mock.calls[0][2]),
+        ).toBeTrue();
       });
 
       test('Retrieving an invalid originator key should be gracefully logged', async () => {

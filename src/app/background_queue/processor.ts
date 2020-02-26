@@ -34,11 +34,10 @@ export class PingProcessor {
       bufferToArray(base64Decode(job.data.parcelSenderCertificate)),
     );
 
-    const pongRecipientPublicKey = await pongRecipientCertificate.getPublicKey();
     const unwrappingResult = await this.unwrapPing(
       job.data.parcelPayload,
       privateKey,
-      pongRecipientPublicKey,
+      pongRecipientCertificate,
       job.id,
     );
     if (unwrappingResult === undefined) {
@@ -50,7 +49,7 @@ export class PingProcessor {
     const pongParcelPayload = await this.generatePongParcelPayload(
       ping.id,
       unwrappingResult.originatorKey ?? pongRecipientCertificate,
-      pongRecipientPublicKey,
+      pongRecipientCertificate,
     );
     const pongParcel = new Parcel(
       pongRecipientCertificate.getCommonName(),
@@ -64,7 +63,7 @@ export class PingProcessor {
   protected async unwrapPing(
     parcelPayloadBase64: string,
     recipientPrivateKey: CryptoKey,
-    senderPublicKey: CryptoKey,
+    senderCertificate: Certificate,
     jobId: string | number,
   ): Promise<{ readonly ping: Ping; readonly originatorKey?: SessionOriginatorKey } | undefined> {
     const parcelPayload = bufferToArray(base64Decode(parcelPayloadBase64));
@@ -75,7 +74,7 @@ export class PingProcessor {
       decryptionResult = await this.decryptServiceMessage(
         parcelPayload,
         recipientPrivateKey,
-        senderPublicKey,
+        senderCertificate,
       );
     } catch (error) {
       // The sender didn't create a valid service message, so let's ignore it.
@@ -107,7 +106,7 @@ export class PingProcessor {
   protected async decryptServiceMessage(
     parcelPayloadSerialized: ArrayBuffer,
     recipientPrivateKey: CryptoKey,
-    senderPublicKey: CryptoKey,
+    senderCertificate: Certificate,
   ): Promise<{ readonly message: ServiceMessage; readonly originatorKey?: SessionOriginatorKey }> {
     const parcelPayload = EnvelopedData.deserialize(parcelPayloadSerialized);
 
@@ -123,7 +122,7 @@ export class PingProcessor {
       const recipientSessionKeyId = (parcelPayload as SessionEnvelopedData).getRecipientKeyId();
       privateKey = await this.privateKeyStore.fetchSessionKey(
         recipientSessionKeyId,
-        senderPublicKey,
+        senderCertificate,
       );
     }
 
@@ -135,7 +134,7 @@ export class PingProcessor {
   protected async generatePongParcelPayload(
     pingId: Buffer,
     recipientCertificateOrSessionKey: Certificate | SessionOriginatorKey,
-    recipientPublicKey: CryptoKey,
+    recipientCertificate: Certificate,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', pingId);
     const pongMessageSerialized = pongMessage.serialize();
@@ -156,7 +155,7 @@ export class PingProcessor {
       await this.privateKeyStore.saveSessionKey(
         encryptionResult.dhPrivateKey,
         Buffer.from(encryptionResult.dhKeyId),
-        recipientPublicKey,
+        recipientCertificate,
       );
     }
     return Buffer.from(pongParcelPayload.serialize());
