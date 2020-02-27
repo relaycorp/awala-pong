@@ -3,8 +3,6 @@
 // tslint:disable-next-line:no-var-requires no-console
 require('make-promises-safe');
 
-import { base64Encode } from '../app/utils';
-
 import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   generateECDHKeyPair,
@@ -12,7 +10,10 @@ import {
   issueEndpointCertificate,
   issueInitialDHKeyCertificate,
 } from '@relaycorp/relaynet-core';
+import bufferToArray from 'buffer-to-arraybuffer';
 import { get as getEnvVar } from 'env-var';
+
+import { base64Encode } from '../app/utils';
 
 const NODE_CERTIFICATE_TTL_DAYS = 180;
 const SESSION_CERTIFICATE_TTL_DAYS = 60;
@@ -50,6 +51,12 @@ async function main(): Promise<void> {
     subjectPublicKey: endpointKeyPair.publicKey,
     validityEndDate: nodeCertendDate,
   });
+  // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
+  // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
+  // tslint:disable-next-line:no-object-mutation
+  endpointCertificate.pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
+    endpointKeyId,
+  );
 
   await sessionStore.saveNodeKey(endpointKeyPair.privateKey, endpointKeyId);
 
