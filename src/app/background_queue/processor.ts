@@ -97,6 +97,14 @@ export class PingProcessor {
         ? await parcelPayload.getOriginatorKey()
         : undefined;
 
+    // TODO: REMOVE
+    const recipientKeyId = parcelPayload.getRecipientKeyId();
+    // tslint:disable-next-line:no-console
+    console.log('BADGER', {
+      envelopedDataType: typeof parcelPayload,
+      recipientKeyId: recipientKeyId.toString('base64'),
+    });
+
     const message = await pingParcel.unwrapPayload(this.privateKeyStore);
     return { message, originatorKey };
   }

@@ -57,10 +57,13 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     const pongEndpointKeyPair = await generateRSAKeyPair();
     pongEndpointPrivateKey = pongEndpointKeyPair.privateKey;
 
-    await privateKeyStore.saveNodeKey(
-      pongEndpointPrivateKey,
-      Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64'),
-    );
+    const pongEndpointKeyId = Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64');
+    await privateKeyStore.saveNodeKey(pongEndpointPrivateKey, pongEndpointKeyId);
+
+    // TODO: REMOVE
+    const savedKey = await privateKeyStore.fetchNodeKey(pongEndpointKeyId);
+    // tslint:disable-next-line:no-console
+    console.log('BADGER', { savedKey: typeof savedKey, PONG_ENDPOINT_KEY_ID_BASE64});
 
     pongEndpointCertificate = await issueEndpointCertificate({
       issuerPrivateKey: pongEndpointPrivateKey,
