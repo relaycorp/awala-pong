@@ -101,7 +101,7 @@ export class PingProcessor {
     const recipientKeyId = parcelPayload.getRecipientKeyId();
     // tslint:disable-next-line:no-console
     console.log('BADGER', {
-      envelopedDataType: typeof parcelPayload,
+      envelopedDataType: parcelPayload.constructor.name,
       recipientKeyId: recipientKeyId.toString('base64'),
     });
 
