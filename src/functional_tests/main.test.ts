@@ -57,16 +57,20 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     const pongEndpointKeyPair = await generateRSAKeyPair();
     pongEndpointPrivateKey = pongEndpointKeyPair.privateKey;
 
-    await privateKeyStore.saveNodeKey(
-      pongEndpointPrivateKey,
-      Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64'),
-    );
+    const pongEndpointKeyId = Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64');
+    await privateKeyStore.saveNodeKey(pongEndpointPrivateKey, pongEndpointKeyId);
 
     pongEndpointCertificate = await issueEndpointCertificate({
       issuerPrivateKey: pongEndpointPrivateKey,
       subjectPublicKey: pongEndpointKeyPair.publicKey,
       validityEndDate: TOMORROW,
     });
+    // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
+    // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
+    // tslint:disable-next-line:no-object-mutation
+    pongEndpointCertificate.pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
+      pongEndpointKeyId,
+    );
 
     const pingSenderKeyPair = await generateRSAKeyPair();
     pingSenderPrivateKey = pingSenderKeyPair.privateKey;

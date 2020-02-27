@@ -9,7 +9,7 @@ import {
   SessionOriginatorKey,
 } from '@relaycorp/relaynet-core';
 import { deliverParcel } from '@relaycorp/relaynet-pohttp';
-import bufferToArray = require('buffer-to-arraybuffer');
+import bufferToArray from 'buffer-to-arraybuffer';
 import { Job } from 'bull';
 import pino = require('pino');
 
