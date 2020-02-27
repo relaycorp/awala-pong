@@ -60,12 +60,7 @@ export default async function registerRoutes(
         return reply.code(400).send({ message: 'Invalid parcel recipient' });
       }
 
-      const queueMessage: QueuedPing = {
-        gatewayAddress,
-        parcelId: parcel.id,
-        parcelPayload: base64Encode(parcel.payloadSerialized),
-        parcelSenderCertificate: base64Encode(parcel.senderCertificate.serialize()),
-      };
+      const queueMessage: QueuedPing = { gatewayAddress, parcel: base64Encode(request.body) };
       try {
         await pongQueue.add(queueMessage);
       } catch (error) {

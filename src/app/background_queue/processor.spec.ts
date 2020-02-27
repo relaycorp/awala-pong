@@ -76,7 +76,7 @@ describe('PingProcessor', () => {
     beforeEach(() => {
       jest.restoreAllMocks();
 
-      mockPrivateKeyStore.fetchNodeKey.mockResolvedValueOnce(recipientKeyPair.privateKey);
+      mockPrivateKeyStore.fetchNodeKey.mockResolvedValue(recipientKeyPair.privateKey);
 
       jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(
         // @ts-ignore
@@ -88,8 +88,13 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPrivateKeyStore.fetchNodeKey).toBeCalledTimes(1);
-      expect(mockPrivateKeyStore.fetchNodeKey).toBeCalledWith(
+      expect(mockPrivateKeyStore.fetchNodeKey).toBeCalledTimes(2);
+      expect(mockPrivateKeyStore.fetchNodeKey).toHaveBeenNthCalledWith(
+        1,
+        recipientCertificate.getSerialNumber(),
+      );
+      expect(mockPrivateKeyStore.fetchNodeKey).toHaveBeenNthCalledWith(
+        2,
         recipientCertificate.getSerialNumber(),
       );
     });
@@ -109,24 +114,9 @@ describe('PingProcessor', () => {
       });
     });
 
-    test('Failing to decrypt a message should be logged', async () => {
+    test('Failing to unwrap the service message should be logged', async () => {
       const error = new Error('Nope');
-      jest.spyOn(SessionlessEnvelopedData.prototype, 'decrypt').mockImplementationOnce(() => {
-        throw error;
-      });
-
-      const job = await initJob();
-      await processor.deliverPongForPing(job);
-
-      expect(mockPino.info).toBeCalledWith('Invalid service message', {
-        err: error,
-        jobId: job.id,
-      });
-    });
-
-    test('Failing to deserialize the plaintext should be logged', async () => {
-      const error = new Error('Nope');
-      jest.spyOn(ServiceMessage, 'deserialize').mockImplementationOnce(() => {
+      jest.spyOn(Parcel.prototype, 'unwrapPayload').mockImplementationOnce(() => {
         throw error;
       });
 
@@ -142,8 +132,8 @@ describe('PingProcessor', () => {
     test('Getting an invalid service message type should be logged', async () => {
       const messageType = 'application/invalid';
       jest
-        .spyOn(ServiceMessage, 'deserialize')
-        .mockReturnValueOnce(
+        .spyOn(Parcel.prototype, 'unwrapPayload')
+        .mockResolvedValueOnce(
           new ServiceMessage(
             messageType,
             pingSerialization.serializePing(recipientCertificate, pingId),
@@ -181,9 +171,11 @@ describe('PingProcessor', () => {
       beforeEach(async () => {
         jest.spyOn(SessionlessEnvelopedData, 'encrypt');
         jest.spyOn(ServiceMessage.prototype, 'serialize');
+
+        const job = await initJob({ gatewayAddress: stubGatewayAddress });
         jest.spyOn(Parcel.prototype, 'serialize');
 
-        await processor.deliverPongForPing(await initJob({ gatewayAddress: stubGatewayAddress }));
+        await processor.deliverPongForPing(job);
 
         expect(Parcel.prototype.serialize).toBeCalledTimes(1);
         deliveredParcel = getMockContext(Parcel.prototype.serialize).instances[0];
@@ -365,11 +357,14 @@ describe('PingProcessor', () => {
       }> = {},
     ): Promise<Job<QueuedPing>> {
       const finalPayload = options.parcelPayload ?? stubParcelPayload;
+      const parcel = new Parcel(
+        '0-the-parcel-recipient',
+        senderCertificate,
+        Buffer.from(finalPayload.serialize()),
+      );
       const data: QueuedPing = {
         gatewayAddress: options.gatewayAddress ?? 'dummy-gateway',
-        parcelId: 'the-id',
-        parcelPayload: base64Encode(finalPayload.serialize()),
-        parcelSenderCertificate: base64Encode(senderCertificate.serialize()),
+        parcel: base64Encode(await parcel.serialize(senderKeyPair.privateKey)),
       };
       // @ts-ignore
       return { data, id: 'random-id' };

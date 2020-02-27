@@ -1,5 +1,5 @@
 /* tslint:disable:no-let */
-import { Certificate, generateRSAKeyPair, Parcel } from '@relaycorp/relaynet-core';
+import { Certificate, generateRSAKeyPair } from '@relaycorp/relaynet-core';
 import * as envVar from 'env-var';
 import { HTTPInjectOptions, HTTPMethod } from 'fastify';
 
@@ -180,18 +180,15 @@ describe('receiveParcel', () => {
       expect(JSON.parse(response.payload)).toEqual({});
     });
 
-    test('Parcel payload and metadata should be sent to background queue', async () => {
+    test('Parcel should be sent to background queue', async () => {
       await serverInstance.inject(validRequestOptions);
 
       expect(pongQueueAddSpy).toBeCalledTimes(1);
-      const parcel = await Parcel.deserialize(validRequestOptions.payload as ArrayBuffer);
       const expectedMessageData: QueuedPing = {
         gatewayAddress: (validRequestOptions.headers as { readonly [k: string]: string })[
           'X-Relaynet-Gateway'
         ],
-        parcelId: parcel.id,
-        parcelPayload: base64Encode(parcel.payloadSerialized),
-        parcelSenderCertificate: base64Encode(parcel.senderCertificate.serialize()),
+        parcel: base64Encode(validRequestOptions.payload as Buffer),
       };
       expect(pongQueueAddSpy).toBeCalledWith(expectedMessageData);
     });

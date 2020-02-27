@@ -30,16 +30,9 @@ export class PingProcessor {
     // See: https://github.com/relaycorp/relaynet-pong/issues/14
     const privateKey = await this.privateKeyStore.fetchNodeKey(this.currentEndpointKeyId);
 
-    const pongRecipientCertificate = Certificate.deserialize(
-      bufferToArray(base64Decode(job.data.parcelSenderCertificate)),
-    );
+    const pingParcel = await Parcel.deserialize(bufferToArray(base64Decode(job.data.parcel)));
 
-    const unwrappingResult = await this.unwrapPing(
-      job.data.parcelPayload,
-      privateKey,
-      pongRecipientCertificate,
-      job.id,
-    );
+    const unwrappingResult = await this.unwrapPing(pingParcel, job.id);
     if (unwrappingResult === undefined) {
       // Service message was invalid; errors were already logged.
       return;
@@ -48,11 +41,11 @@ export class PingProcessor {
     const ping = unwrappingResult.ping;
     const pongParcelPayload = await this.generatePongParcelPayload(
       ping.id,
-      unwrappingResult.originatorKey ?? pongRecipientCertificate,
-      pongRecipientCertificate,
+      unwrappingResult.originatorKey ?? pingParcel.senderCertificate,
+      pingParcel.senderCertificate,
     );
     const pongParcel = new Parcel(
-      pongRecipientCertificate.getCommonName(),
+      pingParcel.senderCertificate.getCommonName(),
       ping.pda,
       pongParcelPayload,
     );
@@ -61,21 +54,13 @@ export class PingProcessor {
   }
 
   protected async unwrapPing(
-    parcelPayloadBase64: string,
-    recipientPrivateKey: CryptoKey,
-    senderCertificate: Certificate,
+    pingParcel: Parcel,
     jobId: string | number,
   ): Promise<{ readonly ping: Ping; readonly originatorKey?: SessionOriginatorKey } | undefined> {
-    const parcelPayload = bufferToArray(base64Decode(parcelPayloadBase64));
-
     // tslint:disable-next-line:no-let
     let decryptionResult;
     try {
-      decryptionResult = await this.decryptServiceMessage(
-        parcelPayload,
-        recipientPrivateKey,
-        senderCertificate,
-      );
+      decryptionResult = await this.decryptServiceMessage(pingParcel);
     } catch (error) {
       // The sender didn't create a valid service message, so let's ignore it.
       logger.info('Invalid service message', { err: error, jobId });
@@ -104,30 +89,15 @@ export class PingProcessor {
   }
 
   protected async decryptServiceMessage(
-    parcelPayloadSerialized: ArrayBuffer,
-    recipientPrivateKey: CryptoKey,
-    senderCertificate: Certificate,
+    pingParcel: Parcel,
   ): Promise<{ readonly message: ServiceMessage; readonly originatorKey?: SessionOriginatorKey }> {
-    const parcelPayload = EnvelopedData.deserialize(parcelPayloadSerialized);
+    const parcelPayload = EnvelopedData.deserialize(bufferToArray(pingParcel.payloadSerialized));
+    const originatorKey =
+      parcelPayload instanceof SessionEnvelopedData
+        ? await parcelPayload.getOriginatorKey()
+        : undefined;
 
-    // tslint:disable-next-line:no-let
-    let originatorKey;
-    // tslint:disable-next-line:no-let
-    let privateKey;
-    if (parcelPayload instanceof SessionlessEnvelopedData) {
-      privateKey = recipientPrivateKey;
-    } else {
-      originatorKey = await (parcelPayload as SessionEnvelopedData).getOriginatorKey();
-
-      const recipientSessionKeyId = (parcelPayload as SessionEnvelopedData).getRecipientKeyId();
-      privateKey = await this.privateKeyStore.fetchSessionKey(
-        recipientSessionKeyId,
-        senderCertificate,
-      );
-    }
-
-    const serviceMessageSerialized = await parcelPayload.decrypt(privateKey);
-    const message = ServiceMessage.deserialize(Buffer.from(serviceMessageSerialized));
+    const message = await pingParcel.unwrapPayload(this.privateKeyStore);
     return { message, originatorKey };
   }
 
