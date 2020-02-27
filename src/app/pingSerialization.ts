@@ -1,6 +1,6 @@
 import { Certificate, RelaynetError } from '@relaycorp/relaynet-core';
 import { Parser } from 'binary-parser';
-import bufferToArray = require('buffer-to-arraybuffer');
+import bufferToArray from 'buffer-to-arraybuffer';
 import uuid4 from 'uuid4';
 
 const pingParser = new Parser()
