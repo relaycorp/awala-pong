@@ -1,12 +1,11 @@
 import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
-  EnvelopedData,
+  OriginatorSessionKey,
   Parcel,
   ServiceMessage,
   SessionEnvelopedData,
   SessionlessEnvelopedData,
-  SessionOriginatorKey,
 } from '@relaycorp/relaynet-core';
 import { deliverParcel } from '@relaycorp/relaynet-pohttp';
 import bufferToArray from 'buffer-to-arraybuffer';
@@ -56,18 +55,18 @@ export class PingProcessor {
   protected async unwrapPing(
     pingParcel: Parcel,
     jobId: string | number,
-  ): Promise<{ readonly ping: Ping; readonly originatorKey?: SessionOriginatorKey } | undefined> {
+  ): Promise<{ readonly ping: Ping; readonly originatorKey?: OriginatorSessionKey } | undefined> {
     // tslint:disable-next-line:no-let
     let decryptionResult;
     try {
-      decryptionResult = await this.decryptServiceMessage(pingParcel);
+      decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore);
     } catch (error) {
       // The sender didn't create a valid service message, so let's ignore it.
       logger.info('Invalid service message', { err: error, jobId });
       return;
     }
 
-    const serviceMessage = decryptionResult.message;
+    const serviceMessage = decryptionResult.payload;
 
     if (serviceMessage.type !== 'application/vnd.relaynet.ping-v1.ping') {
       logger.info('Invalid service message type', {
@@ -85,25 +84,12 @@ export class PingProcessor {
       logger.info('Invalid ping message', { err: error, jobId });
       return;
     }
-    return { ping, originatorKey: decryptionResult.originatorKey };
-  }
-
-  protected async decryptServiceMessage(
-    pingParcel: Parcel,
-  ): Promise<{ readonly message: ServiceMessage; readonly originatorKey?: SessionOriginatorKey }> {
-    const parcelPayload = EnvelopedData.deserialize(bufferToArray(pingParcel.payloadSerialized));
-    const originatorKey =
-      parcelPayload instanceof SessionEnvelopedData
-        ? await parcelPayload.getOriginatorKey()
-        : undefined;
-
-    const message = await pingParcel.unwrapPayload(this.privateKeyStore);
-    return { message, originatorKey };
+    return { ping, originatorKey: decryptionResult.senderSessionKey };
   }
 
   protected async generatePongParcelPayload(
     pingId: Buffer,
-    recipientCertificateOrSessionKey: Certificate | SessionOriginatorKey,
+    recipientCertificateOrSessionKey: Certificate | OriginatorSessionKey,
     recipientCertificate: Certificate,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', pingId);

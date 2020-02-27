@@ -7,11 +7,11 @@ import {
   generateECDHKeyPair,
   generateRSAKeyPair,
   issueInitialDHKeyCertificate,
+  OriginatorSessionKey,
   Parcel,
   ServiceMessage,
   SessionEnvelopedData,
   SessionlessEnvelopedData,
-  SessionOriginatorKey,
 } from '@relaycorp/relaynet-core';
 import * as pohttp from '@relaycorp/relaynet-pohttp';
 import { Job } from 'bull';
@@ -131,14 +131,13 @@ describe('PingProcessor', () => {
 
     test('Getting an invalid service message type should be logged', async () => {
       const messageType = 'application/invalid';
+      const serviceMessage = new ServiceMessage(
+        messageType,
+        pingSerialization.serializePing(recipientCertificate, pingId),
+      );
       jest
         .spyOn(Parcel.prototype, 'unwrapPayload')
-        .mockResolvedValueOnce(
-          new ServiceMessage(
-            messageType,
-            pingSerialization.serializePing(recipientCertificate, pingId),
-          ),
-        );
+        .mockResolvedValueOnce({ payload: serviceMessage });
 
       const job = await initJob();
       await processor.deliverPongForPing(job);
@@ -297,7 +296,7 @@ describe('PingProcessor', () => {
 
         // Check public key used
         const expectedOriginatorKey = await stubSessionParcelPayload.getOriginatorKey();
-        const actualOriginatorKey = encryptCallArgs[1] as SessionOriginatorKey;
+        const actualOriginatorKey = encryptCallArgs[1] as OriginatorSessionKey;
         expect(actualOriginatorKey).toHaveProperty('keyId', expectedOriginatorKey.keyId);
         expectBuffersToEqual(
           await derSerializePublicKey(actualOriginatorKey.publicKey),
