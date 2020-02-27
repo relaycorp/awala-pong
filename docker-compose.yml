@@ -49,6 +49,7 @@ services:
     init: true
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: letmein
+      VAULT_LOG_LEVEL: debug
     cap_add: ["IPC_LOCK"]
     ports:
       - "127.0.0.1:8200:8200"
