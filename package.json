@@ -68,7 +68,7 @@
   "homepage": "https://docs.relaycorp.tech/relaynet-pong/",
   "dependencies": {
     "@relaycorp/keystore-vault": "^1.0.1",
-    "@relaycorp/relaynet-core": "^1.19.0",
+    "@relaycorp/relaynet-core": "^1.22.1",
     "@relaycorp/relaynet-pohttp": "^1.1.2",
     "binary-parser": "^1.5.0",
     "buffer-to-arraybuffer": "0.0.5",
