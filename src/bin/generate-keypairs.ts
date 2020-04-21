@@ -58,7 +58,7 @@ async function main(): Promise<void> {
     endpointKeyId,
   );
 
-  await sessionStore.saveNodeKey(endpointKeyPair.privateKey, endpointKeyId);
+  await sessionStore.saveNodeKey(endpointKeyPair.privateKey, endpointCertificate);
 
   const initialSessionKeyPair = await generateECDHKeyPair();
   const sessionCertEndDate = new Date();

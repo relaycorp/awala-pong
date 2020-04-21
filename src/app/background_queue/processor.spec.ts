@@ -1,4 +1,5 @@
 /* tslint:disable:no-let */
+
 import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
@@ -32,7 +33,7 @@ describe('PingProcessor', () => {
     const mockPrivateKeyStore = {
       fetchNodeKey: jest.fn(),
       fetchSessionKey: jest.fn(),
-      saveSessionKey: jest.fn(),
+      saveSubsequentSessionKey: jest.fn(),
     };
 
     const pingId = Buffer.from('a'.repeat(36));
@@ -76,7 +77,10 @@ describe('PingProcessor', () => {
     beforeEach(() => {
       jest.restoreAllMocks();
 
-      mockPrivateKeyStore.fetchNodeKey.mockResolvedValue(recipientKeyPair.privateKey);
+      mockPrivateKeyStore.fetchNodeKey.mockResolvedValue({
+        certificate: recipientCertificate,
+        privateKey: recipientKeyPair.privateKey,
+      });
 
       jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(
         // @ts-ignore
@@ -309,15 +313,15 @@ describe('PingProcessor', () => {
 
         await processor.deliverPongForPing(stubJob);
 
-        expect(mockPrivateKeyStore.saveSessionKey).toBeCalledTimes(1);
+        expect(mockPrivateKeyStore.saveSubsequentSessionKey).toBeCalledTimes(1);
         const encryptCallResult = await encryptSpy.mock.results[0].value;
-        expect(mockPrivateKeyStore.saveSessionKey).toBeCalledWith(
+        expect(mockPrivateKeyStore.saveSubsequentSessionKey).toBeCalledWith(
           encryptCallResult.dhPrivateKey,
           Buffer.from(encryptCallResult.dhKeyId),
           expect.anything(),
         );
         expect(
-          senderCertificate.isEqual(mockPrivateKeyStore.saveSessionKey.mock.calls[0][2]),
+          senderCertificate.isEqual(mockPrivateKeyStore.saveSubsequentSessionKey.mock.calls[0][2]),
         ).toBeTrue();
       });
 

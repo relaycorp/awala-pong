@@ -29,4 +29,3 @@ services:
       - /opt/pong-dev/node_modules/
     environment:
       POHTTP_TLS_REQUIRED: 'false'
-      ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}

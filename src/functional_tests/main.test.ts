@@ -14,7 +14,6 @@ import {
 import { deliverParcel } from '@relaycorp/relaynet-pohttp';
 import axios from 'axios';
 import bufferToArray from 'buffer-to-arraybuffer';
-import { get as getEnvVar } from 'env-var';
 import { logDiffOn501, Route, Stubborn } from 'stubborn-ws';
 
 import { generateStubNodeCertificate, generateStubPingParcel } from '../app/_test_utils';
@@ -23,10 +22,6 @@ import { serializePing } from '../app/pingSerialization';
 const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
 const PONG_SERVICE_ENDPOINT = 'http://app:8080/';
-
-const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID')
-  .required()
-  .asString();
 
 const privateKeyStore = new VaultPrivateKeyStore('http://vault:8200', 'letmein', 'pong-keys');
 
@@ -56,21 +51,12 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
   beforeAll(async () => {
     const pongEndpointKeyPair = await generateRSAKeyPair();
     pongEndpointPrivateKey = pongEndpointKeyPair.privateKey;
-
-    const pongEndpointKeyId = Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64');
-    await privateKeyStore.saveNodeKey(pongEndpointPrivateKey, pongEndpointKeyId);
-
     pongEndpointCertificate = await issueEndpointCertificate({
       issuerPrivateKey: pongEndpointPrivateKey,
       subjectPublicKey: pongEndpointKeyPair.publicKey,
       validityEndDate: TOMORROW,
     });
-    // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
-    // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
-    // tslint:disable-next-line:no-object-mutation
-    pongEndpointCertificate.pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
-      pongEndpointKeyId,
-    );
+    await privateKeyStore.saveNodeKey(pongEndpointPrivateKey, pongEndpointCertificate);
 
     const pingSenderKeyPair = await generateRSAKeyPair();
     pingSenderPrivateKey = pingSenderKeyPair.privateKey;
@@ -106,9 +92,9 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       subjectPublicKey: endpointInitialSessionKeyPair.publicKey,
       validityEndDate: TOMORROW,
     });
-    await privateKeyStore.saveSessionKey(
+    await privateKeyStore.saveInitialSessionKey(
       endpointInitialSessionKeyPair.privateKey,
-      endpointInitialSessionCertificate.getSerialNumber(),
+      endpointInitialSessionCertificate,
     );
 
     const { pingParcelSerialized, dhPrivateKey } = await generateSessionPingParcel(
