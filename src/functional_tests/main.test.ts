@@ -56,10 +56,6 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
   beforeAll(async () => {
     const pongEndpointKeyPair = await generateRSAKeyPair();
     pongEndpointPrivateKey = pongEndpointKeyPair.privateKey;
-
-    const pongEndpointKeyId = Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64');
-    await privateKeyStore.saveNodeKey(pongEndpointPrivateKey, pongEndpointKeyId);
-
     pongEndpointCertificate = await issueEndpointCertificate({
       issuerPrivateKey: pongEndpointPrivateKey,
       subjectPublicKey: pongEndpointKeyPair.publicKey,
@@ -69,8 +65,9 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
     // tslint:disable-next-line:no-object-mutation
     pongEndpointCertificate.pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
-      pongEndpointKeyId,
+      Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64'),
     );
+    await privateKeyStore.saveNodeKey(pongEndpointPrivateKey, pongEndpointCertificate);
 
     const pingSenderKeyPair = await generateRSAKeyPair();
     pingSenderPrivateKey = pingSenderKeyPair.privateKey;
@@ -106,9 +103,9 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       subjectPublicKey: endpointInitialSessionKeyPair.publicKey,
       validityEndDate: TOMORROW,
     });
-    await privateKeyStore.saveSessionKey(
+    await privateKeyStore.saveInitialSessionKey(
       endpointInitialSessionKeyPair.privateKey,
-      endpointInitialSessionCertificate.getSerialNumber(),
+      endpointInitialSessionCertificate,
     );
 
     const { pingParcelSerialized, dhPrivateKey } = await generateSessionPingParcel(

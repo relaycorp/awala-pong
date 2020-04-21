@@ -27,7 +27,7 @@ export class PingProcessor {
   public async deliverPongForPing(job: Job<QueuedPing>): Promise<void> {
     // We should be supporting multiple keys so we can do key rotation.
     // See: https://github.com/relaycorp/relaynet-pong/issues/14
-    const privateKey = await this.privateKeyStore.fetchNodeKey(this.currentEndpointKeyId);
+    const keyPair = await this.privateKeyStore.fetchNodeKey(this.currentEndpointKeyId);
 
     const pingParcel = await Parcel.deserialize(bufferToArray(base64Decode(job.data.parcel)));
 
@@ -48,7 +48,7 @@ export class PingProcessor {
       ping.pda,
       pongParcelPayload,
     );
-    const parcelSerialized = await pongParcel.serialize(privateKey);
+    const parcelSerialized = await pongParcel.serialize(keyPair.privateKey);
     await deliverParcel(job.data.gatewayAddress, parcelSerialized);
   }
 
@@ -108,7 +108,7 @@ export class PingProcessor {
         recipientCertificateOrSessionKey,
       );
       pongParcelPayload = encryptionResult.envelopedData;
-      await this.privateKeyStore.saveSessionKey(
+      await this.privateKeyStore.saveSubsequentSessionKey(
         encryptionResult.dhPrivateKey,
         Buffer.from(encryptionResult.dhKeyId),
         recipientCertificate,
