@@ -25,10 +25,6 @@ export class PingProcessor {
   ) {}
 
   public async deliverPongForPing(job: Job<QueuedPing>): Promise<void> {
-    // TODO: remove
-    // tslint:disable-next-line:no-console
-    console.log('BADGER', this.currentEndpointKeyId.toString('hex'));
-
     // We should be supporting multiple keys so we can do key rotation.
     // See: https://github.com/relaycorp/relaynet-pong/issues/14
     const keyPair = await this.privateKeyStore.fetchNodeKey(this.currentEndpointKeyId);
