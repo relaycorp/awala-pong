@@ -1,13 +1,14 @@
 /* tslint:disable:no-let */
 
-import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
+  derSerializePrivateKey,
   derSerializePublicKey,
   EnvelopedData,
   generateECDHKeyPair,
   generateRSAKeyPair,
   issueInitialDHKeyCertificate,
+  MockPrivateKeyStore,
   OriginatorSessionKey,
   Parcel,
   ServiceMessage,
@@ -30,11 +31,10 @@ afterAll(jest.restoreAllMocks);
 
 describe('PingProcessor', () => {
   describe('deliverPongForPing', () => {
-    const mockPrivateKeyStore = {
-      fetchNodeKey: jest.fn(),
-      fetchSessionKey: jest.fn(),
-      saveSubsequentSessionKey: jest.fn(),
-    };
+    let mockPrivateKeyStore: MockPrivateKeyStore;
+    beforeEach(() => {
+      mockPrivateKeyStore = new MockPrivateKeyStore();
+    });
 
     const pingId = Buffer.from('a'.repeat(36));
 
@@ -44,7 +44,6 @@ describe('PingProcessor', () => {
     let senderCertificate: Certificate;
     let serviceMessageSerialized: ArrayBuffer;
     let stubParcelPayload: EnvelopedData;
-    let processor: PingProcessor;
     beforeAll(async () => {
       senderKeyPair = await generateRSAKeyPair();
       senderCertificate = await generateStubNodeCertificate(
@@ -67,39 +66,24 @@ describe('PingProcessor', () => {
         serviceMessageSerialized,
         recipientCertificate,
       );
+    });
 
+    let processor: PingProcessor;
+    beforeEach(() => {
       processor = new PingProcessor(
         recipientCertificate.getSerialNumber(),
-        (mockPrivateKeyStore as unknown) as VaultPrivateKeyStore,
+        mockPrivateKeyStore as any,
       );
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.restoreAllMocks();
 
-      mockPrivateKeyStore.fetchNodeKey.mockResolvedValue({
-        certificate: recipientCertificate,
-        privateKey: recipientKeyPair.privateKey,
-      });
+      await mockPrivateKeyStore.registerNodeKey(recipientKeyPair.privateKey, recipientCertificate);
 
       jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(
         // @ts-ignore
         undefined,
-      );
-    });
-
-    test('The right node private key should be retrieved from the store', async () => {
-      const job = await initJob();
-      await processor.deliverPongForPing(job);
-
-      expect(mockPrivateKeyStore.fetchNodeKey).toBeCalledTimes(2);
-      expect(mockPrivateKeyStore.fetchNodeKey).toHaveBeenNthCalledWith(
-        1,
-        recipientCertificate.getSerialNumber(),
-      );
-      expect(mockPrivateKeyStore.fetchNodeKey).toHaveBeenNthCalledWith(
-        2,
-        recipientCertificate.getSerialNumber(),
       );
     });
 
@@ -257,29 +241,11 @@ describe('PingProcessor', () => {
         stubJob = await initJob({ parcelPayload: stubSessionParcelPayload });
       });
 
-      beforeEach(() => {
-        mockPrivateKeyStore.fetchSessionKey.mockResolvedValueOnce(
+      beforeEach(async () => {
+        await mockPrivateKeyStore.registerInitialSessionKey(
           recipientSessionKeyPair1.privateKey,
+          recipientSessionCert1,
         );
-      });
-
-      test('The right DH private key should be retrieved and used for decryption', async () => {
-        const decryptSpy = jest.spyOn(SessionEnvelopedData.prototype, 'decrypt');
-
-        await processor.deliverPongForPing(stubJob);
-
-        // Check key retrieval
-        expect(mockPrivateKeyStore.fetchSessionKey).toBeCalledTimes(1);
-        const getKeyCallArgs = mockPrivateKeyStore.fetchSessionKey.mock.calls[0];
-        expect(getKeyCallArgs[0]).toEqual(recipientSessionCert1.getSerialNumber());
-        expectBuffersToEqual(
-          await getKeyCallArgs[1].serialize(),
-          await senderCertificate.serialize(),
-        );
-
-        // Check use for decryption
-        expect(decryptSpy).toBeCalledTimes(1);
-        expect(decryptSpy).toBeCalledWith(recipientSessionKeyPair1.privateKey);
       });
 
       test('Pong message should be encrypted with public key from ping sender', async () => {
@@ -313,16 +279,14 @@ describe('PingProcessor', () => {
 
         await processor.deliverPongForPing(stubJob);
 
-        expect(mockPrivateKeyStore.saveSubsequentSessionKey).toBeCalledTimes(1);
         const encryptCallResult = await encryptSpy.mock.results[0].value;
-        expect(mockPrivateKeyStore.saveSubsequentSessionKey).toBeCalledWith(
-          encryptCallResult.dhPrivateKey,
-          Buffer.from(encryptCallResult.dhKeyId),
-          expect.anything(),
-        );
-        expect(
-          senderCertificate.isEqual(mockPrivateKeyStore.saveSubsequentSessionKey.mock.calls[0][2]),
-        ).toBeTrue();
+        const keyId = Buffer.from(encryptCallResult.dhKeyId);
+        expect(mockPrivateKeyStore.keys).toHaveProperty(keyId.toString('hex'));
+        expect(mockPrivateKeyStore.keys[keyId.toString('hex')]).toEqual({
+          keyDer: await derSerializePrivateKey(encryptCallResult.dhPrivateKey),
+          recipientPublicKeyDigest: expect.anything(),
+          type: 'session-subsequent',
+        });
       });
 
       test('Retrieving an invalid originator key should be gracefully logged', async () => {
@@ -339,15 +303,14 @@ describe('PingProcessor', () => {
       });
 
       test('Use of unknown public key ids should be gracefully logged', async () => {
-        const err = new Error('Denied');
-        mockPrivateKeyStore.fetchSessionKey.mockReset();
-        mockPrivateKeyStore.fetchSessionKey.mockRejectedValueOnce(err);
+        // tslint:disable-next-line:no-delete
+        delete mockPrivateKeyStore.keys[recipientSessionCert1.getSerialNumberHex()];
 
         await processor.deliverPongForPing(stubJob);
 
         expect(mockPino.info).toBeCalledTimes(1);
         expect(mockPino.info).toBeCalledWith('Invalid service message', {
-          err,
+          err: expect.objectContaining({ message: expect.stringMatching('Unknown key') }),
           jobId: stubJob.id,
         });
       });
