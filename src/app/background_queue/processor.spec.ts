@@ -303,7 +303,7 @@ describe('PingProcessor', () => {
       });
 
       test('Use of unknown public key ids should be gracefully logged', async () => {
-        // tslint:disable-next-line:no-delete
+        // tslint:disable-next-line:no-delete no-object-mutation
         delete mockPrivateKeyStore.keys[recipientSessionCert1.getSerialNumberHex()];
 
         await processor.deliverPongForPing(stubJob);
