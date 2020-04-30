@@ -150,7 +150,7 @@ describe('receiveParcel', () => {
       payload,
     });
 
-    expect(response).toHaveProperty('statusCode', 400);
+    expect(response).toHaveProperty('statusCode', 403);
     expect(JSON.parse(response.payload)).toHaveProperty(
       'message',
       'Payload is not a valid RAMF-serialized parcel',
@@ -168,7 +168,7 @@ describe('receiveParcel', () => {
       payload,
     });
 
-    expect(response).toHaveProperty('statusCode', 400);
+    expect(response).toHaveProperty('statusCode', 403);
     expect(JSON.parse(response.payload)).toHaveProperty('message', 'Invalid parcel recipient');
   });
 
