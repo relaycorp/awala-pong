@@ -56,10 +56,10 @@ export default async function registerRoutes(
       try {
         parcel = await Parcel.deserialize(bufferToArray(request.body));
       } catch (error) {
-        return reply.code(400).send({ message: 'Payload is not a valid RAMF-serialized parcel' });
+        return reply.code(403).send({ message: 'Payload is not a valid RAMF-serialized parcel' });
       }
       if (!isParcelRecipientValid(parcel.recipientAddress, request, requireTlsUrls)) {
-        return reply.code(400).send({ message: 'Invalid parcel recipient' });
+        return reply.code(403).send({ message: 'Invalid parcel recipient' });
       }
 
       const queueMessage: QueuedPing = { gatewayAddress, parcel: base64Encode(request.body) };

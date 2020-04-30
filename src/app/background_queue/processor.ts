@@ -7,7 +7,7 @@ import {
   SessionEnvelopedData,
   SessionlessEnvelopedData,
 } from '@relaycorp/relaynet-core';
-import { deliverParcel } from '@relaycorp/relaynet-pohttp';
+import { deliverParcel, PoHTTPInvalidParcelError } from '@relaycorp/relaynet-pohttp';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { Job } from 'bull';
 import pino = require('pino');
@@ -49,7 +49,15 @@ export class PingProcessor {
       pongParcelPayload,
     );
     const parcelSerialized = await pongParcel.serialize(keyPair.privateKey);
-    await deliverParcel(job.data.gatewayAddress, parcelSerialized);
+    try {
+      await deliverParcel(job.data.gatewayAddress, parcelSerialized);
+    } catch (err) {
+      if (err instanceof PoHTTPInvalidParcelError) {
+        logger.info({ err }, 'Discarding pong delivery because server refused parcel');
+        return;
+      }
+      throw err;
+    }
   }
 
   protected async unwrapPing(

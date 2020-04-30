@@ -205,6 +205,22 @@ describe('PingProcessor', () => {
       });
     });
 
+    test('Pong should discarded if server rejects parcel as invalid', async () => {
+      const error = new pohttp.PoHTTPInvalidParcelError('Nope');
+      // @ts-ignore
+      pohttp.deliverParcel.mockRestore();
+      jest.spyOn(pohttp, 'deliverParcel').mockImplementation(async () => {
+        throw error;
+      });
+
+      await expect(processor.deliverPongForPing(await initJob())).toResolve();
+
+      expect(mockPino.info).toBeCalledWith(
+        { err: error },
+        'Discarding pong delivery because server refused parcel',
+      );
+    });
+
     test('Parcel delivery errors should be propagated', async () => {
       const error = new Error('Nope');
       // @ts-ignore
