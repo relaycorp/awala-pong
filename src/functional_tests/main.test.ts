@@ -86,7 +86,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
 
     await deliverParcel(PONG_SERVICE_ENDPOINT, pingParcel, {
-      relayAddress: GATEWAY_ADDRESS,
+      gatewayAddress: GATEWAY_ADDRESS,
     });
 
     await sleep(2);
@@ -113,7 +113,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
 
     await deliverParcel(PONG_SERVICE_ENDPOINT, pingParcelSerialized, {
-      relayAddress: GATEWAY_ADDRESS,
+      gatewayAddress: GATEWAY_ADDRESS,
     });
 
     await validatePongDelivery(dhPrivateKey);
