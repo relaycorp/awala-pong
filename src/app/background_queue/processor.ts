@@ -51,11 +51,12 @@ export class PingProcessor {
     const parcelSerialized = await pongParcel.serialize(keyPair.privateKey);
     try {
       await deliverParcel(job.data.gatewayAddress, parcelSerialized);
-    } catch (error) {
-      if (error instanceof PoHTTPInvalidParcelError) {
+    } catch (err) {
+      if (err instanceof PoHTTPInvalidParcelError) {
+        logger.info({ err }, 'Discarding pong delivery because server refused parcel');
         return;
       }
-      throw error;
+      throw err;
     }
   }
 

@@ -214,6 +214,11 @@ describe('PingProcessor', () => {
       });
 
       await expect(processor.deliverPongForPing(await initJob())).toResolve();
+
+      expect(mockPino.info).toBeCalledWith(
+        { err: error },
+        'Discarding pong delivery because server refused parcel',
+      );
     });
 
     test('Parcel delivery errors should be propagated', async () => {
