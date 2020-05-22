@@ -20,7 +20,9 @@ const SERVER_HOST = '0.0.0.0';
 export function makeServer(): FastifyInstance {
   const server = fastify({
     logger: true,
-    requestIdHeader: getEnvVar('PONG_REQUEST_ID_HEADER', DEFAULT_REQUEST_ID_HEADER).asString(),
+    requestIdHeader: getEnvVar('PONG_REQUEST_ID_HEADER')
+      .default(DEFAULT_REQUEST_ID_HEADER)
+      .asString(),
   });
 
   server.register(fastifyUrlData);

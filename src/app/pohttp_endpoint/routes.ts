@@ -39,7 +39,7 @@ export default async function registerRoutes(
         return reply.code(415).send();
       }
 
-      const requireTlsUrls = getEnvVar('POHTTP_TLS_REQUIRED', 'true').asBool();
+      const requireTlsUrls = getEnvVar('POHTTP_TLS_REQUIRED').default('true').asBool();
 
       const gatewayAddress = request.headers['x-relaynet-gateway'] || '';
       if (!isValidGatewayAddress(gatewayAddress, requireTlsUrls)) {
