@@ -112,10 +112,11 @@ describe('receiveParcel', () => {
     const validationErrorMessage = 'X-Relaynet-Gateway should be set to a valid PoHTTP endpoint';
 
     test('X-Relaynet-Gateway should not be absent', async () => {
-      const response = await serverInstance.inject({
-        ...validRequestOptions,
-        headers: { ...validRequestOptions.headers, 'X-Relaynet-Gateway': undefined },
-      });
+      const allHeaders = validRequestOptions.headers as { readonly [key: string]: string };
+      const headers = Object.keys(allHeaders)
+        .filter((h) => h !== 'X-Relaynet-Gateway')
+        .reduce((a, h) => ({ ...a, [h]: allHeaders[h] }), {});
+      const response = await serverInstance.inject({ ...validRequestOptions, headers });
 
       expect(response).toHaveProperty('statusCode', 400);
       expect(JSON.parse(response.payload)).toHaveProperty('message', validationErrorMessage);
