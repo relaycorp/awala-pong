@@ -20,7 +20,7 @@
     "test:functional": "run-s build test:functional:docker",
     "test:functional:docker": "./src/functional_tests/run.sh",
     "cov": "run-s build test:unit && opn coverage/lcov-report/index.html",
-    "clean": "trash build test"
+    "clean": "del-cli build test"
   },
   "engines": {
     "node": ">=12"
@@ -34,12 +34,12 @@
     "@types/pkijs": "0.0.2",
     "@types/verror": "^1.10.3",
     "axios": "^0.19.2",
+    "del-cli": "^3.0.1",
     "jest": "^24.8.0",
     "jest-extended": "^0.11.5",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.0.5",
     "stubborn-ws": "^3.0.1",
-    "trash-cli": "^1.4.0",
     "ts-jest": "^24.3.0",
     "ts-node": "^8.10.1",
     "ts-node-dev": "^1.0.0-pre.44",
