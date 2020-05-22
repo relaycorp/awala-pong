@@ -24,9 +24,7 @@ const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
 const PONG_SERVICE_ENDPOINT = 'http://app:8080/';
 
-const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID')
-  .required()
-  .asString();
+const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
 
 const privateKeyStore = new VaultPrivateKeyStore('http://vault:8200', 'letmein', 'pong-keys');
 
@@ -179,7 +177,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       gatewayEndpointRoute = mockGatewayServer
         .post('/')
         .setHeader('Content-Type', 'application/vnd.relaynet.parcel')
-        .setBody(body => !!body)
+        .setBody((body) => !!body)
         .setResponseStatusCode(202);
       logDiffOn501(mockGatewayServer, gatewayEndpointRoute);
     });
@@ -187,7 +185,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
 });
 
 async function sleep(seconds: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, seconds * 1_000));
+  return new Promise((resolve) => setTimeout(resolve, seconds * 1_000));
 }
 
 function configureVault(): void {

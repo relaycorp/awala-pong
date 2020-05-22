@@ -9,26 +9,18 @@ import pino = require('pino');
 import { PingProcessor } from './processor';
 import { QueuedPing } from './QueuedPing';
 
-const endpointKeyIdBase64 = getEnvVar('ENDPOINT_KEY_ID')
-  .required()
-  .asString();
+const endpointKeyIdBase64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
 
-const vaultUrl = getEnvVar('VAULT_URL')
-  .required()
-  .asString();
-const vaultToken = getEnvVar('VAULT_TOKEN')
-  .required()
-  .asString();
-const vaultKvPrefix = getEnvVar('VAULT_KV_PREFIX')
-  .required()
-  .asString();
+const vaultUrl = getEnvVar('VAULT_URL').required().asString();
+const vaultToken = getEnvVar('VAULT_TOKEN').required().asString();
+const vaultKvPrefix = getEnvVar('VAULT_KV_PREFIX').required().asString();
 const privateKeyStore = new VaultPrivateKeyStore(vaultUrl, vaultToken, vaultKvPrefix);
 
 const processor = new PingProcessor(Buffer.from(endpointKeyIdBase64, 'base64'), privateKeyStore);
 
 const logger = pino();
 
-export default async function(job: Job<QueuedPing>): Promise<void> {
+export default async function (job: Job<QueuedPing>): Promise<void> {
   try {
     return await processor.deliverPongForPing(job);
   } catch (err) {

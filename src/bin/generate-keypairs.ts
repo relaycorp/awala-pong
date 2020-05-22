@@ -18,18 +18,10 @@ import { base64Encode } from '../app/utils';
 const NODE_CERTIFICATE_TTL_DAYS = 180;
 const SESSION_CERTIFICATE_TTL_DAYS = 60;
 
-const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID')
-  .required()
-  .asString();
-const vaultUrl = getEnvVar('VAULT_URL')
-  .required()
-  .asString();
-const vaultToken = getEnvVar('VAULT_TOKEN')
-  .required()
-  .asString();
-const vaultKvPrefix = getEnvVar('VAULT_KV_PREFIX')
-  .required()
-  .asString();
+const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
+const vaultUrl = getEnvVar('VAULT_URL').required().asString();
+const vaultToken = getEnvVar('VAULT_TOKEN').required().asString();
+const vaultKvPrefix = getEnvVar('VAULT_KV_PREFIX').required().asString();
 const sessionStore = new VaultPrivateKeyStore(vaultUrl, vaultToken, vaultKvPrefix);
 
 async function main(): Promise<void> {

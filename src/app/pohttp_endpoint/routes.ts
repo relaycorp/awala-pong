@@ -15,10 +15,7 @@ export default async function registerRoutes(
     method: ['PUT', 'DELETE', 'PATCH'],
     url: '/',
     async handler(_req, reply): Promise<void> {
-      reply
-        .code(405)
-        .header('Allow', 'HEAD, GET, POST')
-        .send();
+      reply.code(405).header('Allow', 'HEAD, GET, POST').send();
     },
   });
 
