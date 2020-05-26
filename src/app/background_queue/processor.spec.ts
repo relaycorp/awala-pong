@@ -14,6 +14,7 @@ import {
   ServiceMessage,
   SessionEnvelopedData,
   SessionlessEnvelopedData,
+  UnknownKeyError,
 } from '@relaycorp/relaynet-core';
 import * as pohttp from '@relaycorp/relaynet-pohttp';
 import { Job } from 'bull';
@@ -326,7 +327,7 @@ describe('PingProcessor', () => {
 
         expect(mockPino.info).toBeCalledTimes(1);
         expect(mockPino.info).toBeCalledWith('Invalid service message', {
-          err: expect.objectContaining({ message: expect.stringMatching('Unknown key') }),
+          err: expect.any(UnknownKeyError),
           jobId: stubJob.id,
         });
       });
