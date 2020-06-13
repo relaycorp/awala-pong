@@ -61,6 +61,7 @@ export async function generateStubPingParcel(
   recipientAddress: string,
   recipientCertificate: Certificate,
   sender?: { readonly privateKey: CryptoKey; readonly certificate: Certificate },
+  options?: Partial<{ readonly creationDate: Date }>,
 ): Promise<Buffer> {
   // tslint:disable-next-line:no-let
   let senderPrivateKey;
@@ -95,6 +96,7 @@ export async function generateStubPingParcel(
     recipientAddress,
     senderCertificate,
     Buffer.from(serviceMessageEncrypted.serialize()),
+    options || {},
   );
 
   return Buffer.from(await parcel.serialize(senderPrivateKey));

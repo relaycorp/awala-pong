@@ -55,6 +55,11 @@ export default async function registerRoutes(
       } catch (error) {
         return reply.code(403).send({ message: 'Payload is not a valid RAMF-serialized parcel' });
       }
+      try {
+        await parcel.validate();
+      } catch (_) {
+        return reply.code(403).send({ message: 'Parcel is well-formed but invalid' });
+      }
       if (!isParcelRecipientValid(parcel.recipientAddress, request, requireTlsUrls)) {
         return reply.code(403).send({ message: 'Invalid parcel recipient' });
       }

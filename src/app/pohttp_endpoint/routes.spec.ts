@@ -158,6 +158,28 @@ describe('receiveParcel', () => {
     );
   });
 
+  test('Parcel should be refused if it is well-formed but invalid', async () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const payload = await generateStubPingParcel(
+      `https://${endpointAddress}/`,
+      stubRecipientCertificate,
+      undefined,
+      { creationDate: yesterday },
+    );
+    const response = await serverInstance.inject({
+      ...validRequestOptions,
+      headers: { ...validRequestOptions.headers, 'Content-Length': payload.byteLength.toString() },
+      payload,
+    });
+
+    expect(response).toHaveProperty('statusCode', 403);
+    expect(JSON.parse(response.payload)).toHaveProperty(
+      'message',
+      'Parcel is well-formed but invalid',
+    );
+  });
+
   test('Parcel should be refused if target is not current endpoint', async () => {
     const payload = await generateStubPingParcel(
       'https://invalid.com/endpoint',

@@ -341,7 +341,7 @@ describe('PingProcessor', () => {
     ): Promise<Job<QueuedPing>> {
       const finalPayload = options.parcelPayload ?? stubParcelPayload;
       const parcel = new Parcel(
-        '0-the-parcel-recipient',
+        'https://ping.relaycorp.tech',
         senderCertificate,
         Buffer.from(finalPayload.serialize()),
       );
