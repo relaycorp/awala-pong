@@ -77,6 +77,6 @@
     "fastify-url-data": "^2.4.0",
     "make-promises-safe": "^5.1.0",
     "pino": "^6.3.2",
-    "uuid4": "^1.1.4"
+    "uuid4": "^2.0.2"
   }
 }
