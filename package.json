@@ -71,7 +71,7 @@
     "binary-parser": "^1.6.2",
     "buffer-to-arraybuffer": "0.0.5",
     "bull": "^3.14.0",
-    "env-var": "^6.1.1",
+    "env-var": "^6.2.0",
     "fastify": "^2.14.1",
     "fastify-sentry": "^1.4.0",
     "fastify-url-data": "^2.4.0",
