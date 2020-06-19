@@ -70,17 +70,14 @@ export class PingProcessor {
       decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore);
     } catch (error) {
       // The sender didn't create a valid service message, so let's ignore it.
-      logger.info('Invalid service message', { err: error, jobId });
+      logger.info({ err: error, jobId }, 'Invalid service message');
       return;
     }
 
     const serviceMessage = decryptionResult.payload;
 
     if (serviceMessage.type !== 'application/vnd.relaynet.ping-v1.ping') {
-      logger.info('Invalid service message type', {
-        jobId,
-        messageType: serviceMessage.type,
-      });
+      logger.info({ jobId, messageType: serviceMessage.type }, 'Invalid service message type');
       return;
     }
 
@@ -89,7 +86,7 @@ export class PingProcessor {
     try {
       ping = deserializePing(serviceMessage.value);
     } catch (error) {
-      logger.info('Invalid ping message', { err: error, jobId });
+      logger.info({ err: error, jobId }, 'Invalid ping message');
       return;
     }
     return { ping, originatorKey: decryptionResult.senderSessionKey };

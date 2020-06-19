@@ -97,10 +97,10 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith('Invalid service message', {
-        err: error,
-        jobId: job.id,
-      });
+      expect(mockPino.info).toBeCalledWith(
+        { err: error, jobId: job.id },
+        'Invalid service message',
+      );
     });
 
     test('Failing to unwrap the service message should be logged', async () => {
@@ -112,10 +112,10 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith('Invalid service message', {
-        err: error,
-        jobId: job.id,
-      });
+      expect(mockPino.info).toBeCalledWith(
+        { err: error, jobId: job.id },
+        'Invalid service message',
+      );
     });
 
     test('Getting an invalid service message type should be logged', async () => {
@@ -131,10 +131,10 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith('Invalid service message type', {
-        jobId: job.id,
-        messageType,
-      });
+      expect(mockPino.info).toBeCalledWith(
+        { jobId: job.id, messageType },
+        'Invalid service message type',
+      );
       expect(pohttp.deliverParcel).not.toBeCalled();
     });
 
@@ -147,10 +147,7 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith('Invalid ping message', {
-        err: error,
-        jobId: job.id,
-      });
+      expect(mockPino.info).toBeCalledWith({ err: error, jobId: job.id }, 'Invalid ping message');
     });
 
     describe('Successful pong delivery', () => {
@@ -313,10 +310,7 @@ describe('PingProcessor', () => {
         await processor.deliverPongForPing(stubJob);
         expect(mockPino.info).toBeCalledTimes(1);
 
-        expect(mockPino.info).toBeCalledWith('Invalid service message', {
-          err,
-          jobId: stubJob.id,
-        });
+        expect(mockPino.info).toBeCalledWith({ err, jobId: stubJob.id }, 'Invalid service message');
       });
 
       test('Use of unknown public key ids should be gracefully logged', async () => {
@@ -326,10 +320,10 @@ describe('PingProcessor', () => {
         await processor.deliverPongForPing(stubJob);
 
         expect(mockPino.info).toBeCalledTimes(1);
-        expect(mockPino.info).toBeCalledWith('Invalid service message', {
-          err: expect.any(UnknownKeyError),
-          jobId: stubJob.id,
-        });
+        expect(mockPino.info).toBeCalledWith(
+          { err: expect.any(UnknownKeyError), jobId: stubJob.id },
+          'Invalid service message',
+        );
       });
     });
 
