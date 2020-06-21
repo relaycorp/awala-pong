@@ -47,6 +47,12 @@ export class PingProcessor {
       pingParcel.senderCertificate.getCommonName(),
       ping.pda,
       pongParcelPayload,
+      {
+        senderCaCertificateChain: [
+          pingParcel.senderCertificate,
+          ...pingParcel.senderCaCertificateChain,
+        ],
+      },
     );
     const parcelSerialized = await pongParcel.serialize(keyPair.privateKey);
     try {

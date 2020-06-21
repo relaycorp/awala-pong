@@ -43,6 +43,7 @@ describe('PingProcessor', () => {
     let recipientCertificate: Certificate;
     let senderKeyPair: CryptoKeyPair;
     let senderCertificate: Certificate;
+    let senderGatewayCertificate: Certificate;
     let serviceMessageSerialized: ArrayBuffer;
     let stubParcelPayload: EnvelopedData;
     beforeAll(async () => {
@@ -50,6 +51,12 @@ describe('PingProcessor', () => {
       senderCertificate = await generateStubNodeCertificate(
         senderKeyPair.publicKey,
         senderKeyPair.privateKey,
+      );
+
+      const senderGatewayKeyPair = await generateRSAKeyPair();
+      senderGatewayCertificate = await generateStubNodeCertificate(
+        senderGatewayKeyPair.publicKey,
+        senderGatewayKeyPair.privateKey,
       );
 
       recipientKeyPair = await generateRSAKeyPair();
@@ -171,6 +178,18 @@ describe('PingProcessor', () => {
           'recipientAddress',
           senderCertificate.getCommonName(),
         );
+      });
+
+      test('Ping sender certificate should be in pong sender chain', () => {
+        const pongSenderChain = deliveredParcel.senderCaCertificateChain;
+        const matchingCerts = pongSenderChain.filter((c) => c.isEqual(senderCertificate));
+        expect(matchingCerts).toHaveLength(1);
+      });
+
+      test('Ping sender certificate chain should be in pong sender chain', () => {
+        const pongSenderChain = deliveredParcel.senderCaCertificateChain;
+        const matchingCerts = pongSenderChain.filter((c) => c.isEqual(senderGatewayCertificate));
+        expect(matchingCerts).toHaveLength(1);
       });
 
       test('Parcel should be signed with PDA attached to ping message', () => {
@@ -338,6 +357,7 @@ describe('PingProcessor', () => {
         'https://ping.relaycorp.tech',
         senderCertificate,
         Buffer.from(finalPayload.serialize()),
+        { senderCaCertificateChain: [senderGatewayCertificate] },
       );
       const data: QueuedPing = {
         gatewayAddress: options.gatewayAddress ?? 'dummy-gateway',
