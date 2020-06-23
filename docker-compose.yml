@@ -41,11 +41,12 @@ services:
       ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}
 
   redis:
-    image: redis:4.0-alpine
+    # Use the latest major version supported by GCP Memorystore
+    image: redis:5.0.9-alpine
     init: true
 
   vault:
-    image: vault:1.3.1
+    image: vault:1.4.2
     init: true
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: letmein
