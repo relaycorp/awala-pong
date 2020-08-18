@@ -66,11 +66,11 @@
   "homepage": "https://docs.relaycorp.tech/relaynet-pong/",
   "dependencies": {
     "@relaycorp/keystore-vault": "^1.1.4",
-    "@relaycorp/relaynet-core": "^1.28.4",
+    "@relaycorp/relaynet-core": "^1.28.5",
     "@relaycorp/relaynet-pohttp": "^1.5.0",
     "binary-parser": "^1.6.2",
     "buffer-to-arraybuffer": "0.0.5",
-    "bull": "^3.16.0",
+    "bull": "^3.18.0",
     "env-var": "^6.3.0",
     "fastify": "^2.15.1",
     "fastify-sentry": "^1.4.0",
