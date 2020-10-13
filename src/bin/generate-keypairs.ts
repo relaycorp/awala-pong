@@ -46,7 +46,7 @@ async function main(): Promise<void> {
   // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
   // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
   // tslint:disable-next-line:no-object-mutation
-  endpointCertificate.pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
+  (endpointCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
     endpointKeyId,
   );
 
