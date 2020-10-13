@@ -62,7 +62,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
     // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
     // tslint:disable-next-line:no-object-mutation
-    pongEndpointCertificate.pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
+    (pongEndpointCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
       Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64'),
     );
     await privateKeyStore.saveNodeKey(pongEndpointPrivateKey, pongEndpointCertificate);
