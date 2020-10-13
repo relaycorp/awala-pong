@@ -28,7 +28,7 @@
   "devDependencies": {
     "@relaycorp/shared-config": "^1.4.2",
     "@types/binary-parser": "^1.5.0",
-    "@types/bull": "^3.14.3",
+    "@types/bull": "^3.14.4",
     "@types/jest": "^26.0.14",
     "@types/pino": "^6.3.2",
     "@types/pkijs": "0.0.5",
