@@ -2,6 +2,7 @@
 require('make-promises-safe');
 
 import { get as getEnvVar } from 'env-var';
+import pino from 'pino';
 
 import { initQueue } from '../app/background_queue/queue';
 import worker from '../app/background_queue/worker';
@@ -19,5 +20,5 @@ if (isTypeScript) {
   QUEUE.process(__dirname + '/../app/background_queue/worker');
 }
 
-// tslint:disable-next-line:no-console
-console.log('Master process started');
+const logger = pino();
+logger.info('Master process started');
