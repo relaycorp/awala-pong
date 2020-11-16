@@ -19,6 +19,10 @@ const NODE_CERTIFICATE_TTL_DAYS = 180;
 const SESSION_CERTIFICATE_TTL_DAYS = 60;
 
 const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
+const PONG_ENDPOINT_SESSION_KEY_ID_BASE64 = getEnvVar('ENDPOINT_SESSION_KEY_ID')
+  .required()
+  .asString();
+
 const vaultUrl = getEnvVar('VAULT_URL').required().asString();
 const vaultToken = getEnvVar('VAULT_TOKEN').required().asString();
 const vaultKvPrefix = getEnvVar('VAULT_KV_PREFIX').required().asString();
@@ -61,6 +65,13 @@ async function main(): Promise<void> {
     subjectPublicKey: initialSessionKeyPair.publicKey,
     validityEndDate: sessionCertEndDate,
   });
+  const endpointSessionKeyId = Buffer.from(PONG_ENDPOINT_SESSION_KEY_ID_BASE64, 'base64');
+  // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
+  // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
+  // tslint:disable-next-line:no-object-mutation
+  (initialKeyCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
+    endpointSessionKeyId,
+  );
   await sessionStore.saveInitialSessionKey(initialSessionKeyPair.privateKey, initialKeyCertificate);
 
   console.log(
@@ -68,6 +79,7 @@ async function main(): Promise<void> {
       endpointCertificate: base64Encode(endpointCertificate.serialize()),
       initialSessionCertificate: base64Encode(initialKeyCertificate.serialize()),
       keyPairId: PONG_ENDPOINT_KEY_ID_BASE64,
+      sessionKeyPairId: PONG_ENDPOINT_SESSION_KEY_ID_BASE64,
     }),
   );
 }

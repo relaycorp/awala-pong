@@ -39,6 +39,7 @@ services:
       VAULT_KV_PREFIX: 'pong-keys'
 
       ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}
+      ENDPOINT_SESSION_KEY_ID: ${ENDPOINT_SESSION_KEY_ID}
 
   redis:
     # Use the latest major version supported by GCP Memorystore
