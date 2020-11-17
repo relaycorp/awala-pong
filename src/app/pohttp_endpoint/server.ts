@@ -17,7 +17,7 @@ const SERVER_HOST = '0.0.0.0';
  *
  * This function doesn't call .listen() so we can use .inject() for testing purposes.
  */
-export function makeServer(): FastifyInstance {
+export async function makeServer(): Promise<FastifyInstance> {
   const server = fastify({
     logger: true,
     requestIdHeader: getEnvVar('PONG_REQUEST_ID_HEADER')
@@ -34,11 +34,12 @@ export function makeServer(): FastifyInstance {
     async (_req: any, rawBody: Buffer) => rawBody,
   );
 
+  await server.ready();
   return server;
 }
 
 export async function runServer(): Promise<void> {
-  const server = makeServer();
+  const server = await makeServer();
 
   await server.listen({ host: SERVER_HOST, port: SERVER_PORT });
 }

@@ -11,6 +11,8 @@ export default async function registerRoutes(
   fastify: FastifyInstance,
   _options: any,
 ): Promise<void> {
+  const pongQueue = initQueue();
+
   fastify.route({
     method: ['PUT', 'DELETE', 'PATCH'],
     url: '/',
@@ -22,15 +24,24 @@ export default async function registerRoutes(
   fastify.route({
     method: ['HEAD', 'GET'],
     url: '/',
-    async handler(_req, reply): Promise<void> {
-      reply
+    async handler(req, reply): Promise<FastifyReply<any>> {
+      try {
+        await pongQueue.isReady();
+      } catch (err) {
+        req.log.info({ err }, 'Failed to check that the queue is ready');
+        return reply
+          .code(503)
+          .header('Content-Type', 'text/plain')
+          .send('This PoHTTP endpoint for the pong service is currently unavailable.');
+      }
+
+      return reply
         .code(200)
         .header('Content-Type', 'text/plain')
         .send('Success! This PoHTTP endpoint for the pong service works.');
     },
   });
 
-  const pongQueue = initQueue();
   fastify.route({
     method: 'POST',
     url: '/',
