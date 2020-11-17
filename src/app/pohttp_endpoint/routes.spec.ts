@@ -1,7 +1,7 @@
 /* tslint:disable:no-let */
 import { Certificate, generateRSAKeyPair } from '@relaycorp/relaynet-core';
 import * as envVar from 'env-var';
-import { HTTPInjectOptions, HTTPMethod } from 'fastify';
+import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
 import {
   generateStubNodeCertificate,
@@ -14,7 +14,10 @@ import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utils';
 import { makeServer } from './server';
 
-const serverInstance = makeServer();
+let serverInstance: FastifyInstance;
+beforeAll(async () => {
+  serverInstance = await makeServer();
+});
 
 const endpointAddress = 'ping.example.com:8000';
 const validRequestOptions: HTTPInjectOptions = {
@@ -48,10 +51,14 @@ beforeAll(async () => {
 });
 
 const pongQueueAddSpy = jest.fn();
-jest.spyOn(pongQueue, 'initQueue').mockReturnValue(
-  // @ts-ignore
-  { add: pongQueueAddSpy },
-);
+const pongQueueIsReadySpy = jest.fn();
+jest
+  .spyOn(pongQueue, 'initQueue')
+  .mockReturnValue({ add: pongQueueAddSpy, isReady: pongQueueIsReadySpy } as any);
+beforeEach(() => {
+  pongQueueAddSpy.mockReset();
+  pongQueueIsReadySpy.mockReset();
+});
 
 beforeEach(() => {
   const mockGetEnvVar = getMockContext(envVar.get);
@@ -64,20 +71,20 @@ afterAll(() => {
   jest.restoreAllMocks();
 });
 
-describe('receiveParcel', () => {
-  test.each(['PUT', 'PATCH', 'DELETE'] as readonly HTTPMethod[])(
-    '%s requests should be refused',
-    async (method) => {
-      const response = await serverInstance.inject({
-        ...validRequestOptions,
-        method,
-      });
+test.each(['PUT', 'PATCH', 'DELETE'] as readonly HTTPMethod[])(
+  '%s requests should be refused',
+  async (method) => {
+    const response = await serverInstance.inject({
+      ...validRequestOptions,
+      method,
+    });
 
-      expect(response).toHaveProperty('statusCode', 405);
-      expect(response).toHaveProperty('headers.allow', 'HEAD, GET, POST');
-    },
-  );
+    expect(response).toHaveProperty('statusCode', 405);
+    expect(response).toHaveProperty('headers.allow', 'HEAD, GET, POST');
+  },
+);
 
+describe('Health check', () => {
   test('A plain simple HEAD request should provide some diagnostic information', async () => {
     const response = await serverInstance.inject({ method: 'HEAD', url: '/' });
 
@@ -94,6 +101,18 @@ describe('receiveParcel', () => {
     expect(response.payload).toContain('PoHTTP');
   });
 
+  test('A 503 response should be returned when the queue is not ready', async () => {
+    pongQueueIsReadySpy.mockRejectedValueOnce(new Error('Not ready'));
+
+    const response = await serverInstance.inject({ method: 'GET', url: '/' });
+
+    expect(response).toHaveProperty('statusCode', 503);
+    expect(response).toHaveProperty('headers.content-type', 'text/plain');
+    expect(response.payload).toContain('unavailable');
+  });
+});
+
+describe('receiveParcel', () => {
   test('Content-Type other than application/vnd.relaynet.parcel should be refused', async () => {
     const response = await serverInstance.inject({
       ...validRequestOptions,

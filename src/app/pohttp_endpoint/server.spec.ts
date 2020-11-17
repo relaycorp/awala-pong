@@ -3,7 +3,12 @@ import * as server from './server';
 
 import fastify = require('fastify');
 
-const mockFastify = { addContentTypeParser: jest.fn(), listen: jest.fn(), register: jest.fn() };
+const mockFastify = {
+  addContentTypeParser: jest.fn(),
+  listen: jest.fn(),
+  ready: jest.fn(),
+  register: jest.fn(),
+};
 jest.mock('fastify', () => jest.fn().mockImplementation(() => mockFastify));
 
 afterAll(() => {
@@ -11,33 +16,33 @@ afterAll(() => {
 });
 
 describe('makeServer', () => {
-  test('Logger should be enabled', () => {
-    server.makeServer();
+  test('Logger should be enabled', async () => {
+    await server.makeServer();
 
     const fastifyCallArgs = getMockContext(fastify).calls[0];
     expect(fastifyCallArgs[0]).toHaveProperty('logger', true);
   });
 
-  test('X-Request-Id should be the default request id header', () => {
-    server.makeServer();
+  test('X-Request-Id should be the default request id header', async () => {
+    await server.makeServer();
 
     const fastifyCallArgs = getMockContext(fastify).calls[0];
     expect(fastifyCallArgs[0]).toHaveProperty('requestIdHeader', 'X-Request-Id');
   });
 
-  test('Custom request id header can be set via PONG_REQUEST_ID_HEADER variable', () => {
+  test('Custom request id header can be set via PONG_REQUEST_ID_HEADER variable', async () => {
     const requestIdHeader = 'X-Id';
     // tslint:disable-next-line:no-object-mutation
     process.env.PONG_REQUEST_ID_HEADER = requestIdHeader;
 
-    server.makeServer();
+    await server.makeServer();
 
     const fastifyCallArgs = getMockContext(fastify).calls[0];
     expect(fastifyCallArgs[0]).toHaveProperty('requestIdHeader', requestIdHeader);
   });
 
-  test('Content-Type application/vnd.relaynet.parcel should be supported', () => {
-    server.makeServer();
+  test('Content-Type application/vnd.relaynet.parcel should be supported', async () => {
+    await server.makeServer();
 
     expect(mockFastify.addContentTypeParser).toBeCalledTimes(1);
     const addContentTypeParserCallArgs = getMockContext(mockFastify.addContentTypeParser).calls[0];
@@ -47,23 +52,29 @@ describe('makeServer', () => {
     // It shouldn't actually parse the body just yet:
     const parser = addContentTypeParserCallArgs[2];
     const stubBody = {};
-    expect(parser({}, stubBody)).resolves.toBe(stubBody);
+    await expect(parser({}, stubBody)).resolves.toBe(stubBody);
   });
 
-  test('fastify-url-data should be registered', () => {
-    server.makeServer();
+  test('fastify-url-data should be registered', async () => {
+    await server.makeServer();
 
     expect(mockFastify.register).toBeCalledWith(require('fastify-url-data'));
   });
 
-  test('Routes should be loaded', () => {
-    server.makeServer();
+  test('Routes should be loaded', async () => {
+    await server.makeServer();
 
     expect(mockFastify.register).toBeCalledWith(require('./routes').default);
   });
 
-  test('Server instance should be returned', () => {
-    const serverInstance = server.makeServer();
+  test('Fastify instance should be ready', async () => {
+    await server.makeServer();
+
+    expect(mockFastify.ready).toBeCalledWith();
+  });
+
+  test('Server instance should be returned', async () => {
+    const serverInstance = await server.makeServer();
 
     expect(serverInstance).toBe(mockFastify);
   });
