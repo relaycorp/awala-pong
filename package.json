@@ -26,11 +26,11 @@
     "node": ">=12"
   },
   "devDependencies": {
-    "@relaycorp/shared-config": "^1.4.5",
+    "@relaycorp/shared-config": "^1.4.6",
     "@types/binary-parser": "^1.5.0",
     "@types/bull": "^3.14.4",
     "@types/jest": "^26.0.15",
-    "@types/pino": "^6.3.3",
+    "@types/pino": "^6.3.4",
     "@types/pkijs": "0.0.6",
     "@types/verror": "^1.10.4",
     "axios": "^0.21.0",
@@ -67,10 +67,10 @@
   "dependencies": {
     "@relaycorp/keystore-vault": "^1.2.0",
     "@relaycorp/relaynet-core": "^1.39.1",
-    "@relaycorp/relaynet-pohttp": "^1.5.3",
+    "@relaycorp/relaynet-pohttp": "^1.5.4",
     "binary-parser": "^1.7.0",
     "buffer-to-arraybuffer": "0.0.5",
-    "bull": "^3.18.1",
+    "bull": "^3.19.1",
     "env-var": "^7.0.0",
     "fastify": "^2.15.1",
     "fastify-sentry": "^1.4.0",
