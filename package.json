@@ -66,7 +66,7 @@
   "homepage": "https://docs.relaycorp.tech/relaynet-pong/",
   "dependencies": {
     "@relaycorp/keystore-vault": "^1.2.0",
-    "@relaycorp/relaynet-core": "^1.39.2",
+    "@relaycorp/relaynet-core": "^1.40.0",
     "@relaycorp/relaynet-pohttp": "^1.5.4",
     "binary-parser": "^1.7.0",
     "buffer-to-arraybuffer": "0.0.5",
@@ -76,7 +76,7 @@
     "fastify-sentry": "^1.4.0",
     "fastify-url-data": "^2.4.0",
     "make-promises-safe": "^5.1.0",
-    "pino": "^6.7.0",
+    "pino": "^6.8.0",
     "uuid4": "^2.0.2"
   }
 }
