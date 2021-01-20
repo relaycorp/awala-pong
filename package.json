@@ -26,11 +26,11 @@
     "node": ">=12"
   },
   "devDependencies": {
-    "@relaycorp/shared-config": "^1.4.7",
+    "@relaycorp/shared-config": "^1.4.8",
     "@types/binary-parser": "^1.5.0",
     "@types/bull": "^3.14.4",
     "@types/jest": "^26.0.19",
-    "@types/pino": "^6.3.4",
+    "@types/pino": "^6.3.5",
     "@types/pkijs": "0.0.6",
     "@types/verror": "^1.10.4",
     "axios": "^0.21.1",
