@@ -1,0 +1,9 @@
+apiVersion: v2
+name: relaynet-pong
+description: Relaynet Pong service
+
+type: application
+
+version: 1.0.0
+
+appVersion: 1.4.5

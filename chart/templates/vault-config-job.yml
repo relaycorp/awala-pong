@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "..fullname" . }}-vault-config
+  labels:
+  {{- include "..labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}-vault-config"
+      labels:
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    spec:
+      serviceAccountName: {{ include "..fullname" . }}-vault-config
+      securityContext:
+      {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      shareProcessNamespace: true
+      restartPolicy: OnFailure
+      containers:
+        - name: vault-config
+          image: vault:1.5.4
+          imagePullPolicy: IfNotPresent
+          command:
+            - vault
+            - secrets
+            - enable
+            - "-path={{ .Values.vault.session_keys_mount_path }}"
+            - kv-v2
+          env:
+            - name: VAULT_ADDR
+              value: "http://{{ .Values.vault.host }}:{{ .Values.vault.port }}"
+          envFrom:
+            - configMapRef:
+                name: {{ include "..fullname" . }}
+            - secretRef:
+                name: {{ include "..fullname" . }}-vault

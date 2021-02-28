@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "..fullname" . }}-pohttp
+  labels:
+    {{- include "..labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "..selectorLabels" . | nindent 6 }}
+      pong.relaycorp.tech/component: pohttp
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/global-cm.yml") . | sha256sum }}
+      labels:
+        {{- include "..selectorLabels" . | nindent 8 }}
+        pong.relaycorp.tech/component: pohttp
+    spec:
+      serviceAccountName: {{ include "..fullname" . }}-pohttp
+      shareProcessNamespace: true
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: pohttp
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "relaycorp/relaynet-pong:v{{ .Chart.AppVersion }}"
+          imagePullPolicy: IfNotPresent
+          command: ['node', 'build/main/bin/pohttp-server.js']
+          env:
+            - name: PONG_REQUEST_ID_HEADER
+              value: {{ .Values.http_request_id_header }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "..fullname" . }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 15
+            timeoutSeconds: 2
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
