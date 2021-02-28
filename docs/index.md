@@ -90,7 +90,7 @@ To run the unit test suite, run `npm test` on the host computer (i.e., without r
 To start the long-running processes, run: `docker-compose up --build --remove-orphan`. When running this for the first time, make sure to generate the endpoint and session keys in Vault:
 
 ```
-docker-compose exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN=letmein vault vault secrets enable -path=pong-keys kv-v2
+docker-compose exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN=root vault vault secrets enable -path=pong-keys kv-v2
 docker-compose run --rm queue src/bin/generate-keypairs.ts
 ```
 

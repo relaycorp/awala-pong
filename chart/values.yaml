@@ -7,6 +7,11 @@ replicaCount: 1
 nameOverride: ""
 fullnameOverride: ""
 
+image:
+  repository: ghcr.io/relaycorp/relaynet-pong
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
 tags:
   dev: false
 
@@ -51,10 +56,8 @@ redis:
   port: 6379
 
 vault:
-  host: vault
   port: '8200'
   session_keys_mount_path: pong-keys
-  token:
 
 http_request_id_header: X-Request-Id
 pohttp_tls_required: true

@@ -28,7 +28,7 @@ spec:
         - name: queue
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "relaycorp/relaynet-pong:v{{ .Chart.AppVersion }}"
+          image: {{ include "..image" . | quote }}
           imagePullPolicy: IfNotPresent
           command: ['node', 'build/main/bin/background-queue.js']
           env:

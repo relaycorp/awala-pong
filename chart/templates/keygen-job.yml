@@ -24,7 +24,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: keygen
-          image: "relaycorp/relaynet-pong:v{{ .Chart.AppVersion }}"
+          image: {{ include "..image" . | quote }}
           imagePullPolicy: IfNotPresent
           command:
             - node
