@@ -26,7 +26,7 @@ const PONG_SERVICE_ENDPOINT = 'http://app:8080/';
 
 const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
 
-const privateKeyStore = new VaultPrivateKeyStore('http://vault:8200', 'letmein', 'pong-keys');
+const privateKeyStore = new VaultPrivateKeyStore('http://vault:8200', 'root', 'pong-keys');
 
 const TOMORROW = new Date();
 TOMORROW.setDate(TOMORROW.getDate() + 1);
@@ -191,7 +191,7 @@ async function sleep(seconds: number): Promise<void> {
 function configureVault(): void {
   const vaultClient = axios.create({
     baseURL: 'http://vault:8200/v1',
-    headers: { 'X-Vault-Token': 'letmein' },
+    headers: { 'X-Vault-Token': 'root' },
   });
   beforeAll(async () => {
     await vaultClient.post('/sys/mounts/pong-keys', {

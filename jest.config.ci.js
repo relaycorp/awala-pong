@@ -1,7 +1,7 @@
 const mainJestConfig = require('./jest.config');
 
 module.exports = Object.assign({}, mainJestConfig, {
-  collectCoverageFrom: ['app/**/*.js'],
+  collectCoverageFrom: ['build/main/app/**/*.js'],
   moduleFileExtensions: ['js'],
   preset: null,
   roots: ['build/main'],
