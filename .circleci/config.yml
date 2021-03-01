@@ -1,12 +1,5 @@
 version: 2.1
 jobs:
-  'unit-tests-node12':
-    docker:
-      - image: circleci/node:12
-    working_directory: ~/src
-    steps:
-      - unit-test:
-          nodeVersion: '12'
   'functional-tests':
     machine: true
     steps:
@@ -25,27 +18,8 @@ jobs:
 
       - run: ./src/functional_tests/run.sh
 
-commands:
-  unit-test:
-    parameters:
-      nodeVersion:
-        type: string
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-dependencies-node<< parameters.nodeVersion >>-{{ checksum "package.json" }}
-      - run: npm ci
-      - save_cache:
-          paths:
-            - node_modules
-          key: v1-dependencies-node<< parameters.nodeVersion >>-{{ checksum "package.json" }}
-      - run: npm run static-checks
-      - run: npm run test:ci:unit
-
 workflows:
   version: 2
   build:
     jobs:
-      - unit-tests-node12
       - functional-tests

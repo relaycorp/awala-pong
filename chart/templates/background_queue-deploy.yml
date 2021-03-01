@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "..fullname" . }}-queue
+  labels:
+    {{- include "..labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.backgroundQueue.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "..selectorLabels" . | nindent 6 }}
+      pong.relaycorp.tech/component: queue
+  template:
+    metadata:
+      annotations:
+        checksum/global-config: {{ include (print $.Template.BasePath "/global-cm.yml") . | sha256sum }}
+        checksum/queue-config: {{ include (print $.Template.BasePath "/generated-cm.yml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/vault-secret.yml") . | sha256sum }}
+      labels:
+        {{- include "..selectorLabels" . | nindent 8 }}
+        pong.relaycorp.tech/component: queue
+    spec:
+      serviceAccountName: {{ include "..fullname" . }}-queue
+      shareProcessNamespace: true
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: queue
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "..image" . | quote }}
+          imagePullPolicy: IfNotPresent
+          command: ['node', 'build/main/bin/background-queue.js']
+          env:
+            - name: VAULT_URL
+              value: "http://{{ .Values.vault.host }}:{{ .Values.vault.port }}"
+            - name: VAULT_KV_PREFIX
+              value: {{ .Values.vault.session_keys_mount_path }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "..fullname" . }}
+            - configMapRef:
+                name: {{ include "..fullname" . }}-generated
+            - secretRef:
+                name: {{ include "..fullname" . }}-vault
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
