@@ -35,7 +35,7 @@ services:
       REDIS_HOST: redis
 
       VAULT_URL: http://vault:8200
-      VAULT_TOKEN: letmein
+      VAULT_TOKEN: root
       VAULT_KV_PREFIX: 'pong-keys'
 
       ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}
@@ -50,7 +50,7 @@ services:
     image: vault:1.4.2
     init: true
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: letmein
+      VAULT_DEV_ROOT_TOKEN_ID: root
       VAULT_LOG_LEVEL: debug
     cap_add: ["IPC_LOCK"]
     ports:

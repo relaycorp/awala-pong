@@ -1,0 +1,17 @@
+tags:
+  dev: true
+
+redis:
+  host: relaynet-pong-redis-headless
+  usePassword: false
+  cluster:
+    enabled: false
+  persistence:
+    enabled: false
+
+vault:
+  host: relaynet-pong-vault
+  token: root
+  server:
+    dev:
+      enabled: true

@@ -14,36 +14,52 @@ describe('initQueue', () => {
     expect(initQueue).toThrowWithMessage(Error, /REDIS_HOST/);
   });
 
-  test('REDIS_HOST variable should be used by queue', () => {
+  test('REDIS_HOST variable should be used by queue', async () => {
     mockEnvVars(stubEnvVars);
 
     const queue = initQueue();
 
-    expect(queue).toHaveProperty('clients.0.connector.options.host', stubRedisHost);
+    try {
+      expect(queue).toHaveProperty('clients.0.connector.options.host', stubRedisHost);
+    } finally {
+      await queue.close();
+    }
   });
 
-  test('Redis port should default to 6379', () => {
+  test('Redis port should default to 6379', async () => {
     mockEnvVars(stubEnvVars);
 
     const queue = initQueue();
 
-    expect(queue).toHaveProperty('clients.0.connector.options.port', 6379);
+    try {
+      expect(queue).toHaveProperty('clients.0.connector.options.port', 6379);
+    } finally {
+      await queue.close();
+    }
   });
 
-  test('REDIS_PORT should be used as Redis port if set', () => {
+  test('REDIS_PORT should be used as Redis port if set', async () => {
     const stubPort = 1234;
     mockEnvVars({ ...stubEnvVars, REDIS_PORT: stubPort.toString() });
 
     const queue = initQueue();
 
-    expect(queue).toHaveProperty('clients.0.connector.options.port', stubPort);
+    try {
+      expect(queue).toHaveProperty('clients.0.connector.options.port', stubPort);
+    } finally {
+      await queue.close();
+    }
   });
 
-  test('Queue name should be set to "pong"', () => {
+  test('Queue name should be set to "pong"', async () => {
     mockEnvVars(stubEnvVars);
 
     const queue = initQueue();
 
-    expect(queue).toHaveProperty('name', 'pong');
+    try {
+      expect(queue).toHaveProperty('name', 'pong');
+    } finally {
+      await queue.close();
+    }
   });
 });

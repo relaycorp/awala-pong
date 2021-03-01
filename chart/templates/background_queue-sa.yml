@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "..fullname" . }}-queue
+  labels:
+    pong.relaycorp.tech/component: queue
+{{- include "..labels" . | nindent 4 -}}

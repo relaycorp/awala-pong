@@ -16,7 +16,7 @@
     "static-checks:lint": "tslint --project .",
     "static-checks:prettier": "prettier \"src/**/*.ts\" --list-different",
     "test:ci:unit": "run-s build test:ci:unit:jest",
-    "test:ci:unit:jest": "jest --config jest.config.ci.js --coverage",
+    "test:ci:unit:jest": "jest --config jest.config.ci.js --coverage --detectOpenHandles",
     "test:functional": "run-s build test:functional:docker",
     "test:functional:docker": "./src/functional_tests/run.sh",
     "cov": "run-s build test:unit && opn coverage/lcov-report/index.html",
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@relaycorp/shared-config": "^1.4.12",
+    "@semantic-release/exec": "^5.0.0",
     "@types/binary-parser": "^1.5.0",
     "@types/bull": "^3.15.0",
     "@types/jest": "^26.0.20",
