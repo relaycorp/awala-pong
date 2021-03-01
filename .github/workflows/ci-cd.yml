@@ -58,7 +58,7 @@ jobs:
           set -o pipefail
           set +x
 
-          kubectl port-forward --address 127.0.0.1 svc/relaynet-pong-pohttp 8080:8080 &
+          kubectl port-forward --address 127.0.0.1 svc/relaynet-pong-pohttp 8080:80 &
           kubectl port-forward --address 127.0.0.1 svc/relaynet-pong-vault 8200:8200 &
 
           # Check at least one of the ports:
