@@ -26,7 +26,9 @@ export async function makeServer(): Promise<FastifyInstance> {
   });
 
   server.register(fastifyUrlData);
-  server.register(routes);
+
+  const publicEndpointAddress = getEnvVar('PUBLIC_ENDPOINT_ADDRESS').required().asString();
+  server.register(routes, { publicEndpointAddress } as any);
 
   server.addContentTypeParser(
     'application/vnd.relaynet.parcel',

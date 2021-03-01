@@ -1,7 +1,12 @@
-import { getMockContext } from '../_test_utils';
+import { EnvVarError } from 'env-var';
+import { configureMockEnvVars, getMockContext } from '../_test_utils';
 import * as server from './server';
 
 import fastify = require('fastify');
+
+const publicEndpointAddress = 'example.com';
+const envVars = { PUBLIC_ENDPOINT_ADDRESS: publicEndpointAddress };
+const mockEnvVars = configureMockEnvVars(envVars);
 
 const mockFastify = {
   addContentTypeParser: jest.fn(),
@@ -16,6 +21,12 @@ afterAll(() => {
 });
 
 describe('makeServer', () => {
+  test('Public endpoint address should be required', async () => {
+    mockEnvVars({});
+
+    await expect(server.makeServer()).rejects.toBeInstanceOf(EnvVarError);
+  });
+
   test('Logger should be enabled', async () => {
     await server.makeServer();
 
@@ -32,8 +43,7 @@ describe('makeServer', () => {
 
   test('Custom request id header can be set via PONG_REQUEST_ID_HEADER variable', async () => {
     const requestIdHeader = 'X-Id';
-    // tslint:disable-next-line:no-object-mutation
-    process.env.PONG_REQUEST_ID_HEADER = requestIdHeader;
+    mockEnvVars({ ...envVars, PONG_REQUEST_ID_HEADER: requestIdHeader });
 
     await server.makeServer();
 
@@ -64,7 +74,9 @@ describe('makeServer', () => {
   test('Routes should be loaded', async () => {
     await server.makeServer();
 
-    expect(mockFastify.register).toBeCalledWith(require('./routes').default);
+    expect(mockFastify.register).toBeCalledWith(require('./routes').default, {
+      publicEndpointAddress,
+    });
   });
 
   test('Fastify instance should be ready', async () => {
