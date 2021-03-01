@@ -1,18 +1,17 @@
-/* tslint:disable:no-let */
 import { Certificate, generateRSAKeyPair } from '@relaycorp/relaynet-core';
-import * as envVar from 'env-var';
 import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
 import {
+  configureMockEnvVars,
   generateStubNodeCertificate,
   generateStubPingParcel,
-  getMockContext,
-  mockEnvVars,
 } from '../_test_utils';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utils';
 import { makeServer } from './server';
+
+const mockEnvVars = configureMockEnvVars({});
 
 let serverInstance: FastifyInstance;
 beforeAll(async () => {
@@ -60,13 +59,6 @@ beforeEach(() => {
   pongQueueIsReadySpy.mockReset();
 });
 
-beforeEach(() => {
-  const mockGetEnvVar = getMockContext(envVar.get);
-  if (mockGetEnvVar) {
-    // @ts-ignore
-    mockGetEnvVar.mockReset();
-  }
-});
 afterAll(() => {
   jest.restoreAllMocks();
 });

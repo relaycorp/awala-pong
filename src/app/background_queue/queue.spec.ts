@@ -1,9 +1,10 @@
-import { mockEnvVars } from '../_test_utils';
+import { configureMockEnvVars } from '../_test_utils';
 import { initQueue } from './queue';
 
 describe('initQueue', () => {
   const stubRedisHost = 'redis';
   const stubEnvVars = { REDIS_HOST: stubRedisHost };
+  const mockEnvVars = configureMockEnvVars(stubEnvVars);
 
   afterAll(() => {
     jest.restoreAllMocks();
@@ -15,8 +16,6 @@ describe('initQueue', () => {
   });
 
   test('REDIS_HOST variable should be used by queue', async () => {
-    mockEnvVars(stubEnvVars);
-
     const queue = initQueue();
 
     try {
@@ -27,8 +26,6 @@ describe('initQueue', () => {
   });
 
   test('Redis port should default to 6379', async () => {
-    mockEnvVars(stubEnvVars);
-
     const queue = initQueue();
 
     try {
@@ -52,8 +49,6 @@ describe('initQueue', () => {
   });
 
   test('Queue name should be set to "pong"', async () => {
-    mockEnvVars(stubEnvVars);
-
     const queue = initQueue();
 
     try {
