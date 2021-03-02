@@ -1,6 +1,8 @@
 tags:
   dev: true
 
+public_endpoint_address: endpoint.local
+
 redis:
   host: relaynet-pong-redis-headless
   usePassword: false

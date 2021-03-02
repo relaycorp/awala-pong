@@ -1,4 +1,3 @@
-/* tslint:disable:no-let */
 import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
@@ -22,7 +21,9 @@ import { serializePing } from '../app/pingSerialization';
 
 const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
-const PONG_SERVICE_ENDPOINT = 'http://app:8080/';
+
+const PONG_PUBLIC_ADDRESS = 'endpoint.local';
+const PONG_SERVICE_URL = 'http://app:8080/';
 
 const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
 
@@ -77,13 +78,13 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
 
   test('Ping-pong without channel session protocol', async () => {
     const pingParcel = bufferToArray(
-      await generateStubPingParcel(PONG_SERVICE_ENDPOINT, pongEndpointCertificate, {
+      await generateStubPingParcel(`http://${PONG_PUBLIC_ADDRESS}`, pongEndpointCertificate, {
         certificate: pingSenderCertificate,
         privateKey: pingSenderPrivateKey,
       }),
     );
 
-    await deliverParcel(PONG_SERVICE_ENDPOINT, pingParcel, {
+    await deliverParcel(PONG_SERVICE_URL, pingParcel, {
       gatewayAddress: GATEWAY_ADDRESS,
     });
 
@@ -110,7 +111,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       endpointInitialSessionCertificate,
     );
 
-    await deliverParcel(PONG_SERVICE_ENDPOINT, pingParcelSerialized, {
+    await deliverParcel(PONG_SERVICE_URL, pingParcelSerialized, {
       gatewayAddress: GATEWAY_ADDRESS,
     });
 
@@ -137,7 +138,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       initialDhCertificate,
     );
     const parcel = new Parcel(
-      PONG_SERVICE_ENDPOINT,
+      `https://${PONG_PUBLIC_ADDRESS}`,
       pingSenderCertificate,
       Buffer.from(envelopedData.serialize()),
     );

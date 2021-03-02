@@ -1,29 +1,29 @@
-/* tslint:disable:no-let */
 import { Certificate, generateRSAKeyPair } from '@relaycorp/relaynet-core';
-import * as envVar from 'env-var';
 import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
 import {
+  configureMockEnvVars,
   generateStubNodeCertificate,
   generateStubPingParcel,
-  getMockContext,
-  mockEnvVars,
 } from '../_test_utils';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utils';
 import { makeServer } from './server';
 
+const publicEndpointAddress = 'ping.example.com';
+const envVars = { PUBLIC_ENDPOINT_ADDRESS: publicEndpointAddress };
+const mockEnvVars = configureMockEnvVars(envVars);
+
 let serverInstance: FastifyInstance;
 beforeAll(async () => {
   serverInstance = await makeServer();
 });
 
-const endpointAddress = 'ping.example.com:8000';
 const validRequestOptions: HTTPInjectOptions = {
   headers: {
     'Content-Type': 'application/vnd.relaynet.parcel',
-    Host: endpointAddress,
+    Host: `pohttp-${publicEndpointAddress}`,
     'X-Relaynet-Gateway': 'https://gateway.example',
   },
   method: 'POST',
@@ -39,7 +39,7 @@ beforeAll(async () => {
   );
 
   const payload = await generateStubPingParcel(
-    `https://${endpointAddress}/`,
+    `https://${publicEndpointAddress}`,
     stubRecipientCertificate,
   );
   // tslint:disable-next-line:no-object-mutation
@@ -60,13 +60,6 @@ beforeEach(() => {
   pongQueueIsReadySpy.mockReset();
 });
 
-beforeEach(() => {
-  const mockGetEnvVar = getMockContext(envVar.get);
-  if (mockGetEnvVar) {
-    // @ts-ignore
-    mockGetEnvVar.mockReset();
-  }
-});
 afterAll(() => {
   jest.restoreAllMocks();
 });
@@ -181,7 +174,7 @@ describe('receiveParcel', () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const payload = await generateStubPingParcel(
-      `https://${endpointAddress}/`,
+      `https://${publicEndpointAddress}/`,
       stubRecipientCertificate,
       undefined,
       { creationDate: yesterday },
@@ -252,9 +245,9 @@ describe('receiveParcel', () => {
   });
 
   test('Non-TLS URLs should be allowed when POHTTP_TLS_REQUIRED=false', async () => {
-    mockEnvVars({ POHTTP_TLS_REQUIRED: 'false' });
+    mockEnvVars({ ...envVars, POHTTP_TLS_REQUIRED: 'false' });
     const stubPayload = await generateStubPingParcel(
-      `http://${endpointAddress}/`,
+      `http://${publicEndpointAddress}`,
       stubRecipientCertificate,
     );
 
