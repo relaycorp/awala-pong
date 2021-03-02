@@ -16,6 +16,7 @@ services:
     environment:
       REDIS_HOST: redis
       POHTTP_TLS_REQUIRED: 'false'
+      PUBLIC_ENDPOINT_ADDRESS: ${PUBLIC_ENDPOINT_ADDRESS}
 
   queue:
     build:
