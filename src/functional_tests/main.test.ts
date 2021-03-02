@@ -78,7 +78,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
 
   test('Ping-pong without channel session protocol', async () => {
     const pingParcel = bufferToArray(
-      await generateStubPingParcel(`https://${PONG_PUBLIC_ADDRESS}`, pongEndpointCertificate, {
+      await generateStubPingParcel(`http://${PONG_PUBLIC_ADDRESS}`, pongEndpointCertificate, {
         certificate: pingSenderCertificate,
         privateKey: pingSenderPrivateKey,
       }),
@@ -138,7 +138,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       initialDhCertificate,
     );
     const parcel = new Parcel(
-      PONG_SERVICE_URL,
+      `https://${PONG_PUBLIC_ADDRESS}`,
       pingSenderCertificate,
       Buffer.from(envelopedData.serialize()),
     );
