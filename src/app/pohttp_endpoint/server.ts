@@ -1,7 +1,7 @@
 import { get as getEnvVar } from 'env-var';
 import { FastifyInstance } from 'fastify';
 
-import routes from './routes';
+import parcelDeliveryRoutes from './parcelDelivery';
 
 // I wish I could just do `import * as fastify from 'fastify'` or `import fastify from 'fastify'`
 // but neither worked regardless of the values set in esModuleInterop/allowSyntheticDefaultImports
@@ -28,7 +28,7 @@ export async function makeServer(): Promise<FastifyInstance> {
   server.register(fastifyUrlData);
 
   const publicEndpointAddress = getEnvVar('PUBLIC_ENDPOINT_ADDRESS').required().asString();
-  server.register(routes, { publicEndpointAddress } as any);
+  server.register(parcelDeliveryRoutes, { publicEndpointAddress } as any);
 
   server.addContentTypeParser(
     'application/vnd.relaynet.parcel',
