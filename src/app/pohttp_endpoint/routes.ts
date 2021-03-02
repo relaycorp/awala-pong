@@ -1,15 +1,16 @@
 import { Parcel } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { get as getEnvVar } from 'env-var';
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyInstance, FastifyReply } from 'fastify';
 
 import { initQueue } from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utils';
+import RouteOptions from './RouteOptions';
 
 export default async function registerRoutes(
   fastify: FastifyInstance,
-  _options: any,
+  options: RouteOptions,
 ): Promise<void> {
   const pongQueue = initQueue();
 
@@ -71,7 +72,12 @@ export default async function registerRoutes(
       } catch (_) {
         return reply.code(403).send({ message: 'Parcel is well-formed but invalid' });
       }
-      if (!isParcelRecipientValid(parcel.recipientAddress, request, requireTlsUrls)) {
+      const isRecipientValid = isParcelRecipientValid(
+        parcel.recipientAddress,
+        options.publicEndpointAddress,
+        requireTlsUrls,
+      );
+      if (!isRecipientValid) {
         return reply.code(403).send({ message: 'Invalid parcel recipient' });
       }
 
@@ -88,7 +94,6 @@ export default async function registerRoutes(
 }
 
 function isValidGatewayAddress(gatewayAddress: string, requireTlsUrls: boolean): boolean {
-  // tslint:disable-next-line:no-let
   let urlParsed;
   try {
     urlParsed = new URL(gatewayAddress);
@@ -100,12 +105,11 @@ function isValidGatewayAddress(gatewayAddress: string, requireTlsUrls: boolean):
 
 function isParcelRecipientValid(
   parcelRecipient: string,
-  request: FastifyRequest<any, any, any, any, any>,
+  publicEndpointAddress: string,
   requireTlsUrls: boolean,
 ): boolean {
-  const urlData = request.urlData();
-  if (parcelRecipient === `https://${request.headers.host}${urlData.path}`) {
+  if (parcelRecipient === `https://${publicEndpointAddress}`) {
     return true;
   }
-  return !requireTlsUrls && parcelRecipient === `http://${request.headers.host}${urlData.path}`;
+  return !requireTlsUrls && parcelRecipient === `http://${publicEndpointAddress}`;
 }
