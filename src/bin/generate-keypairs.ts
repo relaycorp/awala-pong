@@ -3,7 +3,6 @@
 // tslint:disable-next-line:no-var-requires no-console
 require('make-promises-safe');
 
-import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   generateECDHKeyPair,
   generateRSAKeyPair,
@@ -12,6 +11,7 @@ import {
 } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { get as getEnvVar } from 'env-var';
+import { initVaultKeyStore } from '../app/backingServices/vault';
 
 import { base64Encode } from '../app/utils';
 
@@ -23,10 +23,7 @@ const PONG_ENDPOINT_SESSION_KEY_ID_BASE64 = getEnvVar('ENDPOINT_SESSION_KEY_ID')
   .required()
   .asString();
 
-const vaultUrl = getEnvVar('VAULT_URL').required().asString();
-const vaultToken = getEnvVar('VAULT_TOKEN').required().asString();
-const vaultKvPrefix = getEnvVar('VAULT_KV_PREFIX').required().asString();
-const sessionStore = new VaultPrivateKeyStore(vaultUrl, vaultToken, vaultKvPrefix);
+const sessionStore = initVaultKeyStore();
 
 async function main(): Promise<void> {
   const endpointKeyId = Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64');
