@@ -5,14 +5,10 @@ import { FastifyInstance, HTTPInjectOptions } from 'fastify';
 
 import { configureMockEnvVars, mockSpy } from '../_test_utils';
 import * as vault from '../backingServices/vault';
+import { ENDPOINT_KEY_ID_BASE64, ENV_VARS } from './_test_utils';
 import { makeServer } from './server';
 
-const ENDPOINT_KEY_ID_BASE64 = 'MTM1NzkK';
-configureMockEnvVars({
-  ENDPOINT_KEY_ID: ENDPOINT_KEY_ID_BASE64,
-  PUBLIC_ENDPOINT_ADDRESS: 'ping.example.com',
-  REDIS_HOST: 'redis.com',
-});
+configureMockEnvVars(ENV_VARS);
 
 const mockPrivateKeyStore = new MockPrivateKeyStore();
 mockSpy(jest.spyOn(vault, 'initVaultKeyStore'), () => mockPrivateKeyStore);

@@ -37,6 +37,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "..fullname" . }}
+            - configMapRef:
+                name: {{ include "..fullname" . }}-generated
+            - secretRef:
+                name: {{ include "..fullname" . }}-vault
           ports:
             - name: http
               containerPort: 8080
