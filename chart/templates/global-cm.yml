@@ -6,3 +6,5 @@ data:
   REDIS_HOST: {{ .Values.redis.host }}
   REDIS_PORT: '{{ .Values.redis.port }}'
   POHTTP_TLS_REQUIRED: '{{ .Values.pohttp_tls_required }}'
+  VAULT_URL: "http://{{ .Values.vault.host }}:{{ .Values.vault.port }}"
+  VAULT_KV_PREFIX: {{ .Values.vault.session_keys_mount_path | quote }}

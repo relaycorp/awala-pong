@@ -15,8 +15,15 @@ services:
       - redis
     environment:
       REDIS_HOST: redis
+
       POHTTP_TLS_REQUIRED: 'false'
+
       PUBLIC_ENDPOINT_ADDRESS: ${PUBLIC_ENDPOINT_ADDRESS}
+      ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}
+
+      VAULT_URL: ${VAULT_URL}
+      VAULT_TOKEN: ${VAULT_TOKEN}
+      VAULT_KV_PREFIX: ${VAULT_KV_PREFIX}
 
   queue:
     build:
@@ -35,9 +42,9 @@ services:
 
       REDIS_HOST: redis
 
-      VAULT_URL: http://vault:8200
-      VAULT_TOKEN: root
-      VAULT_KV_PREFIX: 'pong-keys'
+      VAULT_URL: ${VAULT_URL}
+      VAULT_TOKEN: ${VAULT_TOKEN}
+      VAULT_KV_PREFIX: ${VAULT_KV_PREFIX}
 
       ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}
       ENDPOINT_SESSION_KEY_ID: ${ENDPOINT_SESSION_KEY_ID}

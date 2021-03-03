@@ -74,7 +74,10 @@ describe('makeServer', () => {
   test('Routes should be loaded', async () => {
     await server.makeServer();
 
-    expect(mockFastify.register).toBeCalledWith(require('./routes').default, {
+    expect(mockFastify.register).toBeCalledWith(require('./parcelDelivery').default, {
+      publicEndpointAddress,
+    });
+    expect(mockFastify.register).toBeCalledWith(require('./certificates').default, {
       publicEndpointAddress,
     });
   });
