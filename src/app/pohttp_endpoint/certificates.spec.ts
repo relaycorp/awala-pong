@@ -8,6 +8,8 @@ import * as vault from '../backingServices/vault';
 import { ENDPOINT_KEY_ID_BASE64, ENV_VARS } from './_test_utils';
 import { makeServer } from './server';
 
+jest.mock('../background_queue/queue');
+
 configureMockEnvVars(ENV_VARS);
 
 const mockPrivateKeyStore = new MockPrivateKeyStore();
