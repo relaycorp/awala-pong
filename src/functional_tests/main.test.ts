@@ -162,9 +162,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       bufferToArray(pongParcel.payloadSerialized as Buffer),
     );
     const pongServiceMessageSerialized = await pongParcelPayload.decrypt(recipientPrivateKey);
-    const pongServiceMessage = ServiceMessage.deserialize(
-      Buffer.from(pongServiceMessageSerialized),
-    );
+    const pongServiceMessage = ServiceMessage.deserialize(pongServiceMessageSerialized);
     expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.relaynet.ping-v1.pong');
     expect(pongServiceMessage).toHaveProperty('value.byteLength', 36);
   }
