@@ -34,6 +34,7 @@ Check out [`relaycorp/relaynet-pong-chart`](https://github.com/relaycorp/relayne
 | `vault.host` | string | `vault` | The Vault host |
 | `vault.port` | number | `8200` | The Vault port |
 | `vault.session_keys_mount_path` | string | `pong-keys` | The mount point for the K/V engine v2 to use |
+| `vault.enable_secret` | boolean | `false` | Whether to enable the Vault K/V engine after installing the chart |
 | `vault.token` (required) | string | | The Vault authentication token |
 | `http_request_id_header` | string | `X-Request-Id` | The HTTP request id header to be passed to the PoHTTP endpoint server |
 | `public_endpoint_address` | string | | The public endpoint address (e.g., `endpoint.com`) |
