@@ -205,7 +205,7 @@ describe('PingProcessor', () => {
       test('Original ping id should be used as pong payload', () => {
         expect(ServiceMessage.prototype.serialize).toBeCalledTimes(1);
         const serviceMessage = getMockContext(ServiceMessage.prototype.serialize).instances[0];
-        expectBuffersToEqual(serviceMessage.value, Buffer.from(pingId));
+        expectBuffersToEqual(serviceMessage.content, Buffer.from(pingId));
       });
 
       test('Parcel payload should be encrypted with recipient certificate', () => {

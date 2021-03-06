@@ -88,7 +88,7 @@ export class PingProcessor {
 
     let ping: Ping;
     try {
-      ping = deserializePing(serviceMessage.value);
+      ping = deserializePing(serviceMessage.content);
     } catch (error) {
       logger.info({ err: error, jobId }, 'Invalid ping message');
       return;
