@@ -70,7 +70,6 @@ export class PingProcessor {
     pingParcel: Parcel,
     jobId: string | number,
   ): Promise<{ readonly ping: Ping; readonly originatorKey?: OriginatorSessionKey } | undefined> {
-    // tslint:disable-next-line:no-let
     let decryptionResult;
     try {
       decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore);
@@ -87,7 +86,6 @@ export class PingProcessor {
       return;
     }
 
-    // tslint:disable-next-line:no-let
     let ping: Ping;
     try {
       ping = deserializePing(serviceMessage.value);
@@ -99,14 +97,16 @@ export class PingProcessor {
   }
 
   protected async generatePongParcelPayload(
-    pingId: Buffer,
+    pingId: string,
     recipientCertificateOrSessionKey: Certificate | OriginatorSessionKey,
     recipientCertificate: Certificate,
   ): Promise<Buffer> {
-    const pongMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.pong', pingId);
+    const pongMessage = new ServiceMessage(
+      'application/vnd.relaynet.ping-v1.pong',
+      Buffer.from(pingId),
+    );
     const pongMessageSerialized = pongMessage.serialize();
 
-    // tslint:disable-next-line:no-let
     let pongParcelPayload;
     if (recipientCertificateOrSessionKey instanceof Certificate) {
       pongParcelPayload = await SessionlessEnvelopedData.encrypt(

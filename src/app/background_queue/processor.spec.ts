@@ -35,7 +35,7 @@ describe('PingProcessor', () => {
       mockPrivateKeyStore = new MockPrivateKeyStore();
     });
 
-    const pingId = Buffer.from('a'.repeat(36));
+    const pingId = 'the id';
 
     let recipientKeyPair: CryptoKeyPair;
     let recipientCertificate: Certificate;
@@ -205,7 +205,7 @@ describe('PingProcessor', () => {
       test('Original ping id should be used as pong payload', () => {
         expect(ServiceMessage.prototype.serialize).toBeCalledTimes(1);
         const serviceMessage = getMockContext(ServiceMessage.prototype.serialize).instances[0];
-        expectBuffersToEqual(serviceMessage.value, pingId);
+        expectBuffersToEqual(serviceMessage.value, Buffer.from(pingId));
       });
 
       test('Parcel payload should be encrypted with recipient certificate', () => {
@@ -291,7 +291,7 @@ describe('PingProcessor', () => {
         const encryptCallArgs = encryptSpy.mock.calls[0];
         const expectedPongMessage = new ServiceMessage(
           'application/vnd.relaynet.ping-v1.pong',
-          pingId,
+          Buffer.from(pingId),
         );
         expectBuffersToEqual(encryptCallArgs[0], expectedPongMessage.serialize());
 

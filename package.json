@@ -70,7 +70,6 @@
     "@relaycorp/keystore-vault": "^1.2.1",
     "@relaycorp/relaynet-core": "^1.42.6",
     "@relaycorp/relaynet-pohttp": "^1.6.0",
-    "binary-parser": "^1.7.0",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^3.20.1",
     "env-var": "^7.0.0",
