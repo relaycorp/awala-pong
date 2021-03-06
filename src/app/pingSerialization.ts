@@ -1,48 +1,58 @@
 import { Certificate, RelaynetError } from '@relaycorp/relaynet-core';
-import { Parser } from 'binary-parser';
 import bufferToArray from 'buffer-to-arraybuffer';
 import uuid4 from 'uuid4';
-
-const pingParser = new Parser()
-  .endianess('little')
-  .buffer('id', { length: 36 })
-  .uint16('pdaLength')
-  .buffer('pda', { length: 'pdaLength' });
 
 export class PingSerializationError extends RelaynetError {}
 
 export interface Ping {
-  readonly id: Buffer;
+  readonly id: string;
   readonly pda: Certificate;
 }
 
-export function serializePing(pda: Certificate, id?: Buffer): Buffer {
-  if (id !== undefined && id.byteLength !== 36) {
-    throw new PingSerializationError(`Ping id should span 36 octets (got ${id.byteLength})`);
+export function serializePing(pda: Certificate, id?: string): Buffer {
+  if (id?.length === 0) {
+    throw new PingSerializationError('Ping id should not be empty');
   }
 
-  const finalId = id ?? Buffer.from(uuid4());
-  const idSerialized = Buffer.from(finalId);
-  const pdaSerialized = Buffer.from(pda.serialize());
-  const pdaLengthPrefix = Buffer.allocUnsafe(2);
-  pdaLengthPrefix.writeUInt16LE(pdaSerialized.byteLength, 0);
-  return Buffer.concat([idSerialized, pdaLengthPrefix, pdaSerialized]);
+  const pdaSerialized = Buffer.from(pda.serialize()).toString('base64');
+  const pingSerialized = {
+    id: id ?? uuid4(),
+    pda: pdaSerialized,
+  };
+  return Buffer.from(JSON.stringify(pingSerialized));
 }
 
 export function deserializePing(pingSerialized: Buffer): Ping {
-  // tslint:disable-next-line:no-let
-  let pingFields: { readonly id: Buffer; readonly pda: Buffer };
+  let pingJson: any;
   try {
-    pingFields = pingParser.parse(pingSerialized);
-  } catch (error) {
-    throw new PingSerializationError(error, 'Invalid ping serialization');
+    pingJson = JSON.parse(pingSerialized.toString());
+  } catch (_err) {
+    throw new PingSerializationError('Ping message is not JSON-serialized');
   }
-  // tslint:disable-next-line:no-let
+
+  const pingId = pingJson.id;
+  if (typeof pingId !== 'string') {
+    throw new PingSerializationError('Ping id is missing or it is not a string');
+  }
+
+  const pdaBase64 = pingJson.pda;
+  if (typeof pdaBase64 !== 'string') {
+    throw new PingSerializationError('PDA is missing');
+  }
+
+  const pdaDer = Buffer.from(pdaBase64, 'base64');
+  if (pdaDer.byteLength === 0) {
+    throw new PingSerializationError('PDA is not base64-encoded');
+  }
+
   let pda: Certificate;
   try {
-    pda = Certificate.deserialize(bufferToArray(pingFields.pda));
+    pda = Certificate.deserialize(bufferToArray(pdaDer));
   } catch (error) {
-    throw new PingSerializationError(error, 'Invalid PDA serialization');
+    throw new PingSerializationError(
+      error,
+      'PDA is base64-encoded but not a valid DER serialization of an X.509 certificate',
+    );
   }
-  return { id: pingFields.id, pda };
+  return { id: pingId, pda };
 }
