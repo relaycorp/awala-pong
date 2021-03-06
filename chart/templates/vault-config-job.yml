@@ -1,4 +1,4 @@
-{{- if .Values.tags.dev -}}
+{{- if .Values.vault.enable_secret -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
