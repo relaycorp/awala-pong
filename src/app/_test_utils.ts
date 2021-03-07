@@ -96,6 +96,7 @@ export function expectBuffersToEqual(
 
 export async function generatePingParcel(
   recipientAddress: string,
+  recipientIdCertificate: Certificate,
   keyPairSet: NodeKeyPairSet,
   certificatePath: PDACertPath,
   creationDate: Date | null = null,
@@ -104,7 +105,10 @@ export async function generatePingParcel(
     keyPairSet.privateEndpoint.publicKey,
     keyPairSet.privateEndpoint.privateKey,
   );
-  const parcelPayloadSerialized = await generatePingParcelPayload(certificatePath);
+  const parcelPayloadSerialized = await generatePingParcelPayload(
+    certificatePath,
+    recipientIdCertificate,
+  );
   const parcel = new Parcel(
     recipientAddress,
     parcelSenderCertificate,
@@ -127,11 +131,14 @@ export function generatePingServiceMessage(
   return serviceMessage.serialize();
 }
 
-async function generatePingParcelPayload(certificatePath: PDACertPath): Promise<Buffer> {
+async function generatePingParcelPayload(
+  certificatePath: PDACertPath,
+  recipientIdCertificate: Certificate,
+): Promise<Buffer> {
   const serviceMessageSerialized = generatePingServiceMessage(certificatePath);
   const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
     serviceMessageSerialized,
-    certificatePath.privateEndpoint,
+    recipientIdCertificate,
   );
   return Buffer.from(serviceMessageEncrypted.serialize());
 }

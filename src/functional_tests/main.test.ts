@@ -76,7 +76,12 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
 
   test('Ping-pong without channel session protocol', async () => {
     const pingParcel = bufferToArray(
-      await generatePingParcel(`http://${PONG_PUBLIC_ADDRESS}`, keyPairSet, certificatePath),
+      await generatePingParcel(
+        `http://${PONG_PUBLIC_ADDRESS}`,
+        pongEndpointCertificate,
+        keyPairSet,
+        certificatePath,
+      ),
     );
 
     await deliverParcel(PONG_SERVICE_URL, pingParcel, {

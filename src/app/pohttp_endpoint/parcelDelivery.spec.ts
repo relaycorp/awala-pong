@@ -38,6 +38,7 @@ beforeAll(async () => {
 
   const payload = await generatePingParcel(
     `https://${PUBLIC_ENDPOINT_ADDRESS}`,
+    certificatePath.privateEndpoint,
     keyPairSet,
     certificatePath,
   );
@@ -174,6 +175,7 @@ describe('receiveParcel', () => {
     yesterday.setDate(yesterday.getDate() - 1);
     const payload = await generatePingParcel(
       `https://${PUBLIC_ENDPOINT_ADDRESS}/`,
+      certificatePath.privateEndpoint,
       keyPairSet,
       certificatePath,
       yesterday,
@@ -194,6 +196,7 @@ describe('receiveParcel', () => {
   test('Parcel should be refused if target is not current endpoint', async () => {
     const payload = await generatePingParcel(
       'https://invalid.com/endpoint',
+      certificatePath.privateEndpoint,
       keyPairSet,
       certificatePath,
     );
@@ -248,6 +251,7 @@ describe('receiveParcel', () => {
     mockEnvVars({ ...ENV_VARS, POHTTP_TLS_REQUIRED: 'false' });
     const stubPayload = await generatePingParcel(
       `http://${PUBLIC_ENDPOINT_ADDRESS}`,
+      certificatePath.privateEndpoint,
       keyPairSet,
       certificatePath,
     );
