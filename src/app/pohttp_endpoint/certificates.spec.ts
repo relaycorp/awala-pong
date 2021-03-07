@@ -17,7 +17,7 @@ mockSpy(jest.spyOn(vault, 'initVaultKeyStore'), () => mockPrivateKeyStore);
 
 let identityCertificate: Certificate;
 beforeEach(async () => {
-  const keyPairSet = await generateNodeKeyPairSet()
+  const keyPairSet = await generateNodeKeyPairSet();
   const certPath = await generatePDACertificationPath(keyPairSet);
   identityCertificate = certPath.pdaGrantee;
   const endpointKeyId = Buffer.from(ENDPOINT_KEY_ID_BASE64, 'base64');
