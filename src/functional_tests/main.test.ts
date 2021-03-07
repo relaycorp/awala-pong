@@ -164,7 +164,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     const pongServiceMessageSerialized = await pongParcelPayload.decrypt(recipientPrivateKey);
     const pongServiceMessage = ServiceMessage.deserialize(pongServiceMessageSerialized);
     expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.relaynet.ping-v1.pong');
-    expect(pongServiceMessage).toHaveProperty('value.byteLength', 36);
+    expect(pongServiceMessage).toHaveProperty('content.byteLength', 36);
   }
 
   function configureMockGatewayServer(): void {
