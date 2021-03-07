@@ -1,6 +1,10 @@
-import { Certificate, generateRSAKeyPair } from '@relaycorp/relaynet-core';
+import { Certificate } from '@relaycorp/relaynet-core';
+import {
+  generateNodeKeyPairSet,
+  generatePDACertificationPath,
+  PDACertPath,
+} from '@relaycorp/relaynet-testing';
 
-import { generateStubNodeCertificate } from './_test_utils';
 import { deserializePing, PingSerializationError, serializePing } from './pingSerialization';
 
 const mockStubUuid4 = '56e95d8a-6be2-4020-bb36-5dd0da36c181';
@@ -11,27 +15,24 @@ jest.mock('uuid4', () => {
   };
 });
 
-let pda: Certificate;
-let pdaSerializedB64: string;
+let peerCertificatePath: PDACertPath;
 beforeAll(async () => {
-  const keyPair = await generateRSAKeyPair();
-  pda = await generateStubNodeCertificate(keyPair.publicKey, keyPair.privateKey);
-
-  pdaSerializedB64 = Buffer.from(pda.serialize()).toString('base64');
+  const nodeKeyPairSet = await generateNodeKeyPairSet();
+  peerCertificatePath = await generatePDACertificationPath(nodeKeyPairSet);
 });
 
 beforeEach(jest.restoreAllMocks);
 
 describe('serializePing', () => {
   test('A UUID4 should be used as id if none is specified', () => {
-    const pingSerialized = serializePing(pda);
+    const pingSerialized = serializePing(peerCertificatePath.pdaGrantee, []);
 
     const pingFields = jsonParse(pingSerialized);
     expect(pingFields.id).toEqual(mockStubUuid4);
   });
 
   test('An empty id should be refused', () => {
-    expect(() => serializePing(pda, '')).toThrowWithMessage(
+    expect(() => serializePing(peerCertificatePath.pdaGrantee, [], '')).toThrowWithMessage(
       PingSerializationError,
       'Ping id should not be empty',
     );
@@ -39,17 +40,28 @@ describe('serializePing', () => {
 
   test('Any ping id should be honored', () => {
     const id = 'the id';
-    const pingSerialized = serializePing(pda, id);
+    const pingSerialized = serializePing(peerCertificatePath.pdaGrantee, [], id);
 
     const pingFields = jsonParse(pingSerialized);
     expect(pingFields.id).toEqual(id);
   });
 
-  test('Specified certificate should be included', () => {
-    const pingSerialized = serializePing(pda);
+  test('Specified PDA should be included', () => {
+    const pingSerialized = serializePing(peerCertificatePath.pdaGrantee, []);
 
     const pingFields = jsonParse(pingSerialized);
-    expect(pdaSerializedB64).toEqual(pingFields.pda);
+    expect(base64EncodeDERCertificate(peerCertificatePath.pdaGrantee)).toEqual(pingFields.pda);
+  });
+
+  test('Specified PDA chain should be included', () => {
+    const pdaChain: readonly Certificate[] = [
+      peerCertificatePath.privateEndpoint,
+      peerCertificatePath.privateGateway,
+    ];
+    const pingSerialized = serializePing(peerCertificatePath.pdaGrantee, pdaChain);
+
+    const pingFields = jsonParse(pingSerialized);
+    expect(pdaChain.map(base64EncodeDERCertificate)).toEqual(pingFields.pdaChain);
   });
 
   function jsonParse(serialization: Buffer): any {
@@ -68,7 +80,9 @@ describe('deserializePing', () => {
   });
 
   test('Ping id should be required', () => {
-    const invalidPing = Buffer.from(JSON.stringify({ pda: pdaSerializedB64 }));
+    const invalidPing = Buffer.from(
+      JSON.stringify({ pda: base64EncodeDERCertificate(peerCertificatePath.pdaGrantee) }),
+    );
 
     expect(() => deserializePing(invalidPing)).toThrowWithMessage(
       PingSerializationError,
@@ -90,7 +104,7 @@ describe('deserializePing', () => {
 
     expect(() => deserializePing(invalidPing)).toThrowWithMessage(
       PingSerializationError,
-      'PDA is missing',
+      'Invalid PDA: Certificate is missing',
     );
   });
 
@@ -99,7 +113,7 @@ describe('deserializePing', () => {
 
     expect(() => deserializePing(invalidPing)).toThrowWithMessage(
       PingSerializationError,
-      'PDA is not base64-encoded',
+      'Invalid PDA: Certificate is not base64-encoded',
     );
   });
 
@@ -110,16 +124,73 @@ describe('deserializePing', () => {
 
     expect(() => deserializePing(invalidPing)).toThrowWithMessage(
       PingSerializationError,
-      /^PDA is base64-encoded but not a valid DER serialization of an X.509 certificate: /,
+      /^Invalid PDA: Certificate is base64-encoded but not DER-encoded: /,
+    );
+  });
+
+  test('PDA chain should be an array', () => {
+    const invalidPing = Buffer.from(
+      JSON.stringify({
+        id: mockStubUuid4,
+        pda: base64EncodeDERCertificate(peerCertificatePath.pdaGrantee),
+        pdaChain: 'this is not an array',
+      }),
+    );
+
+    expect(() => deserializePing(invalidPing)).toThrowWithMessage(
+      PingSerializationError,
+      'PDA chain is not an array',
+    );
+  });
+
+  test('Non-base64-encoded certificate in PDA chain should be refused', () => {
+    const invalidPing = Buffer.from(
+      JSON.stringify({
+        id: mockStubUuid4,
+        pda: base64EncodeDERCertificate(peerCertificatePath.pdaGrantee),
+        pdaChain: ['£'],
+      }),
+    );
+
+    expect(() => deserializePing(invalidPing)).toThrowWithMessage(
+      PingSerializationError,
+      'PDA chain contains invalid item: Certificate is not base64-encoded',
+    );
+  });
+
+  test('Malformed certificate in PDA chain should be refused', () => {
+    const invalidPing = Buffer.from(
+      JSON.stringify({
+        id: mockStubUuid4,
+        pda: base64EncodeDERCertificate(peerCertificatePath.pdaGrantee),
+        pdaChain: [Buffer.from('malformed').toString('base64')],
+      }),
+    );
+
+    expect(() => deserializePing(invalidPing)).toThrowWithMessage(
+      PingSerializationError,
+      /^PDA chain contains invalid item: Certificate is base64-encoded but not DER-encoded: /,
     );
   });
 
   test('Valid pings should be output', () => {
-    const pingSerialized = serializePing(pda);
+    const pdaChain: readonly Certificate[] = [
+      peerCertificatePath.privateEndpoint,
+      peerCertificatePath.privateGateway,
+    ];
+    const pingSerialized = serializePing(peerCertificatePath.pdaGrantee, pdaChain);
 
     const pingDeserialized = deserializePing(pingSerialized);
 
     expect(pingDeserialized.id.toString()).toEqual(mockStubUuid4);
-    expect(pingDeserialized.pda.isEqual(pda)).toBeTrue();
+    expect(pingDeserialized.pda.isEqual(peerCertificatePath.pdaGrantee)).toBeTrue();
+    expect(pingDeserialized.pdaChain).toHaveLength(2);
+    pingDeserialized.pdaChain.forEach((certificate, index) => {
+      expect(certificate.isEqual(pdaChain[index])).toBeTrue();
+    });
   });
 });
+
+function base64EncodeDERCertificate(certificate: Certificate): string {
+  return Buffer.from(certificate.serialize()).toString('base64');
+}

@@ -60,7 +60,6 @@ export default async function registerRoutes(
           .send({ message: 'X-Relaynet-Gateway should be set to a valid PoHTTP endpoint' });
       }
 
-      // tslint:disable-next-line:no-let
       let parcel;
       try {
         parcel = await Parcel.deserialize(bufferToArray(request.body));
