@@ -1,5 +1,5 @@
 import { Certificate, MockPrivateKeyStore } from '@relaycorp/relaynet-core';
-import { generateCertificationPath } from '@relaycorp/relaynet-testing';
+import { generateNodeKeyPairSet, generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { FastifyInstance, HTTPInjectOptions } from 'fastify';
 
@@ -17,8 +17,9 @@ mockSpy(jest.spyOn(vault, 'initVaultKeyStore'), () => mockPrivateKeyStore);
 
 let identityCertificate: Certificate;
 beforeEach(async () => {
-  const certPath = await generateCertificationPath();
-  identityCertificate = certPath.pdaGrantee.certificate;
+  const keyPairSet = await generateNodeKeyPairSet()
+  const certPath = await generatePDACertificationPath(keyPairSet);
+  identityCertificate = certPath.pdaGrantee;
   const endpointKeyId = Buffer.from(ENDPOINT_KEY_ID_BASE64, 'base64');
   // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
   // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
@@ -26,7 +27,7 @@ beforeEach(async () => {
   (identityCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
     endpointKeyId,
   );
-  await mockPrivateKeyStore.registerNodeKey(certPath.pdaGrantee.privateKey, identityCertificate);
+  await mockPrivateKeyStore.registerNodeKey(keyPairSet.pdaGrantee.privateKey, identityCertificate);
 });
 
 let serverInstance: FastifyInstance;
