@@ -1,11 +1,11 @@
 import {
   Certificate,
-  generateRSAKeyPair,
   issueGatewayCertificate,
   Parcel,
   ServiceMessage,
   SessionlessEnvelopedData,
 } from '@relaycorp/relaynet-core';
+import { NodeKeyPairSet, PDACertPath } from '@relaycorp/relaynet-testing';
 import envVar from 'env-var';
 
 import { serializePing } from './pingSerialization';
@@ -94,47 +94,44 @@ export function expectBuffersToEqual(
   }
 }
 
-export async function generateStubPingParcel(
+export async function generatePingParcel(
   recipientAddress: string,
-  recipientCertificate: Certificate,
-  sender?: { readonly privateKey: CryptoKey; readonly certificate: Certificate },
-  options?: Partial<{ readonly creationDate: Date }>,
+  keyPairSet: NodeKeyPairSet,
+  certificatePath: PDACertPath,
+  creationDate: Date | null = null,
 ): Promise<Buffer> {
-  // tslint:disable-next-line:no-let
-  let senderPrivateKey;
-  // tslint:disable-next-line:no-let
-  let senderCertificate;
-  if (sender) {
-    senderPrivateKey = sender.privateKey;
-    senderCertificate = sender.certificate;
-  } else {
-    const senderKeyPair = await generateRSAKeyPair();
-    senderPrivateKey = senderKeyPair.privateKey;
-    senderCertificate = await generateStubNodeCertificate(
-      senderKeyPair.publicKey,
-      senderPrivateKey,
-    );
-  }
-
-  const pda = await generateStubNodeCertificate(
-    await recipientCertificate.getPublicKey(),
-    senderPrivateKey,
-    { issuerCertificate: senderCertificate },
+  const parcelSenderCertificate = await generateStubNodeCertificate(
+    keyPairSet.privateEndpoint.publicKey,
+    keyPairSet.privateEndpoint.privateKey,
   );
-  const serviceMessage = new ServiceMessage(
-    'application/vnd.relaynet.ping-v1.ping',
-    serializePing(pda),
-  );
-  const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
-    serviceMessage.serialize(),
-    recipientCertificate,
-  );
+  const parcelPayloadSerialized = await generatePingParcelPayload(certificatePath);
   const parcel = new Parcel(
     recipientAddress,
-    senderCertificate,
-    Buffer.from(serviceMessageEncrypted.serialize()),
-    options || {},
+    parcelSenderCertificate,
+    parcelPayloadSerialized,
+    creationDate ? { creationDate } : {},
   );
+  return Buffer.from(await parcel.serialize(keyPairSet.privateEndpoint.privateKey));
+}
 
-  return Buffer.from(await parcel.serialize(senderPrivateKey));
+export function generatePingServiceMessage(
+  certificatePath: PDACertPath,
+  pingId?: string,
+): ArrayBuffer {
+  const pingMessage = serializePing(
+    certificatePath.pdaGrantee,
+    [certificatePath.privateEndpoint, certificatePath.privateGateway],
+    pingId,
+  );
+  const serviceMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.ping', pingMessage);
+  return serviceMessage.serialize();
+}
+
+async function generatePingParcelPayload(certificatePath: PDACertPath): Promise<Buffer> {
+  const serviceMessageSerialized = generatePingServiceMessage(certificatePath);
+  const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
+    serviceMessageSerialized,
+    certificatePath.privateEndpoint,
+  );
+  return Buffer.from(serviceMessageEncrypted.serialize());
 }

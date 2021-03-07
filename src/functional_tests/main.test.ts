@@ -3,7 +3,6 @@ import {
   Certificate,
   EnvelopedData,
   generateECDHKeyPair,
-  generateRSAKeyPair,
   issueEndpointCertificate,
   issueInitialDHKeyCertificate,
   Parcel,
@@ -11,12 +10,18 @@ import {
   SessionEnvelopedData,
 } from '@relaycorp/relaynet-core';
 import { deliverParcel } from '@relaycorp/relaynet-pohttp';
+import {
+  generateNodeKeyPairSet,
+  generatePDACertificationPath,
+  NodeKeyPairSet,
+  PDACertPath,
+} from '@relaycorp/relaynet-testing';
 import axios from 'axios';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { get as getEnvVar } from 'env-var';
 import { logDiffOn501, Route, Stubborn } from 'stubborn-ws';
 
-import { generateStubNodeCertificate, generateStubPingParcel } from '../app/_test_utils';
+import { generatePingParcel, generateStubNodeCertificate } from '../app/_test_utils';
 import { serializePing } from '../app/pingSerialization';
 
 const GATEWAY_PORT = 4000;
@@ -48,16 +53,16 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
 
   configureVault();
 
-  let pongEndpointPrivateKey: CryptoKey;
+  let keyPairSet: NodeKeyPairSet;
+  let certificatePath: PDACertPath;
   let pongEndpointCertificate: Certificate;
-  let pingSenderPrivateKey: CryptoKey;
-  let pingSenderCertificate: Certificate;
   beforeAll(async () => {
-    const pongEndpointKeyPair = await generateRSAKeyPair();
-    pongEndpointPrivateKey = pongEndpointKeyPair.privateKey;
+    keyPairSet = await generateNodeKeyPairSet();
+    certificatePath = await generatePDACertificationPath(keyPairSet);
+
     pongEndpointCertificate = await issueEndpointCertificate({
-      issuerPrivateKey: pongEndpointPrivateKey,
-      subjectPublicKey: pongEndpointKeyPair.publicKey,
+      issuerPrivateKey: keyPairSet.pdaGrantee.privateKey,
+      subjectPublicKey: keyPairSet.pdaGrantee.publicKey,
       validityEndDate: TOMORROW,
     });
     // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
@@ -66,22 +71,12 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     (pongEndpointCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
       Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64'),
     );
-    await privateKeyStore.saveNodeKey(pongEndpointPrivateKey, pongEndpointCertificate);
-
-    const pingSenderKeyPair = await generateRSAKeyPair();
-    pingSenderPrivateKey = pingSenderKeyPair.privateKey;
-    pingSenderCertificate = await generateStubNodeCertificate(
-      pingSenderKeyPair.publicKey,
-      pingSenderPrivateKey,
-    );
+    await privateKeyStore.saveNodeKey(keyPairSet.pdaGrantee.privateKey, pongEndpointCertificate);
   });
 
   test('Ping-pong without channel session protocol', async () => {
     const pingParcel = bufferToArray(
-      await generateStubPingParcel(`http://${PONG_PUBLIC_ADDRESS}`, pongEndpointCertificate, {
-        certificate: pingSenderCertificate,
-        privateKey: pingSenderPrivateKey,
-      }),
+      await generatePingParcel(`http://${PONG_PUBLIC_ADDRESS}`, keyPairSet, certificatePath),
     );
 
     await deliverParcel(PONG_SERVICE_URL, pingParcel, {
@@ -91,14 +86,14 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     await sleep(2);
     expect(gatewayEndpointRoute.countCalls()).toEqual(1);
 
-    await validatePongDelivery(pingSenderPrivateKey);
+    await validatePongDelivery(keyPairSet.privateEndpoint.privateKey);
   });
 
   test('Ping pong with channel session protocol', async () => {
     const endpointInitialSessionKeyPair = await generateECDHKeyPair();
     const endpointInitialSessionCertificate = await issueInitialDHKeyCertificate({
       issuerCertificate: pongEndpointCertificate,
-      issuerPrivateKey: pongEndpointPrivateKey,
+      issuerPrivateKey: keyPairSet.pdaGrantee.privateKey,
       subjectPublicKey: endpointInitialSessionKeyPair.publicKey,
       validityEndDate: TOMORROW,
     });
@@ -126,12 +121,12 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
   }> {
     const pda = await generateStubNodeCertificate(
       await pongEndpointCertificate.getPublicKey(),
-      pingSenderPrivateKey,
-      { issuerCertificate: pingSenderCertificate },
+      keyPairSet.privateEndpoint.privateKey,
+      { issuerCertificate: certificatePath.privateEndpoint },
     );
     const serviceMessage = new ServiceMessage(
       'application/vnd.relaynet.ping-v1.ping',
-      serializePing(pda),
+      serializePing(pda, [certificatePath.privateEndpoint, certificatePath.privateGateway]),
     );
     const { dhPrivateKey, envelopedData } = await SessionEnvelopedData.encrypt(
       serviceMessage.serialize(),
@@ -139,13 +134,15 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
     const parcel = new Parcel(
       `https://${PONG_PUBLIC_ADDRESS}`,
-      pingSenderCertificate,
+      certificatePath.privateEndpoint,
       Buffer.from(envelopedData.serialize()),
     );
 
     return {
       dhPrivateKey,
-      pingParcelSerialized: Buffer.from(await parcel.serialize(pingSenderPrivateKey)),
+      pingParcelSerialized: Buffer.from(
+        await parcel.serialize(keyPairSet.privateEndpoint.privateKey),
+      ),
     };
   }
 
@@ -157,7 +154,10 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
 
     const pongParcelSerialized = (gatewayEndpointRoute.getCall(0).body as unknown) as Buffer;
     const pongParcel = await Parcel.deserialize(bufferToArray(pongParcelSerialized));
-    expect(pongParcel).toHaveProperty('recipientAddress', pingSenderCertificate.getCommonName());
+    expect(pongParcel).toHaveProperty(
+      'recipientAddress',
+      certificatePath.privateEndpoint.getCommonName(),
+    );
     const pongParcelPayload = EnvelopedData.deserialize(
       bufferToArray(pongParcel.payloadSerialized as Buffer),
     );

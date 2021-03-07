@@ -4,7 +4,6 @@ import {
   derSerializePublicKey,
   EnvelopedData,
   generateECDHKeyPair,
-  generateRSAKeyPair,
   issueInitialDHKeyCertificate,
   MockPrivateKeyStore,
   OriginatorSessionKey,
@@ -15,9 +14,20 @@ import {
   UnknownKeyError,
 } from '@relaycorp/relaynet-core';
 import * as pohttp from '@relaycorp/relaynet-pohttp';
+import {
+  generateNodeKeyPairSet,
+  generatePDACertificationPath,
+  NodeKeyPairSet,
+  PDACertPath,
+} from '@relaycorp/relaynet-testing';
 import { Job } from 'bull';
 
-import { expectBuffersToEqual, generateStubNodeCertificate, getMockContext } from '../_test_utils';
+import {
+  expectBuffersToEqual,
+  generatePingServiceMessage,
+  generateStubNodeCertificate,
+  getMockContext,
+} from '../_test_utils';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utils';
 import { QueuedPing } from './QueuedPing';
@@ -37,47 +47,38 @@ describe('PingProcessor', () => {
 
     const pingId = 'the id';
 
-    let recipientKeyPair: CryptoKeyPair;
-    let recipientCertificate: Certificate;
-    let senderKeyPair: CryptoKeyPair;
-    let senderCertificate: Certificate;
-    let senderGatewayCertificate: Certificate;
+    let keyPairSet: NodeKeyPairSet;
+    let certificatePath: PDACertPath;
+    let pingRecipientCertificate: Certificate;
+    let pingSenderCertificate: Certificate;
     let serviceMessageSerialized: ArrayBuffer;
-    let stubParcelPayload: EnvelopedData;
+    let stubParcelPayload: Buffer;
     beforeAll(async () => {
-      senderKeyPair = await generateRSAKeyPair();
-      senderCertificate = await generateStubNodeCertificate(
-        senderKeyPair.publicKey,
-        senderKeyPair.privateKey,
+      keyPairSet = await generateNodeKeyPairSet();
+      certificatePath = await generatePDACertificationPath(keyPairSet);
+
+      pingSenderCertificate = await generateStubNodeCertificate(
+        keyPairSet.privateEndpoint.publicKey,
+        keyPairSet.privateEndpoint.privateKey,
       );
 
-      const senderGatewayKeyPair = await generateRSAKeyPair();
-      senderGatewayCertificate = await generateStubNodeCertificate(
-        senderGatewayKeyPair.publicKey,
-        senderGatewayKeyPair.privateKey,
+      pingRecipientCertificate = await generateStubNodeCertificate(
+        keyPairSet.pdaGrantee.publicKey,
+        keyPairSet.pdaGrantee.privateKey,
       );
 
-      recipientKeyPair = await generateRSAKeyPair();
-      recipientCertificate = await generateStubNodeCertificate(
-        recipientKeyPair.publicKey,
-        recipientKeyPair.privateKey,
-      );
-
-      const serviceMessage = new ServiceMessage(
-        'application/vnd.relaynet.ping-v1.ping',
-        pingSerialization.serializePing(recipientCertificate, pingId),
-      );
-      serviceMessageSerialized = serviceMessage.serialize();
-      stubParcelPayload = await SessionlessEnvelopedData.encrypt(
+      serviceMessageSerialized = generatePingServiceMessage(certificatePath, pingId);
+      const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
         serviceMessageSerialized,
-        recipientCertificate,
+        pingRecipientCertificate,
       );
+      stubParcelPayload = Buffer.from(serviceMessageEncrypted.serialize());
     });
 
     let processor: PingProcessor;
     beforeEach(() => {
       processor = new PingProcessor(
-        recipientCertificate.getSerialNumber(),
+        pingRecipientCertificate.getSerialNumber(),
         mockPrivateKeyStore as any,
       );
     });
@@ -85,7 +86,10 @@ describe('PingProcessor', () => {
     beforeEach(async () => {
       jest.restoreAllMocks();
 
-      await mockPrivateKeyStore.registerNodeKey(recipientKeyPair.privateKey, recipientCertificate);
+      await mockPrivateKeyStore.registerNodeKey(
+        keyPairSet.pdaGrantee.privateKey,
+        pingRecipientCertificate,
+      );
 
       jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(
         // @ts-ignore
@@ -127,7 +131,7 @@ describe('PingProcessor', () => {
       const messageType = 'application/invalid';
       const serviceMessage = new ServiceMessage(
         messageType,
-        pingSerialization.serializePing(recipientCertificate, pingId),
+        pingSerialization.serializePing(pingRecipientCertificate, []),
       );
       jest
         .spyOn(Parcel.prototype, 'unwrapPayload')
@@ -174,25 +178,27 @@ describe('PingProcessor', () => {
       test('Parcel recipient should be sender of ping message', () => {
         expect(deliveredParcel).toHaveProperty(
           'recipientAddress',
-          senderCertificate.getCommonName(),
+          pingSenderCertificate.getCommonName(),
         );
       });
 
       test('Ping sender certificate should be in pong sender chain', () => {
         const pongSenderChain = deliveredParcel.senderCaCertificateChain;
-        const matchingCerts = pongSenderChain.filter((c) => c.isEqual(senderCertificate));
+        const matchingCerts = pongSenderChain.filter((c) => c.isEqual(pingSenderCertificate));
         expect(matchingCerts).toHaveLength(1);
       });
 
       test('Ping sender certificate chain should be in pong sender chain', () => {
         const pongSenderChain = deliveredParcel.senderCaCertificateChain;
-        const matchingCerts = pongSenderChain.filter((c) => c.isEqual(senderGatewayCertificate));
+        const matchingCerts = pongSenderChain.filter((c) =>
+          c.isEqual(certificatePath.privateGateway),
+        );
         expect(matchingCerts).toHaveLength(1);
       });
 
       test('Parcel should be signed with PDA attached to ping message', () => {
         expect(deliveredParcel.senderCertificate.getCommonName()).toEqual(
-          recipientCertificate.getCommonName(),
+          pingRecipientCertificate.getCommonName(),
         );
       });
 
@@ -205,13 +211,13 @@ describe('PingProcessor', () => {
       test('Original ping id should be used as pong payload', () => {
         expect(ServiceMessage.prototype.serialize).toBeCalledTimes(1);
         const serviceMessage = getMockContext(ServiceMessage.prototype.serialize).instances[0];
-        expectBuffersToEqual(serviceMessage.content, Buffer.from(pingId));
+        expect(serviceMessage.content.toString()).toEqual(pingId);
       });
 
       test('Parcel payload should be encrypted with recipient certificate', () => {
         expect(SessionlessEnvelopedData.encrypt).toBeCalledTimes(1);
         const encryptCall = getMockContext(SessionlessEnvelopedData.encrypt).calls[0];
-        expect(encryptCall[1].getCommonName()).toEqual(senderCertificate.getCommonName());
+        expect(encryptCall[1].getCommonName()).toEqual(pingSenderCertificate.getCommonName());
       });
 
       test('Parcel should be delivered to the specified gateway', () => {
@@ -250,24 +256,26 @@ describe('PingProcessor', () => {
     describe('Channel session', () => {
       let recipientSessionKeyPair1: CryptoKeyPair;
       let recipientSessionCert1: Certificate;
-      let stubSessionParcelPayload: SessionEnvelopedData;
+      let stubSessionOriginatorKey: OriginatorSessionKey;
+      let stubSessionParcelPayload: Buffer;
       let stubJob: Job<QueuedPing>;
       beforeAll(async () => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         recipientSessionKeyPair1 = await generateECDHKeyPair();
         recipientSessionCert1 = await issueInitialDHKeyCertificate({
-          issuerCertificate: recipientCertificate,
-          issuerPrivateKey: recipientKeyPair.privateKey,
+          issuerCertificate: pingRecipientCertificate,
+          issuerPrivateKey: keyPairSet.pdaGrantee.privateKey,
           subjectPublicKey: recipientSessionKeyPair1.publicKey,
           validityEndDate: tomorrow,
         });
 
-        const encryptionResult = await SessionEnvelopedData.encrypt(
+        const { envelopedData } = await SessionEnvelopedData.encrypt(
           serviceMessageSerialized,
           recipientSessionCert1,
         );
-        stubSessionParcelPayload = encryptionResult.envelopedData;
+        stubSessionOriginatorKey = await envelopedData.getOriginatorKey();
+        stubSessionParcelPayload = Buffer.from(envelopedData.serialize());
 
         stubJob = await initJob({ parcelPayload: stubSessionParcelPayload });
       });
@@ -296,12 +304,11 @@ describe('PingProcessor', () => {
         expectBuffersToEqual(encryptCallArgs[0], expectedPongMessage.serialize());
 
         // Check public key used
-        const expectedOriginatorKey = await stubSessionParcelPayload.getOriginatorKey();
         const actualOriginatorKey = encryptCallArgs[1] as OriginatorSessionKey;
-        expect(actualOriginatorKey).toHaveProperty('keyId', expectedOriginatorKey.keyId);
+        expect(actualOriginatorKey).toHaveProperty('keyId', stubSessionOriginatorKey.keyId);
         expectBuffersToEqual(
           await derSerializePublicKey(actualOriginatorKey.publicKey),
-          await derSerializePublicKey(expectedOriginatorKey.publicKey),
+          await derSerializePublicKey(stubSessionOriginatorKey.publicKey),
         );
       });
 
@@ -346,20 +353,20 @@ describe('PingProcessor', () => {
 
     async function initJob(
       options: Partial<{
-        readonly parcelPayload: EnvelopedData;
+        readonly parcelPayload: Buffer;
         readonly gatewayAddress: string;
       }> = {},
     ): Promise<Job<QueuedPing>> {
       const finalPayload = options.parcelPayload ?? stubParcelPayload;
       const parcel = new Parcel(
         'https://ping.relaycorp.tech',
-        senderCertificate,
-        Buffer.from(finalPayload.serialize()),
-        { senderCaCertificateChain: [senderGatewayCertificate] },
+        pingSenderCertificate,
+        finalPayload,
+        { senderCaCertificateChain: [certificatePath.privateGateway] },
       );
       const data: QueuedPing = {
         gatewayAddress: options.gatewayAddress ?? 'dummy-gateway',
-        parcel: base64Encode(await parcel.serialize(senderKeyPair.privateKey)),
+        parcel: base64Encode(await parcel.serialize(keyPairSet.privateEndpoint.privateKey)),
       };
       // @ts-ignore
       return { data, id: 'random-id' };

@@ -1,11 +1,12 @@
-import { Certificate, generateRSAKeyPair } from '@relaycorp/relaynet-core';
+import {
+  generateNodeKeyPairSet,
+  generatePDACertificationPath,
+  NodeKeyPairSet,
+  PDACertPath,
+} from '@relaycorp/relaynet-testing';
 import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
-import {
-  configureMockEnvVars,
-  generateStubNodeCertificate,
-  generateStubPingParcel,
-} from '../_test_utils';
+import { configureMockEnvVars, generatePingParcel } from '../_test_utils';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utils';
@@ -29,17 +30,16 @@ const validRequestOptions: HTTPInjectOptions = {
   payload: {},
   url: '/',
 };
-let stubRecipientCertificate: Certificate;
+let keyPairSet: NodeKeyPairSet;
+let certificatePath: PDACertPath;
 beforeAll(async () => {
-  const recipientKeyPair = await generateRSAKeyPair();
-  stubRecipientCertificate = await generateStubNodeCertificate(
-    recipientKeyPair.publicKey,
-    recipientKeyPair.privateKey,
-  );
+  keyPairSet = await generateNodeKeyPairSet();
+  certificatePath = await generatePDACertificationPath(keyPairSet);
 
-  const payload = await generateStubPingParcel(
+  const payload = await generatePingParcel(
     `https://${PUBLIC_ENDPOINT_ADDRESS}`,
-    stubRecipientCertificate,
+    keyPairSet,
+    certificatePath,
   );
   // tslint:disable-next-line:no-object-mutation
   validRequestOptions.payload = payload;
@@ -172,11 +172,11 @@ describe('receiveParcel', () => {
   test('Parcel should be refused if it is well-formed but invalid', async () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const payload = await generateStubPingParcel(
+    const payload = await generatePingParcel(
       `https://${PUBLIC_ENDPOINT_ADDRESS}/`,
-      stubRecipientCertificate,
-      undefined,
-      { creationDate: yesterday },
+      keyPairSet,
+      certificatePath,
+      yesterday,
     );
     const response = await serverInstance.inject({
       ...validRequestOptions,
@@ -192,9 +192,10 @@ describe('receiveParcel', () => {
   });
 
   test('Parcel should be refused if target is not current endpoint', async () => {
-    const payload = await generateStubPingParcel(
+    const payload = await generatePingParcel(
       'https://invalid.com/endpoint',
-      stubRecipientCertificate,
+      keyPairSet,
+      certificatePath,
     );
     const response = await serverInstance.inject({
       ...validRequestOptions,
@@ -245,9 +246,10 @@ describe('receiveParcel', () => {
 
   test('Non-TLS URLs should be allowed when POHTTP_TLS_REQUIRED=false', async () => {
     mockEnvVars({ ...ENV_VARS, POHTTP_TLS_REQUIRED: 'false' });
-    const stubPayload = await generateStubPingParcel(
+    const stubPayload = await generatePingParcel(
       `http://${PUBLIC_ENDPOINT_ADDRESS}`,
-      stubRecipientCertificate,
+      keyPairSet,
+      certificatePath,
     );
 
     const response = await serverInstance.inject({
