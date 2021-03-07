@@ -61,7 +61,7 @@ describe('serializePing', () => {
     const pingSerialized = serializePing(peerCertificatePath.pdaGrantee, pdaChain);
 
     const pingFields = jsonParse(pingSerialized);
-    expect(pdaChain.map(base64EncodeDERCertificate)).toEqual(pingFields.pdaChain);
+    expect(pdaChain.map(base64EncodeDERCertificate)).toEqual(pingFields.pda_chain);
   });
 
   function jsonParse(serialization: Buffer): any {
@@ -133,7 +133,7 @@ describe('deserializePing', () => {
       JSON.stringify({
         id: mockStubUuid4,
         pda: base64EncodeDERCertificate(peerCertificatePath.pdaGrantee),
-        pdaChain: 'this is not an array',
+        pda_chain: 'this is not an array',
       }),
     );
 
@@ -148,7 +148,7 @@ describe('deserializePing', () => {
       JSON.stringify({
         id: mockStubUuid4,
         pda: base64EncodeDERCertificate(peerCertificatePath.pdaGrantee),
-        pdaChain: ['£'],
+        pda_chain: ['£'],
       }),
     );
 
@@ -163,7 +163,7 @@ describe('deserializePing', () => {
       JSON.stringify({
         id: mockStubUuid4,
         pda: base64EncodeDERCertificate(peerCertificatePath.pdaGrantee),
-        pdaChain: [Buffer.from('malformed').toString('base64')],
+        pda_chain: [Buffer.from('malformed').toString('base64')],
       }),
     );
 
