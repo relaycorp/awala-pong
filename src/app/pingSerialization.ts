@@ -23,7 +23,7 @@ export function serializePing(
   const pingSerialized = {
     id: id ?? uuid4(),
     pda: pdaSerialized,
-    pdaChain: pdaChain.map(serializeCertificate),
+    pda_chain: pdaChain.map(serializeCertificate),
   };
   return Buffer.from(JSON.stringify(pingSerialized));
 }
@@ -47,12 +47,12 @@ export function deserializePing(pingSerialized: Buffer): Ping {
     throw new PingSerializationError(err, 'Invalid PDA');
   }
 
-  if (!Array.isArray(pingJson.pdaChain)) {
+  if (!Array.isArray(pingJson.pda_chain)) {
     throw new PingSerializationError('PDA chain is not an array');
   }
   let pdaChain: readonly Certificate[];
   try {
-    pdaChain = pingJson.pdaChain.map(deserializeCertificate);
+    pdaChain = pingJson.pda_chain.map(deserializeCertificate);
   } catch (err) {
     throw new PingSerializationError(err, 'PDA chain contains invalid item');
   }
