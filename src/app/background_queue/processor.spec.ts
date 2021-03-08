@@ -217,6 +217,13 @@ describe('PingProcessor', () => {
         const deliverParcelCall = getMockContext(pohttp.deliverParcel).calls[0];
         expect(deliverParcelCall[0]).toEqual(stubGatewayAddress);
       });
+
+      test('Successful delivery should be logged', () => {
+        expect(mockPino.info).toBeCalledWith(
+          { publicGatewayAddress: stubGatewayAddress },
+          'Successfully delivered pong parcel',
+        );
+      });
     });
 
     test('Pong should discarded if server rejects parcel as invalid', async () => {
