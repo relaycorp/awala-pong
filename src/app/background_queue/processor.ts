@@ -59,6 +59,10 @@ export class PingProcessor {
       }
       throw err;
     }
+    logger.info(
+      { publicGatewayAddress: job.data.gatewayAddress },
+      'Successfully delivered pong parcel',
+    );
   }
 
   protected async unwrapPing(
