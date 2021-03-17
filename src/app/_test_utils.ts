@@ -10,8 +10,12 @@ import envVar from 'env-var';
 
 import { serializePing } from './pingSerialization';
 
+export function getMockInstance(mockedObject: any): jest.MockInstance<any, any> {
+  return (mockedObject as unknown) as jest.MockInstance<any, any>;
+}
+
 export function getMockContext(mockedObject: any): jest.MockContext<any, any> {
-  const mockInstance = (mockedObject as unknown) as jest.MockInstance<any, any>;
+  const mockInstance = getMockInstance(mockedObject);
   return mockInstance.mock;
 }
 
