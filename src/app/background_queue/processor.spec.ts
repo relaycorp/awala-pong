@@ -13,7 +13,6 @@ import {
   SessionlessEnvelopedData,
   UnknownKeyError,
 } from '@relaycorp/relaynet-core';
-import * as pohttp from '@relaycorp/relaynet-pohttp';
 import {
   generateNodeKeyPairSet,
   generatePDACertificationPath,
@@ -34,6 +33,16 @@ import { QueuedPing } from './QueuedPing';
 
 const mockPino = { info: jest.fn() };
 jest.mock('pino', () => jest.fn().mockImplementation(() => mockPino));
+
+const mockDeliverParcel = jest.fn();
+jest.mock('@relaycorp/relaynet-pohttp', () => {
+  const actualPohttp = jest.requireActual('@relaycorp/relaynet-pohttp');
+  return {
+    ...actualPohttp,
+    deliverParcel: mockDeliverParcel,
+  };
+});
+import { PoHTTPInvalidParcelError } from '@relaycorp/relaynet-pohttp';
 import { PingProcessor } from './processor';
 
 afterAll(jest.restoreAllMocks);
@@ -85,15 +94,11 @@ describe('PingProcessor', () => {
 
     beforeEach(async () => {
       jest.restoreAllMocks();
+      mockDeliverParcel.mockRestore();
 
       await mockPrivateKeyStore.registerNodeKey(
         keyPairSet.pdaGrantee.privateKey,
         pingRecipientCertificate,
-      );
-
-      jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(
-        // @ts-ignore
-        undefined,
       );
     });
 
@@ -144,7 +149,7 @@ describe('PingProcessor', () => {
         { jobId: job.id, messageType },
         'Invalid service message type',
       );
-      expect(pohttp.deliverParcel).not.toBeCalled();
+      expect(mockDeliverParcel).not.toBeCalled();
     });
 
     test('Getting an invalid service message content should be logged', async () => {
@@ -221,16 +226,13 @@ describe('PingProcessor', () => {
       });
 
       test('Parcel should be delivered to the specified gateway', () => {
-        const deliverParcelCall = getMockContext(pohttp.deliverParcel).calls[0];
-        expect(deliverParcelCall[0]).toEqual(stubGatewayAddress);
+        expect(mockDeliverParcel).toBeCalledWith(stubGatewayAddress, expect.anything());
       });
     });
 
     test('Pong should discarded if server rejects parcel as invalid', async () => {
-      const error = new pohttp.PoHTTPInvalidParcelError('Nope');
-      // @ts-ignore
-      pohttp.deliverParcel.mockRestore();
-      jest.spyOn(pohttp, 'deliverParcel').mockImplementation(async () => {
+      const error = new PoHTTPInvalidParcelError('Nope');
+      mockDeliverParcel.mockImplementation(async () => {
         throw error;
       });
 
@@ -244,9 +246,7 @@ describe('PingProcessor', () => {
 
     test('Parcel delivery errors should be propagated', async () => {
       const error = new Error('Nope');
-      // @ts-ignore
-      pohttp.deliverParcel.mockRestore();
-      jest.spyOn(pohttp, 'deliverParcel').mockImplementation(async () => {
+      mockDeliverParcel.mockImplementation(async () => {
         throw error;
       });
 
