@@ -182,24 +182,17 @@ describe('PingProcessor', () => {
         );
       });
 
-      test('Ping sender certificate should be in pong sender chain', () => {
-        const pongSenderChain = deliveredParcel.senderCaCertificateChain;
-        const matchingCerts = pongSenderChain.filter((c) => c.isEqual(pingSenderCertificate));
-        expect(matchingCerts).toHaveLength(1);
-      });
-
       test('Ping sender certificate chain should be in pong sender chain', () => {
         const pongSenderChain = deliveredParcel.senderCaCertificateChain;
-        const matchingCerts = pongSenderChain.filter((c) =>
-          c.isEqual(certificatePath.privateGateway),
+        const matchingCerts = pongSenderChain.filter(
+          (c) =>
+            c.isEqual(certificatePath.privateGateway) || c.isEqual(certificatePath.privateEndpoint),
         );
-        expect(matchingCerts).toHaveLength(1);
+        expect(matchingCerts).toHaveLength(2);
       });
 
       test('Parcel should be signed with PDA attached to ping message', () => {
-        expect(deliveredParcel.senderCertificate.getCommonName()).toEqual(
-          pingRecipientCertificate.getCommonName(),
-        );
+        expect(certificatePath.pdaGrantee.isEqual(deliveredParcel.senderCertificate)).toBeTrue();
       });
 
       test('Service message type should be application/vnd.relaynet.ping-v1.pong', () => {
@@ -223,6 +216,13 @@ describe('PingProcessor', () => {
       test('Parcel should be delivered to the specified gateway', () => {
         const deliverParcelCall = getMockContext(pohttp.deliverParcel).calls[0];
         expect(deliverParcelCall[0]).toEqual(stubGatewayAddress);
+      });
+
+      test('Successful delivery should be logged', () => {
+        expect(mockPino.info).toBeCalledWith(
+          { publicGatewayAddress: stubGatewayAddress },
+          'Successfully delivered pong parcel',
+        );
       });
     });
 
