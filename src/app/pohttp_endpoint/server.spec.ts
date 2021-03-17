@@ -51,12 +51,12 @@ describe('makeServer', () => {
     expect(fastifyCallArgs[0]).toHaveProperty('requestIdHeader', requestIdHeader);
   });
 
-  test('Content-Type application/vnd.relaynet.parcel should be supported', async () => {
+  test('Content-Type application/vnd.awala.parcel should be supported', async () => {
     await server.makeServer();
 
     expect(mockFastify.addContentTypeParser).toBeCalledTimes(1);
     const addContentTypeParserCallArgs = getMockContext(mockFastify.addContentTypeParser).calls[0];
-    expect(addContentTypeParserCallArgs[0]).toEqual('application/vnd.relaynet.parcel');
+    expect(addContentTypeParserCallArgs[0]).toEqual('application/vnd.awala.parcel');
     expect(addContentTypeParserCallArgs[1]).toEqual({ parseAs: 'buffer' });
 
     // It shouldn't actually parse the body just yet:

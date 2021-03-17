@@ -80,7 +80,7 @@ export class PingProcessor {
 
     const serviceMessage = decryptionResult.payload;
 
-    if (serviceMessage.type !== 'application/vnd.relaynet.ping-v1.ping') {
+    if (serviceMessage.type !== 'application/vnd.awala.ping-v1.ping') {
       logger.info({ jobId, messageType: serviceMessage.type }, 'Invalid service message type');
       return;
     }
@@ -101,7 +101,7 @@ export class PingProcessor {
     recipientCertificate: Certificate,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage(
-      'application/vnd.relaynet.ping-v1.pong',
+      'application/vnd.awala.ping-v1.ping',
       Buffer.from(pingId),
     );
     const pongMessageSerialized = pongMessage.serialize();

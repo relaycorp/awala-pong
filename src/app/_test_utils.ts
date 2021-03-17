@@ -127,7 +127,7 @@ export function generatePingServiceMessage(
     [certificatePath.privateEndpoint, certificatePath.privateGateway],
     pingId,
   );
-  const serviceMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.ping', pingMessage);
+  const serviceMessage = new ServiceMessage('application/vnd.awala.ping-v1.ping', pingMessage);
   return serviceMessage.serialize();
 }
 

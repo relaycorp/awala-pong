@@ -22,7 +22,7 @@ beforeAll(async () => {
 
 const validRequestOptions: HTTPInjectOptions = {
   headers: {
-    'Content-Type': 'application/vnd.relaynet.parcel',
+    'Content-Type': 'application/vnd.awala.parcel',
     Host: `pohttp-${PUBLIC_ENDPOINT_ADDRESS}`,
     'X-Relaynet-Gateway': 'https://gateway.example',
   },
@@ -106,7 +106,7 @@ describe('Health check', () => {
 });
 
 describe('receiveParcel', () => {
-  test('Content-Type other than application/vnd.relaynet.parcel should be refused', async () => {
+  test('Content-Type other than application/vnd.awala.parcel should be refused', async () => {
     const response = await serverInstance.inject({
       ...validRequestOptions,
       headers: {
