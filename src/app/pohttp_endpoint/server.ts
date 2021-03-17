@@ -33,7 +33,7 @@ export async function makeServer(): Promise<FastifyInstance> {
   server.register(parcelDeliveryRoutes, { publicEndpointAddress } as any);
 
   server.addContentTypeParser(
-    'application/vnd.relaynet.parcel',
+    'application/vnd.awala.parcel',
     { parseAs: 'buffer' },
     async (_req: any, rawBody: Buffer) => rawBody,
   );

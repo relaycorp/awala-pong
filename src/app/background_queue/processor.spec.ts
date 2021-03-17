@@ -27,6 +27,7 @@ import {
   generatePingServiceMessage,
   generateStubNodeCertificate,
   getMockContext,
+  getMockInstance,
 } from '../_test_utils';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utils';
@@ -34,7 +35,20 @@ import { QueuedPing } from './QueuedPing';
 
 const mockPino = { info: jest.fn() };
 jest.mock('pino', () => jest.fn().mockImplementation(() => mockPino));
+
+jest.mock('@relaycorp/relaynet-pohttp', () => {
+  const actualPohttp = jest.requireActual('@relaycorp/relaynet-pohttp');
+  return {
+    ...actualPohttp,
+    deliverParcel: jest.fn(),
+  };
+});
+
 import { PingProcessor } from './processor';
+
+beforeEach(() => {
+  getMockInstance(pohttp.deliverParcel).mockRestore();
+});
 
 afterAll(jest.restoreAllMocks);
 
@@ -195,10 +209,10 @@ describe('PingProcessor', () => {
         expect(certificatePath.pdaGrantee.isEqual(deliveredParcel.senderCertificate)).toBeTrue();
       });
 
-      test('Service message type should be application/vnd.relaynet.ping-v1.pong', () => {
+      test('Service message type should be application/vnd.awala.ping-v1.ping', () => {
         expect(ServiceMessage.prototype.serialize).toBeCalledTimes(1);
         const serviceMessage = getMockContext(ServiceMessage.prototype.serialize).instances[0];
-        expect(serviceMessage).toHaveProperty('type', 'application/vnd.relaynet.ping-v1.pong');
+        expect(serviceMessage).toHaveProperty('type', 'application/vnd.awala.ping-v1.ping');
       });
 
       test('Original ping id should be used as pong payload', () => {
@@ -298,7 +312,7 @@ describe('PingProcessor', () => {
         // Check plaintext
         const encryptCallArgs = encryptSpy.mock.calls[0];
         const expectedPongMessage = new ServiceMessage(
-          'application/vnd.relaynet.ping-v1.pong',
+          'application/vnd.awala.ping-v1.ping',
           Buffer.from(pingId),
         );
         expectBuffersToEqual(encryptCallArgs[0], expectedPongMessage.serialize());

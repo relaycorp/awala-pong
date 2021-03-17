@@ -130,7 +130,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       { issuerCertificate: certificatePath.privateEndpoint },
     );
     const serviceMessage = new ServiceMessage(
-      'application/vnd.relaynet.ping-v1.ping',
+      'application/vnd.awala.ping-v1.ping',
       serializePing(pda, [certificatePath.privateEndpoint, certificatePath.privateGateway]),
     );
     const { dhPrivateKey, envelopedData } = await SessionEnvelopedData.encrypt(
@@ -168,7 +168,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
     const pongServiceMessageSerialized = await pongParcelPayload.decrypt(recipientPrivateKey);
     const pongServiceMessage = ServiceMessage.deserialize(pongServiceMessageSerialized);
-    expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.relaynet.ping-v1.pong');
+    expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.awala.ping-v1.ping');
     expect(pongServiceMessage).toHaveProperty('content.byteLength', 36);
   }
 
@@ -180,7 +180,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     beforeEach(() => {
       gatewayEndpointRoute = mockGatewayServer
         .post('/')
-        .setHeader('Content-Type', 'application/vnd.relaynet.parcel')
+        .setHeader('Content-Type', 'application/vnd.awala.parcel')
         .setBody((body) => !!body)
         .setResponseStatusCode(202);
       logDiffOn501(mockGatewayServer, gatewayEndpointRoute);

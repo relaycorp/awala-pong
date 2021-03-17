@@ -47,7 +47,7 @@ export default async function registerRoutes(
     method: 'POST',
     url: '/',
     async handler(request, reply): Promise<FastifyReply<any>> {
-      if (request.headers['content-type'] !== 'application/vnd.relaynet.parcel') {
+      if (request.headers['content-type'] !== 'application/vnd.awala.parcel') {
         return reply.code(415).send();
       }
 

@@ -10,8 +10,12 @@ import envVar from 'env-var';
 
 import { serializePing } from './pingSerialization';
 
+export function getMockInstance(mockedObject: any): jest.MockInstance<any, any> {
+  return (mockedObject as unknown) as jest.MockInstance<any, any>;
+}
+
 export function getMockContext(mockedObject: any): jest.MockContext<any, any> {
-  const mockInstance = (mockedObject as unknown) as jest.MockInstance<any, any>;
+  const mockInstance = getMockInstance(mockedObject);
   return mockInstance.mock;
 }
 
@@ -127,7 +131,7 @@ export function generatePingServiceMessage(
     [certificatePath.privateEndpoint, certificatePath.privateGateway],
     pingId,
   );
-  const serviceMessage = new ServiceMessage('application/vnd.relaynet.ping-v1.ping', pingMessage);
+  const serviceMessage = new ServiceMessage('application/vnd.awala.ping-v1.ping', pingMessage);
   return serviceMessage.serialize();
 }
 
