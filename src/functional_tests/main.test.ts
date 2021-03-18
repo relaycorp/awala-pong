@@ -168,7 +168,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
     const pongServiceMessageSerialized = await pongParcelPayload.decrypt(recipientPrivateKey);
     const pongServiceMessage = ServiceMessage.deserialize(pongServiceMessageSerialized);
-    expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.awala.ping-v1.ping');
+    expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.awala.ping-v1.pong');
     expect(pongServiceMessage).toHaveProperty('content.byteLength', 36);
   }
 

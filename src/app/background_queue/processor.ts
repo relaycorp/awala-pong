@@ -101,7 +101,7 @@ export class PingProcessor {
     recipientCertificate: Certificate,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage(
-      'application/vnd.awala.ping-v1.ping',
+      'application/vnd.awala.ping-v1.pong',
       Buffer.from(pingId),
     );
     const pongMessageSerialized = pongMessage.serialize();
