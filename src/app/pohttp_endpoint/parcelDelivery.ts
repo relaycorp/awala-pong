@@ -53,11 +53,11 @@ export default async function registerRoutes(
 
       const requireTlsUrls = getEnvVar('POHTTP_TLS_REQUIRED').default('true').asBool();
 
-      const gatewayAddress = request.headers['x-relaynet-gateway'] || '';
+      const gatewayAddress = request.headers['x-awala-gateway'] || '';
       if (!isValidGatewayAddress(gatewayAddress, requireTlsUrls)) {
         return reply
           .code(400)
-          .send({ message: 'X-Relaynet-Gateway should be set to a valid PoHTTP endpoint' });
+          .send({ message: 'X-Awala-Gateway should be set to a valid PoHTTP endpoint' });
       }
 
       let parcel;
