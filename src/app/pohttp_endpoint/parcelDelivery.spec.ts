@@ -24,7 +24,7 @@ const validRequestOptions: HTTPInjectOptions = {
   headers: {
     'Content-Type': 'application/vnd.awala.parcel',
     Host: `pohttp-${PUBLIC_ENDPOINT_ADDRESS}`,
-    'X-Relaynet-Gateway': 'https://gateway.example',
+    'X-Awala-Gateway': 'https://gateway.example',
   },
   method: 'POST',
   payload: {},
@@ -120,13 +120,13 @@ describe('receiveParcel', () => {
     expect(response).toHaveProperty('statusCode', 415);
   });
 
-  describe('X-Relaynet-Gateway request header', () => {
-    const validationErrorMessage = 'X-Relaynet-Gateway should be set to a valid PoHTTP endpoint';
+  describe('X-Awala-Gateway request header', () => {
+    const validationErrorMessage = 'X-Awala-Gateway should be set to a valid PoHTTP endpoint';
 
-    test('X-Relaynet-Gateway should not be absent', async () => {
+    test('X-Awala-Gateway should not be absent', async () => {
       const allHeaders = validRequestOptions.headers as { readonly [key: string]: string };
       const headers = Object.keys(allHeaders)
-        .filter((h) => h !== 'X-Relaynet-Gateway')
+        .filter((h) => h !== 'X-Awala-Gateway')
         .reduce((a, h) => ({ ...a, [h]: allHeaders[h] }), {});
       const response = await serverInstance.inject({ ...validRequestOptions, headers });
 
@@ -134,10 +134,10 @@ describe('receiveParcel', () => {
       expect(JSON.parse(response.payload)).toHaveProperty('message', validationErrorMessage);
     });
 
-    test('X-Relaynet-Gateway should not be an invalid URI', async () => {
+    test('X-Awala-Gateway should not be an invalid URI', async () => {
       const response = await serverInstance.inject({
         ...validRequestOptions,
-        headers: { ...validRequestOptions.headers, 'X-Relaynet-Gateway': 'foo@example.com' },
+        headers: { ...validRequestOptions.headers, 'X-Awala-Gateway': 'foo@example.com' },
       });
 
       expect(response).toHaveProperty('statusCode', 400);
@@ -147,7 +147,7 @@ describe('receiveParcel', () => {
     test('Any schema other than "https" should be refused', async () => {
       const response = await serverInstance.inject({
         ...validRequestOptions,
-        headers: { ...validRequestOptions.headers, 'X-Relaynet-Gateway': 'http://example.com' },
+        headers: { ...validRequestOptions.headers, 'X-Awala-Gateway': 'http://example.com' },
       });
 
       expect(response).toHaveProperty('statusCode', 400);
@@ -224,7 +224,7 @@ describe('receiveParcel', () => {
       expect(pongQueueAddSpy).toBeCalledTimes(1);
       const expectedMessageData: QueuedPing = {
         gatewayAddress: (validRequestOptions.headers as { readonly [k: string]: string })[
-          'X-Relaynet-Gateway'
+          'X-Awala-Gateway'
         ],
         parcel: base64Encode(validRequestOptions.payload as Buffer),
       };
@@ -261,7 +261,7 @@ describe('receiveParcel', () => {
       headers: {
         ...validRequestOptions.headers,
         'Content-Length': stubPayload.byteLength.toString(),
-        'X-Relaynet-Gateway': 'http://example.com',
+        'X-Awala-Gateway': 'http://example.com',
       },
       payload: stubPayload,
     });
