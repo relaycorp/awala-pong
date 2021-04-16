@@ -67,7 +67,7 @@
   },
   "homepage": "https://docs.relaycorp.tech/relaynet-pong/",
   "dependencies": {
-    "@relaycorp/keystore-vault": "^1.2.1",
+    "@relaycorp/keystore-vault": "^1.2.3",
     "@relaycorp/relaynet-core": "^1.42.9",
     "@relaycorp/relaynet-pohttp": "^1.7.4",
     "buffer-to-arraybuffer": "0.0.6",
