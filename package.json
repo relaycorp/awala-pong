@@ -71,13 +71,13 @@
     "@relaycorp/relaynet-core": "^1.42.9",
     "@relaycorp/relaynet-pohttp": "^1.7.4",
     "buffer-to-arraybuffer": "0.0.6",
-    "bull": "^3.22.0",
+    "bull": "^3.22.4",
     "env-var": "^7.0.0",
     "fastify": "^2.15.1",
     "fastify-sentry": "^1.4.0",
     "fastify-url-data": "^2.4.0",
     "make-promises-safe": "^5.1.0",
-    "pino": "^6.11.2",
+    "pino": "^6.11.3",
     "uuid4": "^2.0.2"
   }
 }
