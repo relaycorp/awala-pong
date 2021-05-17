@@ -71,7 +71,7 @@
     "@relaycorp/relaynet-core": "^1.44.0",
     "@relaycorp/relaynet-pohttp": "^1.7.4",
     "buffer-to-arraybuffer": "0.0.6",
-    "bull": "^3.22.4",
+    "bull": "^3.22.5",
     "env-var": "^7.0.0",
     "fastify": "^2.15.1",
     "fastify-sentry": "^1.4.0",
