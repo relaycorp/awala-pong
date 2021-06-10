@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@relaycorp/relaynet-testing": "^1.1.5",
-    "@relaycorp/shared-config": "^1.4.13",
+    "@relaycorp/shared-config": "^1.4.15",
     "@semantic-release/exec": "^5.0.0",
     "@types/binary-parser": "^1.5.0",
     "@types/bull": "^3.15.1",
