@@ -68,9 +68,8 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
     // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
     // tslint:disable-next-line:no-object-mutation
-    (pongEndpointCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
-      Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64'),
-    );
+    (pongEndpointCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex =
+      bufferToArray(Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64'));
     await privateKeyStore.saveNodeKey(keyPairSet.pdaGrantee.privateKey, pongEndpointCertificate);
   });
 
@@ -118,9 +117,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     await validatePongDelivery(dhPrivateKey);
   });
 
-  async function generateSessionPingParcel(
-    initialDhCertificate: Certificate,
-  ): Promise<{
+  async function generateSessionPingParcel(initialDhCertificate: Certificate): Promise<{
     readonly pingParcelSerialized: Buffer;
     readonly dhPrivateKey: CryptoKey;
   }> {
@@ -157,7 +154,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
 
     expect(gatewayEndpointRoute.countCalls()).toEqual(1);
 
-    const pongParcelSerialized = (gatewayEndpointRoute.getCall(0).body as unknown) as Buffer;
+    const pongParcelSerialized = gatewayEndpointRoute.getCall(0).body as unknown as Buffer;
     const pongParcel = await Parcel.deserialize(bufferToArray(pongParcelSerialized));
     expect(pongParcel).toHaveProperty(
       'recipientAddress',
