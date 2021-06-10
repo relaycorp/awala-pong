@@ -47,9 +47,8 @@ async function main(): Promise<void> {
   // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
   // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
   // tslint:disable-next-line:no-object-mutation
-  (endpointCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
-    endpointKeyId,
-  );
+  (endpointCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex =
+    bufferToArray(endpointKeyId);
 
   await sessionStore.saveNodeKey(endpointKeyPair.privateKey, endpointCertificate);
 
@@ -66,9 +65,8 @@ async function main(): Promise<void> {
   // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
   // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
   // tslint:disable-next-line:no-object-mutation
-  (initialKeyCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
-    endpointSessionKeyId,
-  );
+  (initialKeyCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex =
+    bufferToArray(endpointSessionKeyId);
   await sessionStore.saveInitialSessionKey(initialSessionKeyPair.privateKey, initialKeyCertificate);
 
   console.log(

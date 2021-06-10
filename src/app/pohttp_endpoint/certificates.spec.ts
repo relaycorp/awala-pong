@@ -24,9 +24,8 @@ beforeEach(async () => {
   // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
   // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
   // tslint:disable-next-line:no-object-mutation
-  (identityCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex = bufferToArray(
-    endpointKeyId,
-  );
+  (identityCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex =
+    bufferToArray(endpointKeyId);
   await mockPrivateKeyStore.registerNodeKey(keyPairSet.pdaGrantee.privateKey, identityCertificate);
 });
 
