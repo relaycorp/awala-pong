@@ -21,6 +21,7 @@ import {
   PDACertPath,
 } from '@relaycorp/relaynet-testing';
 import { Job } from 'bull';
+import { addDays, subMinutes, subSeconds } from 'date-fns';
 
 import {
   expectBuffersToEqual,
@@ -209,6 +210,18 @@ describe('PingProcessor', () => {
         expect(certificatePath.pdaGrantee.isEqual(deliveredParcel.senderCertificate)).toBeTrue();
       });
 
+      test('Parcel creation date should be 5 minutes in the past to tolerate clock drift', () => {
+        const cutoffDate = subMinutes(new Date(), 5);
+        expect(deliveredParcel.creationDate).toBeBefore(cutoffDate);
+        expect(deliveredParcel.creationDate).toBeAfter(subSeconds(cutoffDate, 5));
+      });
+
+      test('Parcel expiry date should be 14 days in the future', () => {
+        const cutoffDate = addDays(new Date(), 14);
+        expect(deliveredParcel.expiryDate).toBeBefore(cutoffDate);
+        expect(deliveredParcel.expiryDate).toBeAfter(subSeconds(cutoffDate, 5));
+      });
+
       test('Parcel payload should be encrypted with recipient certificate', () => {
         expect(SessionlessEnvelopedData.encrypt).toBeCalledTimes(1);
         const encryptCall = getMockContext(SessionlessEnvelopedData.encrypt).calls[0];
@@ -307,7 +320,7 @@ describe('PingProcessor', () => {
         await processor.deliverPongForPing(stubJob);
 
         expect(encryptSpy).toBeCalledTimes(1);
-        expect(encryptSpy.mock.results[0].value).toResolve();
+        await expect(encryptSpy.mock.results[0].value).toResolve();
 
         // Check plaintext
         const encryptCallArgs = encryptSpy.mock.calls[0];
