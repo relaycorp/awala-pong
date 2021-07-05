@@ -26,7 +26,7 @@
     "node": ">=12"
   },
   "devDependencies": {
-    "@relaycorp/relaynet-testing": "^1.2.0",
+    "@relaycorp/relaynet-testing": "^1.3.0",
     "@relaycorp/shared-config": "^1.4.15",
     "@semantic-release/exec": "^5.0.0",
     "@types/binary-parser": "^1.5.0",
@@ -72,6 +72,7 @@
     "@relaycorp/relaynet-pohttp": "^1.7.4",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^3.22.8",
+    "date-fns": "^2.22.1",
     "env-var": "^7.0.1",
     "fastify": "^2.15.1",
     "fastify-sentry": "^1.4.0",
