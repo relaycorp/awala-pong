@@ -6,10 +6,12 @@ import {
   ServiceMessage,
   SessionEnvelopedData,
   SessionlessEnvelopedData,
+  UnboundKeyPair,
 } from '@relaycorp/relaynet-core';
 import { deliverParcel, PoHTTPInvalidParcelError } from '@relaycorp/relaynet-pohttp';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { Job } from 'bull';
+import { addDays, differenceInSeconds, subMinutes } from 'date-fns';
 import pino = require('pino');
 
 import { deserializePing, Ping } from '../pingSerialization';
@@ -36,22 +38,14 @@ export class PingProcessor {
       // Service message was invalid; errors were already logged.
       return;
     }
-
-    const ping = unwrappingResult.ping;
-    const pongParcelPayload = await this.generatePongParcelPayload(
-      ping.id,
-      unwrappingResult.originatorKey ?? pingParcel.senderCertificate,
+    const pongParcelSerialized = await this.makePongParcel(
+      unwrappingResult.ping,
       pingParcel.senderCertificate,
+      keyPair,
+      unwrappingResult.originatorKey,
     );
-    const pongParcel = new Parcel(
-      pingParcel.senderCertificate.getCommonName(),
-      ping.pda,
-      pongParcelPayload,
-      { senderCaCertificateChain: ping.pdaChain },
-    );
-    const parcelSerialized = await pongParcel.serialize(keyPair.privateKey);
     try {
-      await deliverParcel(job.data.gatewayAddress, parcelSerialized);
+      await deliverParcel(job.data.gatewayAddress, pongParcelSerialized);
     } catch (err) {
       if (err instanceof PoHTTPInvalidParcelError) {
         logger.info({ err }, 'Discarding pong delivery because server refused parcel');
@@ -125,5 +119,32 @@ export class PingProcessor {
       );
     }
     return Buffer.from(pongParcelPayload.serialize());
+  }
+
+  private async makePongParcel(
+    ping: Ping,
+    recipientCertificate: Certificate,
+    keyPair: UnboundKeyPair,
+    originatorKey?: OriginatorSessionKey,
+  ): Promise<ArrayBuffer> {
+    const pongParcelPayload = await this.generatePongParcelPayload(
+      ping.id,
+      originatorKey ?? recipientCertificate,
+      recipientCertificate,
+    );
+    const now = new Date();
+    const expiryDate = addDays(now, 14);
+    const creationDate = subMinutes(now, 5);
+    const pongParcel = new Parcel(
+      recipientCertificate.getCommonName(),
+      ping.pda,
+      pongParcelPayload,
+      {
+        creationDate,
+        senderCaCertificateChain: ping.pdaChain,
+        ttl: differenceInSeconds(expiryDate, creationDate),
+      },
+    );
+    return pongParcel.serialize(keyPair.privateKey);
   }
 }
