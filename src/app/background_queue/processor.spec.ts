@@ -209,6 +209,12 @@ describe('PingProcessor', () => {
         expect(certificatePath.pdaGrantee.isEqual(deliveredParcel.senderCertificate)).toBeTrue();
       });
 
+      test('Parcel payload should be encrypted with recipient certificate', () => {
+        expect(SessionlessEnvelopedData.encrypt).toBeCalledTimes(1);
+        const encryptCall = getMockContext(SessionlessEnvelopedData.encrypt).calls[0];
+        expect(encryptCall[1].getCommonName()).toEqual(pingSenderCertificate.getCommonName());
+      });
+
       test('Service message type should be application/vnd.awala.ping-v1.pong', () => {
         expect(ServiceMessage.prototype.serialize).toBeCalledTimes(1);
         const serviceMessage = getMockContext(ServiceMessage.prototype.serialize).instances[0];
@@ -219,12 +225,6 @@ describe('PingProcessor', () => {
         expect(ServiceMessage.prototype.serialize).toBeCalledTimes(1);
         const serviceMessage = getMockContext(ServiceMessage.prototype.serialize).instances[0];
         expect(serviceMessage.content.toString()).toEqual(pingId);
-      });
-
-      test('Parcel payload should be encrypted with recipient certificate', () => {
-        expect(SessionlessEnvelopedData.encrypt).toBeCalledTimes(1);
-        const encryptCall = getMockContext(SessionlessEnvelopedData.encrypt).calls[0];
-        expect(encryptCall[1].getCommonName()).toEqual(pingSenderCertificate.getCommonName());
       });
 
       test('Parcel should be delivered to the specified gateway', () => {
