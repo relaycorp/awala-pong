@@ -29,7 +29,7 @@
     "@relaycorp/relaynet-testing": "^1.3.0",
     "@relaycorp/shared-config": "^1.5.0",
     "@semantic-release/exec": "^5.0.0",
-    "@types/binary-parser": "^1.5.0",
+    "@types/binary-parser": "^1.5.1",
     "@types/bull": "^3.15.2",
     "@types/jest": "^26.0.23",
     "@types/pino": "^6.3.8",
