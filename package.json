@@ -30,7 +30,7 @@
     "@relaycorp/shared-config": "^1.5.3",
     "@semantic-release/exec": "^5.0.0",
     "@types/binary-parser": "^1.5.1",
-    "@types/bull": "^3.15.2",
+    "@types/bull": "^3.15.4",
     "@types/jest": "^26.0.24",
     "@types/pino": "^6.3.9",
     "@types/pkijs": "0.0.10",
