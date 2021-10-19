@@ -15,7 +15,7 @@ import { addDays, differenceInSeconds, subMinutes } from 'date-fns';
 import pino = require('pino');
 
 import { deserializePing, Ping } from '../pingSerialization';
-import { base64Decode } from '../utils';
+import { base64Decode } from '../utilities/base64';
 import { QueuedPing } from './QueuedPing';
 
 const logger = pino();

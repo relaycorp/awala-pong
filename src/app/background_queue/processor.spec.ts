@@ -31,7 +31,7 @@ import {
   getMockInstance,
 } from '../_test_utils';
 import * as pingSerialization from '../pingSerialization';
-import { base64Encode } from '../utils';
+import { base64Encode } from '../utilities/base64';
 import { QueuedPing } from './QueuedPing';
 
 const mockPino = { info: jest.fn() };

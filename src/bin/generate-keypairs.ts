@@ -13,7 +13,7 @@ import bufferToArray from 'buffer-to-arraybuffer';
 import { get as getEnvVar } from 'env-var';
 import { initVaultKeyStore } from '../app/backingServices/vault';
 
-import { base64Encode } from '../app/utils';
+import { base64Encode } from '../app/utilities/base64';
 
 const NODE_CERTIFICATE_TTL_DAYS = 180;
 const SESSION_CERTIFICATE_TTL_DAYS = 60;

@@ -9,7 +9,7 @@ import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 import { configureMockEnvVars, generatePingParcel } from '../_test_utils';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
-import { base64Encode } from '../utils';
+import { base64Encode } from '../utilities/base64';
 import { ENV_VARS, PUBLIC_ENDPOINT_ADDRESS } from './_test_utils';
 import { makeServer } from './server';
 

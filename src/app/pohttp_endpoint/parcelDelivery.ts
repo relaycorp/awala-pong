@@ -5,7 +5,7 @@ import { FastifyInstance, FastifyReply } from 'fastify';
 
 import { initQueue } from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
-import { base64Encode } from '../utils';
+import { base64Encode } from '../utilities/base64';
 import RouteOptions from './RouteOptions';
 
 export default async function registerRoutes(
