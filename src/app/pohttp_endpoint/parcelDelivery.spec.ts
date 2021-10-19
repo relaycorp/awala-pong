@@ -6,7 +6,8 @@ import {
 } from '@relaycorp/relaynet-testing';
 import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
-import { configureMockEnvVars, generatePingParcel } from '../_test_utils';
+import { generatePingParcel } from '../../testUtils/awala';
+import { configureMockEnvVars } from '../../testUtils/envVars';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utilities/base64';

@@ -23,13 +23,9 @@ import {
 import { Job } from 'bull';
 import { addDays, subMinutes, subSeconds } from 'date-fns';
 
-import {
-  expectBuffersToEqual,
-  generatePingServiceMessage,
-  generateStubNodeCertificate,
-  getMockContext,
-  getMockInstance,
-} from '../_test_utils';
+import { generatePingServiceMessage, generateStubNodeCertificate } from '../../testUtils/awala';
+import { expectBuffersToEqual } from '../../testUtils/buffers';
+import { getMockContext, getMockInstance } from '../../testUtils/jest';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utilities/base64';
 import { QueuedPing } from './QueuedPing';

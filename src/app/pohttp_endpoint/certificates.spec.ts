@@ -3,7 +3,8 @@ import { generateNodeKeyPairSet, generatePDACertificationPath } from '@relaycorp
 import bufferToArray from 'buffer-to-arraybuffer';
 import { FastifyInstance, HTTPInjectOptions } from 'fastify';
 
-import { configureMockEnvVars, mockSpy } from '../_test_utils';
+import { configureMockEnvVars } from '../../testUtils/envVars';
+import { mockSpy } from '../../testUtils/jest';
 import * as vault from '../backingServices/vault';
 import { ENDPOINT_KEY_ID_BASE64, ENV_VARS } from './_test_utils';
 import { makeServer } from './server';

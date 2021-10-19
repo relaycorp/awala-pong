@@ -32,6 +32,7 @@ module.exports = {
     "_test_utils\.[tj]s",
     "/functional_tests",
     "/types",
+    "/testUtils",
     "/index\.ts",
   ],
 

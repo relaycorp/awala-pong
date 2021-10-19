@@ -1,5 +1,7 @@
 import { EnvVarError } from 'env-var';
-import { configureMockEnvVars, getMockContext } from '../_test_utils';
+
+import { configureMockEnvVars } from '../../testUtils/envVars';
+import { getMockContext } from '../../testUtils/jest';
 import * as server from './server';
 
 import fastify = require('fastify');
