@@ -8,3 +8,11 @@ data:
   POHTTP_TLS_REQUIRED: '{{ .Values.pohttp_tls_required }}'
   VAULT_URL: "http://{{ .Values.vault.host }}:{{ .Values.vault.port }}"
   VAULT_KV_PREFIX: {{ .Values.vault.session_keys_mount_path | quote }}
+
+  LOG_LEVEL: {{ .Values.logging.level | quote }}
+  {{- if .Values.logging.target }}
+  LOG_TARGET: {{ .Values.logging.target }}
+  {{- end }}
+  {{- if .Values.logging.envName }}
+  LOG_ENV_NAME: {{ .Values.logging.envName }}
+  {{- end }}

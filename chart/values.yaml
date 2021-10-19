@@ -15,6 +15,9 @@ image:
 tags:
   dev: false
 
+logging:
+  level: info
+
 podSecurityContext: {}
   # fsGroup: 2000
 

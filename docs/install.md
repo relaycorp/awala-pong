@@ -22,7 +22,9 @@ Check out [`relaycorp/relaynet-pong-chart`](https://github.com/relaycorp/relayne
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `nameOverride` | string | | A custom name for the release, to override the one passed to Helm |
-| `podSecurityContext` | object | `{}` | A custom `securityContext` to be attached to the pods |
+| `logging.level` | string | `info` | The minimum log level. |
+| `logging.target` | string | | Any target supported by [@relaycorp/pino-cloud](https://www.npmjs.com/package/@relaycorp/pino-cloud); e.g., `gcp`. |
+| `logging.envName` | string | `awala-pong` | A unique name for this instance of the app. Used by the `gcp` target as the _service name_ when pushing errors to Google Error Reporting, for example. || `podSecurityContext` | object | `{}` | A custom `securityContext` to be attached to the pods |
 | `securityContext` | object | `{}` | A custom `securityContext` to be attached to the deployments |
 | `resources` | object | `{}` | A custom name `resources` to be attached to the containers |
 | `service.type` | string | `ClusterIP` | The service type for the PoHTTP endpoint |
