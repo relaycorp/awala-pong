@@ -5,6 +5,7 @@ import { FastifyInstance, HTTPInjectOptions } from 'fastify';
 
 import { configureMockEnvVars } from '../../testUtils/envVars';
 import { mockSpy } from '../../testUtils/jest';
+import { makeMockLogging } from '../../testUtils/logging';
 import * as vault from '../backingServices/vault';
 import { ENDPOINT_KEY_ID_BASE64, ENV_VARS } from './_test_utils';
 import { makeServer } from './server';
@@ -32,7 +33,8 @@ beforeEach(async () => {
 
 let serverInstance: FastifyInstance;
 beforeEach(async () => {
-  serverInstance = await makeServer();
+  const mockLogging = makeMockLogging();
+  serverInstance = await makeServer(mockLogging.logger);
 });
 
 describe('identity certificate retrieval', () => {

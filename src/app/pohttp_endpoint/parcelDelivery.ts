@@ -84,7 +84,7 @@ export default async function registerRoutes(
       try {
         await pongQueue.add(queueMessage);
       } catch (error) {
-        request.log.error('Failed to queue ping message', { err: error });
+        request.log.error({ err: error }, 'Failed to queue ping message');
         return reply.code(500).send({ message: 'Could not queue ping message for processing' });
       }
       return reply.code(202).send({});
