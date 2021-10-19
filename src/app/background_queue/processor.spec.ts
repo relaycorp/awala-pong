@@ -26,12 +26,10 @@ import { addDays, subMinutes, subSeconds } from 'date-fns';
 import { generatePingServiceMessage, generateStubNodeCertificate } from '../../testUtils/awala';
 import { expectBuffersToEqual } from '../../testUtils/buffers';
 import { getMockContext, getMockInstance } from '../../testUtils/jest';
+import { makeMockLogging, MockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utilities/base64';
 import { QueuedPing } from './QueuedPing';
-
-const mockPino = { info: jest.fn() };
-jest.mock('pino', () => jest.fn().mockImplementation(() => mockPino));
 
 jest.mock('@relaycorp/relaynet-pohttp', () => {
   const actualPohttp = jest.requireActual('@relaycorp/relaynet-pohttp');
@@ -45,6 +43,11 @@ import { PingProcessor } from './processor';
 
 beforeEach(() => {
   getMockInstance(pohttp.deliverParcel).mockRestore();
+});
+
+let mockLogging: MockLogging;
+beforeEach(() => {
+  mockLogging = makeMockLogging();
 });
 
 afterAll(jest.restoreAllMocks);
@@ -91,6 +94,7 @@ describe('PingProcessor', () => {
       processor = new PingProcessor(
         pingRecipientCertificate.getSerialNumber(),
         mockPrivateKeyStore as any,
+        mockLogging.logger,
       );
     });
 
@@ -109,7 +113,7 @@ describe('PingProcessor', () => {
     });
 
     test('Failing to deserialize the ciphertext should be logged', async () => {
-      const error = new Error('Nope');
+      const error = new Error('Failed to deserialise');
       jest.spyOn(EnvelopedData, 'deserialize').mockImplementationOnce(() => {
         throw error;
       });
@@ -117,14 +121,16 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith(
-        { err: error, jobId: job.id },
-        'Invalid service message',
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Invalid service message', {
+          err: expect.objectContaining({ message: error.message }),
+          jobId: job.id,
+        }),
       );
     });
 
     test('Failing to unwrap the service message should be logged', async () => {
-      const error = new Error('Nope');
+      const error = new Error('Failed to unwrap');
       jest.spyOn(Parcel.prototype, 'unwrapPayload').mockImplementationOnce(() => {
         throw error;
       });
@@ -132,9 +138,11 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith(
-        { err: error, jobId: job.id },
-        'Invalid service message',
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Invalid service message', {
+          err: expect.objectContaining({ message: error.message }),
+          jobId: job.id,
+        }),
       );
     });
 
@@ -151,9 +159,8 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith(
-        { jobId: job.id, messageType },
-        'Invalid service message type',
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Invalid service message type', { messageType, jobId: job.id }),
       );
       expect(pohttp.deliverParcel).not.toBeCalled();
     });
@@ -167,7 +174,12 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith({ err: error, jobId: job.id }, 'Invalid ping message');
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Invalid ping message', {
+          err: expect.objectContaining({ message: error.message }),
+          jobId: job.id,
+        }),
+      );
     });
 
     describe('Successful pong delivery', () => {
@@ -242,9 +254,10 @@ describe('PingProcessor', () => {
       });
 
       test('Successful delivery should be logged', () => {
-        expect(mockPino.info).toBeCalledWith(
-          { publicGatewayAddress: stubGatewayAddress },
-          'Successfully delivered pong parcel',
+        expect(mockLogging.logs).toContainEqual(
+          partialPinoLog('info', 'Successfully delivered pong parcel', {
+            publicGatewayAddress: stubGatewayAddress,
+          }),
         );
       });
     });
@@ -259,9 +272,10 @@ describe('PingProcessor', () => {
 
       await expect(processor.deliverPongForPing(await initJob())).toResolve();
 
-      expect(mockPino.info).toBeCalledWith(
-        { err: error },
-        'Discarding pong delivery because server refused parcel',
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Discarding pong delivery because server refused parcel', {
+          err: expect.objectContaining({ message: error.message }),
+        }),
       );
     });
 
@@ -355,9 +369,14 @@ describe('PingProcessor', () => {
         jest.spyOn(SessionEnvelopedData.prototype, 'getOriginatorKey').mockRejectedValueOnce(err);
 
         await processor.deliverPongForPing(stubJob);
-        expect(mockPino.info).toBeCalledTimes(1);
 
-        expect(mockPino.info).toBeCalledWith({ err, jobId: stubJob.id }, 'Invalid service message');
+        expect(mockLogging.logs).toContainEqual(
+          partialPinoLog('info', 'Invalid service message', {
+            err: expect.objectContaining({ message: err.message }),
+
+            jobId: stubJob.id,
+          }),
+        );
       });
 
       test('Use of unknown public key ids should be gracefully logged', async () => {
@@ -366,10 +385,11 @@ describe('PingProcessor', () => {
 
         await processor.deliverPongForPing(stubJob);
 
-        expect(mockPino.info).toBeCalledTimes(1);
-        expect(mockPino.info).toBeCalledWith(
-          { err: expect.any(UnknownKeyError), jobId: stubJob.id },
-          'Invalid service message',
+        expect(mockLogging.logs).toContainEqual(
+          partialPinoLog('info', 'Invalid service message', {
+            err: expect.objectContaining({ type: UnknownKeyError.name }),
+            jobId: stubJob.id,
+          }),
         );
       });
     });
