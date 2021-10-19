@@ -6,18 +6,22 @@ import {
 } from '@relaycorp/relaynet-testing';
 import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
-import { configureMockEnvVars, generatePingParcel } from '../_test_utils';
+import { generatePingParcel } from '../../testUtils/awala';
+import { configureMockEnvVars } from '../../testUtils/envVars';
+import { makeMockLogging, MockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
-import { base64Encode } from '../utils';
+import { base64Encode } from '../utilities/base64';
 import { ENV_VARS, PUBLIC_ENDPOINT_ADDRESS } from './_test_utils';
 import { makeServer } from './server';
 
 const mockEnvVars = configureMockEnvVars(ENV_VARS);
 
+let mockLogging: MockLogging;
 let serverInstance: FastifyInstance;
-beforeAll(async () => {
-  serverInstance = await makeServer();
+beforeEach(async () => {
+  mockLogging = makeMockLogging();
+  serverInstance = await makeServer(mockLogging.logger);
 });
 
 const validRequestOptions: HTTPInjectOptions = {
@@ -241,8 +245,11 @@ describe('receiveParcel', () => {
         message: 'Could not queue ping message for processing',
       });
 
-      // TODO: Find a way to spy on the error logger
-      // expect(pinoErrorLogSpy).toBeCalledWith('Failed to queue ping message', { err: error });
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('error', 'Failed to queue ping message', {
+          err: expect.objectContaining({ message: error.message }),
+        }),
+      );
     });
   });
 
