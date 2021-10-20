@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: {{ include "..fullname" . }}-generated
   annotations:
-    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook": "pre-install"
     "helm.sh/hook-weight": "-5"
   labels:
     {{- include "..labels" . | nindent 4 }}
