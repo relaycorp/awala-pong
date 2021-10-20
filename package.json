@@ -71,7 +71,7 @@
   "dependencies": {
     "@relaycorp/keystore-vault": "^1.2.6",
     "@relaycorp/pino-cloud": "^1.0.4",
-    "@relaycorp/relaynet-core": "^1.49.3",
+    "@relaycorp/relaynet-core": "^1.49.4",
     "@relaycorp/relaynet-pohttp": "^1.7.7",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^3.23.0",
