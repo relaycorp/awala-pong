@@ -21,8 +21,8 @@ import bufferToArray from 'buffer-to-arraybuffer';
 import { get as getEnvVar } from 'env-var';
 import { logDiffOn501, Route, Stubborn } from 'stubborn-ws';
 
-import { generatePingParcel, generateStubNodeCertificate } from '../app/_test_utils';
 import { serializePing } from '../app/pingSerialization';
+import { generatePingParcel, generateStubNodeCertificate } from '../testUtils/awala';
 
 const GATEWAY_PORT = 4000;
 const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;

@@ -3,6 +3,16 @@ kind: ConfigMap
 metadata:
   name: {{ include "..fullname" . }}
 data:
+  APP_VERSION: {{ .Chart.Version }}
+
+  LOG_LEVEL: {{ .Values.logging.level | quote }}
+  {{- if .Values.logging.target }}
+  LOG_TARGET: {{ .Values.logging.target }}
+  {{- end }}
+  {{- if .Values.logging.envName }}
+  LOG_ENV_NAME: {{ .Values.logging.envName }}
+  {{- end }}
+
   REDIS_HOST: {{ .Values.redis.host }}
   REDIS_PORT: '{{ .Values.redis.port }}'
   POHTTP_TLS_REQUIRED: '{{ .Values.pohttp_tls_required }}'

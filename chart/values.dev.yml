@@ -1,6 +1,9 @@
 tags:
   dev: true
 
+logging:
+  level: debug
+
 public_endpoint_address: endpoint.local
 
 redis:

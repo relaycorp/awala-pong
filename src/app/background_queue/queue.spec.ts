@@ -1,4 +1,4 @@
-import { configureMockEnvVars } from '../_test_utils';
+import { configureMockEnvVars } from '../../testUtils/envVars';
 import { initQueue } from './queue';
 
 describe('initQueue', () => {
