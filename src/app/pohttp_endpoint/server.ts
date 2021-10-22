@@ -1,6 +1,8 @@
 import { get as getEnvVar } from 'env-var';
 import { FastifyInstance } from 'fastify';
+import { Logger } from 'pino';
 
+import { makeLogger } from '../utilities/logging';
 import certificateRoutes from './certificates';
 import parcelDeliveryRoutes from './parcelDelivery';
 
@@ -18,9 +20,9 @@ const SERVER_HOST = '0.0.0.0';
  *
  * This function doesn't call .listen() so we can use .inject() for testing purposes.
  */
-export async function makeServer(): Promise<FastifyInstance> {
+export async function makeServer(logger: Logger): Promise<FastifyInstance> {
   const server = fastify({
-    logger: true,
+    logger,
     requestIdHeader: getEnvVar('PONG_REQUEST_ID_HEADER')
       .default(DEFAULT_REQUEST_ID_HEADER)
       .asString(),
@@ -43,7 +45,7 @@ export async function makeServer(): Promise<FastifyInstance> {
 }
 
 export async function runServer(): Promise<void> {
-  const server = await makeServer();
+  const server = await makeServer(makeLogger());
 
   await server.listen({ host: SERVER_HOST, port: SERVER_PORT });
 }

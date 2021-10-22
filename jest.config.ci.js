@@ -6,6 +6,7 @@ module.exports = Object.assign({}, mainJestConfig, {
   preset: null,
   roots: ['build/main'],
   testPathIgnorePatterns: [
-    "build/main/functional_tests"
+    "build/main/functional_tests",
+    "build/main/testUtils",
   ],
 });
