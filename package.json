@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@relaycorp/relaynet-testing": "^1.3.0",
-    "@relaycorp/shared-config": "^1.5.3",
+    "@relaycorp/shared-config": "^1.6.0",
     "@semantic-release/exec": "^5.0.0",
     "@types/binary-parser": "^1.5.1",
     "@types/bull": "^3.15.2",
@@ -71,8 +71,8 @@
   "dependencies": {
     "@relaycorp/keystore-vault": "^1.2.6",
     "@relaycorp/pino-cloud": "^1.0.4",
-    "@relaycorp/relaynet-core": "^1.49.3",
-    "@relaycorp/relaynet-pohttp": "^1.7.6",
+    "@relaycorp/relaynet-core": "^1.49.4",
+    "@relaycorp/relaynet-pohttp": "^1.7.7",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^3.23.0",
     "date-fns": "^2.22.1",
