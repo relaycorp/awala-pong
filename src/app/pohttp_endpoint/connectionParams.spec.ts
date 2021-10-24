@@ -73,7 +73,7 @@ beforeEach(async () => {
   serverInstance = await makeServer(mockLogging.logger);
 });
 
-describe('GET /connection-params.der', () => {
+describe('GET', () => {
   const requestOpts: HTTPInjectOptions = {
     method: 'GET',
     url: '/connection-params.der',
