@@ -12,6 +12,7 @@ import { configureMockEnvVars } from '../../testUtils/envVars';
 import { mockSpy } from '../../testUtils/jest';
 import { makeMockLogging } from '../../testUtils/logging';
 import * as vault from '../backingServices/vault';
+import { CONTENT_TYPES } from '../utilities/http';
 import { ENDPOINT_KEY_ID_BASE64, ENV_VARS } from './_test_utils';
 import { makeServer } from './server';
 
@@ -67,7 +68,7 @@ describe('identity certificate retrieval', () => {
   test('Response content type should be application/vnd.etsi.tsl.der', async () => {
     const response = await serverInstance.inject(requestOpts);
 
-    expect(response.headers).toHaveProperty('content-type', 'application/vnd.etsi.tsl.der');
+    expect(response.headers).toHaveProperty('content-type', CONTENT_TYPES.DER);
   });
 
   test('Failure to retrieve certificate should be handled gracefully', async () => {

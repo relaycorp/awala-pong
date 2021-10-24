@@ -4,6 +4,7 @@ import { Logger } from 'pino';
 
 import { makeLogger } from '../utilities/logging';
 import certificateRoutes from './certificates';
+import connectionParamsRoutes from './connectionParams';
 import parcelDeliveryRoutes from './parcelDelivery';
 
 // I wish I could just do `import * as fastify from 'fastify'` or `import fastify from 'fastify'`
@@ -31,6 +32,7 @@ export async function makeServer(logger: Logger): Promise<FastifyInstance> {
   server.register(fastifyUrlData);
 
   const publicEndpointAddress = getEnvVar('PUBLIC_ENDPOINT_ADDRESS').required().asString();
+  server.register(connectionParamsRoutes, { publicEndpointAddress } as any);
   server.register(certificateRoutes, { publicEndpointAddress } as any);
   server.register(parcelDeliveryRoutes, { publicEndpointAddress } as any);
 
