@@ -24,6 +24,8 @@ import {
 } from './_test_utils';
 import { makeServer } from './server';
 
+jest.mock('../background_queue/queue');
+
 configureMockEnvVars(ENV_VARS);
 
 const mockPrivateKeyStore = new MockPrivateKeyStore();
