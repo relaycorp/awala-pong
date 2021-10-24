@@ -4,10 +4,10 @@ import {
   EnvelopedData,
   generateECDHKeyPair,
   issueEndpointCertificate,
-  issueInitialDHKeyCertificate,
   Parcel,
   ServiceMessage,
   SessionEnvelopedData,
+  SessionKey,
 } from '@relaycorp/relaynet-core';
 import { deliverParcel } from '@relaycorp/relaynet-pohttp';
 import {
@@ -31,11 +31,12 @@ const PONG_PUBLIC_ADDRESS = 'endpoint.local';
 const PONG_SERVICE_URL = 'http://app:8080/';
 
 const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
+const PONG_ENDPOINT_SESSION_KEY_ID_BASE64 = getEnvVar('ENDPOINT_SESSION_KEY_ID')
+  .required()
+  .asString();
+const PONG_ENDPOINT_SESSION_KEY_ID = Buffer.from(PONG_ENDPOINT_SESSION_KEY_ID_BASE64, 'base64');
 
 const privateKeyStore = new VaultPrivateKeyStore('http://vault:8200', 'root', 'pong-keys');
-
-const TOMORROW = new Date();
-TOMORROW.setDate(TOMORROW.getDate() + 1);
 
 describe('End-to-end test for successful delivery of ping and pong messages', () => {
   const mockGatewayServer = new Stubborn({ host: '0.0.0.0' });
@@ -60,10 +61,12 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     keyPairSet = await generateNodeKeyPairSet();
     certificatePath = await generatePDACertificationPath(keyPairSet);
 
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
     pongEndpointCertificate = await issueEndpointCertificate({
       issuerPrivateKey: keyPairSet.pdaGrantee.privateKey,
       subjectPublicKey: keyPairSet.pdaGrantee.publicKey,
-      validityEndDate: TOMORROW,
+      validityEndDate: tomorrow,
     });
     // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
     // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
@@ -95,20 +98,15 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
 
   test('Ping pong with channel session protocol', async () => {
     const endpointInitialSessionKeyPair = await generateECDHKeyPair();
-    const endpointInitialSessionCertificate = await issueInitialDHKeyCertificate({
-      issuerCertificate: pongEndpointCertificate,
-      issuerPrivateKey: keyPairSet.pdaGrantee.privateKey,
-      subjectPublicKey: endpointInitialSessionKeyPair.publicKey,
-      validityEndDate: TOMORROW,
-    });
     await privateKeyStore.saveInitialSessionKey(
       endpointInitialSessionKeyPair.privateKey,
-      endpointInitialSessionCertificate,
+      PONG_ENDPOINT_SESSION_KEY_ID,
     );
 
-    const { pingParcelSerialized, dhPrivateKey } = await generateSessionPingParcel(
-      endpointInitialSessionCertificate,
-    );
+    const { pingParcelSerialized, dhPrivateKey } = await generateSessionPingParcel({
+      keyId: PONG_ENDPOINT_SESSION_KEY_ID,
+      publicKey: endpointInitialSessionKeyPair.publicKey,
+    });
 
     await deliverParcel(PONG_SERVICE_URL, pingParcelSerialized, {
       gatewayAddress: GATEWAY_ADDRESS,
@@ -117,7 +115,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     await validatePongDelivery(dhPrivateKey);
   });
 
-  async function generateSessionPingParcel(initialDhCertificate: Certificate): Promise<{
+  async function generateSessionPingParcel(initialSessionKey: SessionKey): Promise<{
     readonly pingParcelSerialized: Buffer;
     readonly dhPrivateKey: CryptoKey;
   }> {
@@ -132,7 +130,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
     const { dhPrivateKey, envelopedData } = await SessionEnvelopedData.encrypt(
       serviceMessage.serialize(),
-      initialDhCertificate,
+      initialSessionKey,
     );
     const parcel = new Parcel(
       `https://${PONG_PUBLIC_ADDRESS}`,

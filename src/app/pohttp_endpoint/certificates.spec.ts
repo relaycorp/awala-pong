@@ -1,6 +1,11 @@
-import { Certificate, MockPrivateKeyStore } from '@relaycorp/relaynet-core';
-import { generateNodeKeyPairSet, generatePDACertificationPath } from '@relaycorp/relaynet-testing';
+import {
+  Certificate,
+  generateRSAKeyPair,
+  issueEndpointCertificate,
+  MockPrivateKeyStore,
+} from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
+import { addDays } from 'date-fns';
 import { FastifyInstance, HTTPInjectOptions } from 'fastify';
 
 import { configureMockEnvVars } from '../../testUtils/envVars';
@@ -19,16 +24,19 @@ mockSpy(jest.spyOn(vault, 'initVaultKeyStore'), () => mockPrivateKeyStore);
 
 let identityCertificate: Certificate;
 beforeEach(async () => {
-  const keyPairSet = await generateNodeKeyPairSet();
-  const certPath = await generatePDACertificationPath(keyPairSet);
-  identityCertificate = certPath.pdaGrantee;
+  const identityKeyPair = await generateRSAKeyPair();
+  identityCertificate = await issueEndpointCertificate({
+    issuerPrivateKey: identityKeyPair.privateKey,
+    subjectPublicKey: identityKeyPair.publicKey,
+    validityEndDate: addDays(new Date(), 1),
+  });
   const endpointKeyId = Buffer.from(ENDPOINT_KEY_ID_BASE64, 'base64');
   // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
   // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
   // tslint:disable-next-line:no-object-mutation
   (identityCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex =
     bufferToArray(endpointKeyId);
-  await mockPrivateKeyStore.registerNodeKey(keyPairSet.pdaGrantee.privateKey, identityCertificate);
+  await mockPrivateKeyStore.registerNodeKey(identityKeyPair.privateKey, identityCertificate);
 });
 
 let serverInstance: FastifyInstance;
