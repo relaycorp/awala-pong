@@ -1,10 +1,10 @@
 import { Certificate } from '@relaycorp/relaynet-core';
 import { get as getEnvVar } from 'env-var';
 import { FastifyInstance, FastifyReply } from 'fastify';
-import { initVaultKeyStore } from '../backingServices/vault';
-import RouteOptions from './RouteOptions';
 
-const DER_CONTENT_TYPE = 'application/vnd.etsi.tsl.der';
+import { initVaultKeyStore } from '../backingServices/vault';
+import { CONTENT_TYPES } from '../utilities/http';
+import RouteOptions from './RouteOptions';
 
 export default async function registerRoutes(
   fastify: FastifyInstance,
@@ -22,7 +22,7 @@ export default async function registerRoutes(
       let identityCertificate: Certificate;
       identityCertificate = (await privateKeyStore.fetchNodeKey(endpointKeyId)).certificate;
       const certificateSerialized = Buffer.from(identityCertificate.serialize());
-      return reply.type(DER_CONTENT_TYPE).send(certificateSerialized);
+      return reply.type(CONTENT_TYPES.DER).send(certificateSerialized);
     },
   });
 }
