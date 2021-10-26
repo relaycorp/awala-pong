@@ -1,9 +1,9 @@
-FROM node:16.12.0 as build
+FROM node:12.22.7 as build
 WORKDIR /tmp/pong-dev
 COPY package.json package-lock.json tsconfig.json ./
 RUN npm install
 
-FROM node:16.12.0-slim
+FROM node:12.22.7-slim
 WORKDIR /opt/pong-dev
 COPY --from=build /tmp/pong-dev ./
 ENV PATH="/opt/pong-dev/node_modules/.bin:${PATH}"
