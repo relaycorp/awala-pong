@@ -45,7 +45,7 @@
     "stubborn-ws": "^5.5.0",
     "trash-cli": "^1.4.0",
     "ts-jest": "^24.3.0",
-    "ts-node": "^10.3.0",
+    "ts-node": "^10.4.0",
     "ts-node-dev": "^1.1.8",
     "tslint": "^5.20.1",
     "typescript": "^3.9.10"
@@ -71,7 +71,7 @@
   "dependencies": {
     "@relaycorp/keystore-vault": "^1.2.8",
     "@relaycorp/pino-cloud": "^1.0.4",
-    "@relaycorp/relaynet-core": "^1.49.7",
+    "@relaycorp/relaynet-core": "^1.50.0",
     "@relaycorp/relaynet-pohttp": "^1.7.7",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^3.23.0",
