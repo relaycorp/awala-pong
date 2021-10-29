@@ -114,7 +114,7 @@ export class PingProcessor {
       await this.privateKeyStore.saveSubsequentSessionKey(
         encryptionResult.dhPrivateKey,
         Buffer.from(encryptionResult.dhKeyId),
-        recipientCertificate,
+        await recipientCertificate.calculateSubjectPrivateAddress(),
       );
     }
     return Buffer.from(pongParcelPayload.serialize());
