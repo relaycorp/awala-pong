@@ -10,6 +10,7 @@ import {
   SessionEnvelopedData,
   SessionKey,
   SessionlessEnvelopedData,
+  SubsequentSessionPrivateKeyData,
   UnknownKeyError,
 } from '@relaycorp/relaynet-core';
 import * as pohttp from '@relaycorp/relaynet-pohttp';
@@ -348,9 +349,11 @@ describe('PingProcessor', () => {
         const encryptCallResult = await encryptSpy.mock.results[0].value;
         const keyId = Buffer.from(encryptCallResult.dhKeyId);
         expect(mockPrivateKeyStore.keys).toHaveProperty(keyId.toString('hex'));
-        expect(mockPrivateKeyStore.keys[keyId.toString('hex')]).toEqual({
+        expect(
+          mockPrivateKeyStore.keys[keyId.toString('hex')],
+        ).toEqual<SubsequentSessionPrivateKeyData>({
           keyDer: await derSerializePrivateKey(encryptCallResult.dhPrivateKey),
-          recipientPublicKeyDigest: expect.anything(),
+          peerPrivateAddress: await pingSenderCertificate.calculateSubjectPrivateAddress(),
           type: 'session-subsequent',
         });
       });
