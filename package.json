@@ -43,7 +43,7 @@
     "prettier": "^2.4.1",
     "split2": "^4.1.0",
     "stubborn-ws": "^5.5.0",
-    "trash-cli": "^1.4.0",
+    "trash-cli": "^4.0.0",
     "ts-jest": "^24.3.0",
     "ts-node": "^10.4.0",
     "ts-node-dev": "^1.1.8",
