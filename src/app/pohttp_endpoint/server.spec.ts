@@ -1,5 +1,9 @@
 import { EnvVarError } from 'env-var';
-import { configureMockEnvVars, getMockContext } from '../_test_utils';
+
+import { configureMockEnvVars } from '../../testUtils/envVars';
+import { getMockContext, mockSpy } from '../../testUtils/jest';
+import { makeMockLogging, MockLogging } from '../../testUtils/logging';
+import * as logging from '../utilities/logging';
 import * as server from './server';
 
 import fastify = require('fastify');
@@ -16,6 +20,11 @@ const mockFastify = {
 };
 jest.mock('fastify', () => jest.fn().mockImplementation(() => mockFastify));
 
+let mockLogging: MockLogging;
+beforeEach(() => {
+  mockLogging = makeMockLogging();
+});
+
 afterAll(() => {
   jest.restoreAllMocks();
 });
@@ -24,18 +33,21 @@ describe('makeServer', () => {
   test('Public endpoint address should be required', async () => {
     mockEnvVars({});
 
-    await expect(server.makeServer()).rejects.toBeInstanceOf(EnvVarError);
+    await expect(server.makeServer(mockLogging.logger)).rejects.toBeInstanceOf(EnvVarError);
   });
 
-  test('Logger should be enabled', async () => {
-    await server.makeServer();
+  test('Specified logger should be used', async () => {
+    await server.makeServer(mockLogging.logger);
 
-    const fastifyCallArgs = getMockContext(fastify).calls[0];
-    expect(fastifyCallArgs[0]).toHaveProperty('logger', true);
+    expect(fastify).toBeCalledWith(
+      expect.objectContaining({
+        logger: mockLogging.logger,
+      }),
+    );
   });
 
   test('X-Request-Id should be the default request id header', async () => {
-    await server.makeServer();
+    await server.makeServer(mockLogging.logger);
 
     const fastifyCallArgs = getMockContext(fastify).calls[0];
     expect(fastifyCallArgs[0]).toHaveProperty('requestIdHeader', 'X-Request-Id');
@@ -45,14 +57,14 @@ describe('makeServer', () => {
     const requestIdHeader = 'X-Id';
     mockEnvVars({ ...envVars, PONG_REQUEST_ID_HEADER: requestIdHeader });
 
-    await server.makeServer();
+    await server.makeServer(mockLogging.logger);
 
     const fastifyCallArgs = getMockContext(fastify).calls[0];
     expect(fastifyCallArgs[0]).toHaveProperty('requestIdHeader', requestIdHeader);
   });
 
   test('Content-Type application/vnd.awala.parcel should be supported', async () => {
-    await server.makeServer();
+    await server.makeServer(mockLogging.logger);
 
     expect(mockFastify.addContentTypeParser).toBeCalledTimes(1);
     const addContentTypeParserCallArgs = getMockContext(mockFastify.addContentTypeParser).calls[0];
@@ -66,13 +78,13 @@ describe('makeServer', () => {
   });
 
   test('fastify-url-data should be registered', async () => {
-    await server.makeServer();
+    await server.makeServer(mockLogging.logger);
 
     expect(mockFastify.register).toBeCalledWith(require('fastify-url-data'));
   });
 
   test('Routes should be loaded', async () => {
-    await server.makeServer();
+    await server.makeServer(mockLogging.logger);
 
     expect(mockFastify.register).toBeCalledWith(require('./parcelDelivery').default, {
       publicEndpointAddress,
@@ -80,22 +92,40 @@ describe('makeServer', () => {
     expect(mockFastify.register).toBeCalledWith(require('./certificates').default, {
       publicEndpointAddress,
     });
+    expect(mockFastify.register).toBeCalledWith(require('./connectionParams').default, {
+      publicEndpointAddress,
+    });
   });
 
   test('Fastify instance should be ready', async () => {
-    await server.makeServer();
+    await server.makeServer(mockLogging.logger);
 
     expect(mockFastify.ready).toBeCalledWith();
   });
 
   test('Server instance should be returned', async () => {
-    const serverInstance = await server.makeServer();
+    const serverInstance = await server.makeServer(mockLogging.logger);
 
     expect(serverInstance).toBe(mockFastify);
   });
 });
 
 describe('runServer', () => {
+  const mockMakeLogger = mockSpy(jest.spyOn(logging, 'makeLogger'), () => mockLogging.logger);
+
+  test('New logger should be used', async () => {
+    expect(mockMakeLogger).not.toBeCalled();
+
+    await server.runServer();
+
+    expect(mockMakeLogger).toBeCalledWith();
+    expect(fastify).toBeCalledWith(
+      expect.objectContaining({
+        logger: mockLogging.logger,
+      }),
+    );
+  });
+
   test('Server returned by server.makeServer() should be used', async () => {
     await server.runServer();
 

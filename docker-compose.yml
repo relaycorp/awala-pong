@@ -14,12 +14,16 @@ services:
     links:
       - redis
     environment:
+      APP_VERSION: ${APP_VERSION}
+
       REDIS_HOST: redis
 
       POHTTP_TLS_REQUIRED: 'false'
 
       PUBLIC_ENDPOINT_ADDRESS: ${PUBLIC_ENDPOINT_ADDRESS}
+
       ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}
+      ENDPOINT_SESSION_KEY_ID: ${ENDPOINT_SESSION_KEY_ID}
 
       VAULT_URL: ${VAULT_URL}
       VAULT_TOKEN: ${VAULT_TOKEN}
@@ -38,6 +42,8 @@ services:
       - redis
       - vault
     environment:
+      APP_VERSION: ${APP_VERSION}
+
       POHTTP_TLS_REQUIRED: 'false'
 
       REDIS_HOST: redis

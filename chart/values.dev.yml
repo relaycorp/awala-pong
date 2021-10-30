@@ -1,6 +1,9 @@
 tags:
   dev: true
 
+logging:
+  level: debug
+
 public_endpoint_address: endpoint.local
 
 redis:
@@ -18,3 +21,6 @@ vault:
   server:
     dev:
       enabled: true
+
+current_endpoint_key_id: MTM1NzkK
+current_endpoint_session_key_id: OTc1MzEK

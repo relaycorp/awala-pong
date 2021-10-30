@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "..labels" . | nindent 4 }}
   annotations:
-    "helm.sh/hook": post-install
+    "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "5"
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
@@ -36,6 +36,6 @@ spec:
               value: {{ .Values.vault.session_keys_mount_path }}
           envFrom:
             - configMapRef:
-                name: {{ include "..fullname" . }}-generated
+                name: {{ include "..fullname" . }}-endpoint-keys
             - secretRef:
                 name: {{ include "..fullname" . }}-vault

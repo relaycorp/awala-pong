@@ -5,7 +5,7 @@ import { FastifyInstance, FastifyReply } from 'fastify';
 
 import { initQueue } from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
-import { base64Encode } from '../utils';
+import { base64Encode } from '../utilities/base64';
 import RouteOptions from './RouteOptions';
 
 export default async function registerRoutes(
@@ -84,7 +84,7 @@ export default async function registerRoutes(
       try {
         await pongQueue.add(queueMessage);
       } catch (error) {
-        request.log.error('Failed to queue ping message', { err: error });
+        request.log.error({ err: error }, 'Failed to queue ping message');
         return reply.code(500).send({ message: 'Could not queue ping message for processing' });
       }
       return reply.code(202).send({});
