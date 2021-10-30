@@ -4,13 +4,13 @@ import {
   derSerializePublicKey,
   EnvelopedData,
   generateECDHKeyPair,
-  issueInitialDHKeyCertificate,
   MockPrivateKeyStore,
-  OriginatorSessionKey,
   Parcel,
   ServiceMessage,
   SessionEnvelopedData,
+  SessionKey,
   SessionlessEnvelopedData,
+  SubsequentSessionPrivateKeyData,
   UnknownKeyError,
 } from '@relaycorp/relaynet-core';
 import * as pohttp from '@relaycorp/relaynet-pohttp';
@@ -291,26 +291,18 @@ describe('PingProcessor', () => {
     });
 
     describe('Channel session', () => {
+      const recipientSessionKeyId1 = Buffer.from('recipient session key id');
+
       let recipientSessionKeyPair1: CryptoKeyPair;
-      let recipientSessionCert1: Certificate;
-      let stubSessionOriginatorKey: OriginatorSessionKey;
+      let stubSessionOriginatorKey: SessionKey;
       let stubSessionParcelPayload: Buffer;
       let stubJob: Job<QueuedPing>;
       beforeAll(async () => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
         recipientSessionKeyPair1 = await generateECDHKeyPair();
-        recipientSessionCert1 = await issueInitialDHKeyCertificate({
-          issuerCertificate: pingRecipientCertificate,
-          issuerPrivateKey: keyPairSet.pdaGrantee.privateKey,
-          subjectPublicKey: recipientSessionKeyPair1.publicKey,
-          validityEndDate: tomorrow,
+        const { envelopedData } = await SessionEnvelopedData.encrypt(serviceMessageSerialized, {
+          keyId: recipientSessionKeyId1,
+          publicKey: recipientSessionKeyPair1.publicKey,
         });
-
-        const { envelopedData } = await SessionEnvelopedData.encrypt(
-          serviceMessageSerialized,
-          recipientSessionCert1,
-        );
         stubSessionOriginatorKey = await envelopedData.getOriginatorKey();
         stubSessionParcelPayload = Buffer.from(envelopedData.serialize());
 
@@ -320,7 +312,7 @@ describe('PingProcessor', () => {
       beforeEach(async () => {
         await mockPrivateKeyStore.registerInitialSessionKey(
           recipientSessionKeyPair1.privateKey,
-          recipientSessionCert1,
+          recipientSessionKeyId1,
         );
       });
 
@@ -341,7 +333,7 @@ describe('PingProcessor', () => {
         expectBuffersToEqual(encryptCallArgs[0], expectedPongMessage.serialize());
 
         // Check public key used
-        const actualOriginatorKey = encryptCallArgs[1] as OriginatorSessionKey;
+        const actualOriginatorKey = encryptCallArgs[1] as SessionKey;
         expect(actualOriginatorKey).toHaveProperty('keyId', stubSessionOriginatorKey.keyId);
         expectBuffersToEqual(
           await derSerializePublicKey(actualOriginatorKey.publicKey),
@@ -357,9 +349,11 @@ describe('PingProcessor', () => {
         const encryptCallResult = await encryptSpy.mock.results[0].value;
         const keyId = Buffer.from(encryptCallResult.dhKeyId);
         expect(mockPrivateKeyStore.keys).toHaveProperty(keyId.toString('hex'));
-        expect(mockPrivateKeyStore.keys[keyId.toString('hex')]).toEqual({
+        expect(
+          mockPrivateKeyStore.keys[keyId.toString('hex')],
+        ).toEqual<SubsequentSessionPrivateKeyData>({
           keyDer: await derSerializePrivateKey(encryptCallResult.dhPrivateKey),
-          recipientPublicKeyDigest: expect.anything(),
+          peerPrivateAddress: await pingSenderCertificate.calculateSubjectPrivateAddress(),
           type: 'session-subsequent',
         });
       });
@@ -381,7 +375,7 @@ describe('PingProcessor', () => {
 
       test('Use of unknown public key ids should be gracefully logged', async () => {
         // tslint:disable-next-line:no-delete no-object-mutation
-        delete mockPrivateKeyStore.keys[recipientSessionCert1.getSerialNumberHex()];
+        delete mockPrivateKeyStore.keys[recipientSessionKeyId1.toString('hex')];
 
         await processor.deliverPongForPing(stubJob);
 
