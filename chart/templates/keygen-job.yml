@@ -36,6 +36,6 @@ spec:
               value: {{ .Values.vault.session_keys_mount_path }}
           envFrom:
             - configMapRef:
-                name: {{ include "..fullname" . }}-generated
+                name: {{ include "..fullname" . }}-endpoint-keys
             - secretRef:
                 name: {{ include "..fullname" . }}-vault

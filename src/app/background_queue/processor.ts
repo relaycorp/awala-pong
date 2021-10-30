@@ -1,10 +1,10 @@
 import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
-  OriginatorSessionKey,
   Parcel,
   ServiceMessage,
   SessionEnvelopedData,
+  SessionKey,
   SessionlessEnvelopedData,
   UnboundKeyPair,
 } from '@relaycorp/relaynet-core';
@@ -61,7 +61,7 @@ export class PingProcessor {
   protected async unwrapPing(
     pingParcel: Parcel,
     jobId: string | number,
-  ): Promise<{ readonly ping: Ping; readonly originatorKey?: OriginatorSessionKey } | undefined> {
+  ): Promise<{ readonly ping: Ping; readonly originatorKey?: SessionKey } | undefined> {
     let decryptionResult;
     try {
       decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore);
@@ -90,7 +90,7 @@ export class PingProcessor {
 
   protected async generatePongParcelPayload(
     pingId: string,
-    recipientCertificateOrSessionKey: Certificate | OriginatorSessionKey,
+    recipientCertificateOrSessionKey: Certificate | SessionKey,
     recipientCertificate: Certificate,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage(
@@ -114,7 +114,7 @@ export class PingProcessor {
       await this.privateKeyStore.saveSubsequentSessionKey(
         encryptionResult.dhPrivateKey,
         Buffer.from(encryptionResult.dhKeyId),
-        recipientCertificate,
+        await recipientCertificate.calculateSubjectPrivateAddress(),
       );
     }
     return Buffer.from(pongParcelPayload.serialize());
@@ -124,7 +124,7 @@ export class PingProcessor {
     ping: Ping,
     recipientCertificate: Certificate,
     keyPair: UnboundKeyPair,
-    originatorKey?: OriginatorSessionKey,
+    originatorKey?: SessionKey,
   ): Promise<ArrayBuffer> {
     const pongParcelPayload = await this.generatePongParcelPayload(
       ping.id,

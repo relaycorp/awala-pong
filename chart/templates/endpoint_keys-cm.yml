@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "..fullname" . }}-endpoint-keys
+  labels:
+    {{- include "..labels" . | nindent 4 }}
+data:
+  ENDPOINT_KEY_ID: "{{ required "current_endpoint_key_id is required" .Values.current_endpoint_key_id }}"
+  ENDPOINT_SESSION_KEY_ID: "{{ required "current_endpoint_session_key_id is required" .Values.current_endpoint_session_key_id }}"
