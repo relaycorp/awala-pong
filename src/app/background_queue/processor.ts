@@ -1,10 +1,10 @@
 import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
-  OriginatorSessionKey,
   Parcel,
   ServiceMessage,
   SessionEnvelopedData,
+  SessionKey,
   SessionlessEnvelopedData,
   UnboundKeyPair,
 } from '@relaycorp/relaynet-core';
@@ -12,18 +12,17 @@ import { deliverParcel, PoHTTPInvalidParcelError } from '@relaycorp/relaynet-poh
 import bufferToArray from 'buffer-to-arraybuffer';
 import { Job } from 'bull';
 import { addDays, differenceInSeconds, subMinutes } from 'date-fns';
-import pino = require('pino');
+import { Logger } from 'pino';
 
 import { deserializePing, Ping } from '../pingSerialization';
-import { base64Decode } from '../utils';
+import { base64Decode } from '../utilities/base64';
 import { QueuedPing } from './QueuedPing';
-
-const logger = pino();
 
 export class PingProcessor {
   constructor(
     protected readonly currentEndpointKeyId: Buffer,
     protected readonly privateKeyStore: VaultPrivateKeyStore,
+    protected readonly logger: Logger,
   ) {}
 
   public async deliverPongForPing(job: Job<QueuedPing>): Promise<void> {
@@ -48,12 +47,12 @@ export class PingProcessor {
       await deliverParcel(job.data.gatewayAddress, pongParcelSerialized);
     } catch (err) {
       if (err instanceof PoHTTPInvalidParcelError) {
-        logger.info({ err }, 'Discarding pong delivery because server refused parcel');
+        this.logger.info({ err }, 'Discarding pong delivery because server refused parcel');
         return;
       }
       throw err;
     }
-    logger.info(
+    this.logger.info(
       { publicGatewayAddress: job.data.gatewayAddress },
       'Successfully delivered pong parcel',
     );
@@ -62,20 +61,20 @@ export class PingProcessor {
   protected async unwrapPing(
     pingParcel: Parcel,
     jobId: string | number,
-  ): Promise<{ readonly ping: Ping; readonly originatorKey?: OriginatorSessionKey } | undefined> {
+  ): Promise<{ readonly ping: Ping; readonly originatorKey?: SessionKey } | undefined> {
     let decryptionResult;
     try {
       decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore);
     } catch (error) {
       // The sender didn't create a valid service message, so let's ignore it.
-      logger.info({ err: error, jobId }, 'Invalid service message');
+      this.logger.info({ err: error, jobId }, 'Invalid service message');
       return;
     }
 
     const serviceMessage = decryptionResult.payload;
 
     if (serviceMessage.type !== 'application/vnd.awala.ping-v1.ping') {
-      logger.info({ jobId, messageType: serviceMessage.type }, 'Invalid service message type');
+      this.logger.info({ jobId, messageType: serviceMessage.type }, 'Invalid service message type');
       return;
     }
 
@@ -83,7 +82,7 @@ export class PingProcessor {
     try {
       ping = deserializePing(serviceMessage.content);
     } catch (error) {
-      logger.info({ err: error, jobId }, 'Invalid ping message');
+      this.logger.info({ err: error, jobId }, 'Invalid ping message');
       return;
     }
     return { ping, originatorKey: decryptionResult.senderSessionKey };
@@ -91,7 +90,7 @@ export class PingProcessor {
 
   protected async generatePongParcelPayload(
     pingId: string,
-    recipientCertificateOrSessionKey: Certificate | OriginatorSessionKey,
+    recipientCertificateOrSessionKey: Certificate | SessionKey,
     recipientCertificate: Certificate,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage(
@@ -115,7 +114,7 @@ export class PingProcessor {
       await this.privateKeyStore.saveSubsequentSessionKey(
         encryptionResult.dhPrivateKey,
         Buffer.from(encryptionResult.dhKeyId),
-        recipientCertificate,
+        await recipientCertificate.calculateSubjectPrivateAddress(),
       );
     }
     return Buffer.from(pongParcelPayload.serialize());
@@ -125,7 +124,7 @@ export class PingProcessor {
     ping: Ping,
     recipientCertificate: Certificate,
     keyPair: UnboundKeyPair,
-    originatorKey?: OriginatorSessionKey,
+    originatorKey?: SessionKey,
   ): Promise<ArrayBuffer> {
     const pongParcelPayload = await this.generatePongParcelPayload(
       ping.id,

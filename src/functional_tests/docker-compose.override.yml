@@ -30,3 +30,4 @@ services:
     environment:
       POHTTP_TLS_REQUIRED: 'false'
       ENDPOINT_KEY_ID: ${ENDPOINT_KEY_ID}
+      ENDPOINT_SESSION_KEY_ID: ${ENDPOINT_SESSION_KEY_ID}

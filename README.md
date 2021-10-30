@@ -4,7 +4,7 @@ This is a server-side implementation of the [Relaynet Ping service](https://spec
 
 ## Development
 
-Make sure to install the development dependencies when contributing to this project: Docker, docker-compose and Node.js v12+.
+Make sure to install the development dependencies when contributing to this project: Docker, docker-compose and Node.js v16+.
 
 This project can be installed in development mode like any other Node.js project: By running `npm install` from the root of the repository.
 

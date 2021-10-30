@@ -4,13 +4,13 @@ import {
   derSerializePublicKey,
   EnvelopedData,
   generateECDHKeyPair,
-  issueInitialDHKeyCertificate,
   MockPrivateKeyStore,
-  OriginatorSessionKey,
   Parcel,
   ServiceMessage,
   SessionEnvelopedData,
+  SessionKey,
   SessionlessEnvelopedData,
+  SubsequentSessionPrivateKeyData,
   UnknownKeyError,
 } from '@relaycorp/relaynet-core';
 import * as pohttp from '@relaycorp/relaynet-pohttp';
@@ -23,19 +23,13 @@ import {
 import { Job } from 'bull';
 import { addDays, subMinutes, subSeconds } from 'date-fns';
 
-import {
-  expectBuffersToEqual,
-  generatePingServiceMessage,
-  generateStubNodeCertificate,
-  getMockContext,
-  getMockInstance,
-} from '../_test_utils';
+import { generatePingServiceMessage, generateStubNodeCertificate } from '../../testUtils/awala';
+import { expectBuffersToEqual } from '../../testUtils/buffers';
+import { getMockContext, getMockInstance } from '../../testUtils/jest';
+import { makeMockLogging, MockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pingSerialization from '../pingSerialization';
-import { base64Encode } from '../utils';
+import { base64Encode } from '../utilities/base64';
 import { QueuedPing } from './QueuedPing';
-
-const mockPino = { info: jest.fn() };
-jest.mock('pino', () => jest.fn().mockImplementation(() => mockPino));
 
 jest.mock('@relaycorp/relaynet-pohttp', () => {
   const actualPohttp = jest.requireActual('@relaycorp/relaynet-pohttp');
@@ -49,6 +43,11 @@ import { PingProcessor } from './processor';
 
 beforeEach(() => {
   getMockInstance(pohttp.deliverParcel).mockRestore();
+});
+
+let mockLogging: MockLogging;
+beforeEach(() => {
+  mockLogging = makeMockLogging();
 });
 
 afterAll(jest.restoreAllMocks);
@@ -95,6 +94,7 @@ describe('PingProcessor', () => {
       processor = new PingProcessor(
         pingRecipientCertificate.getSerialNumber(),
         mockPrivateKeyStore as any,
+        mockLogging.logger,
       );
     });
 
@@ -113,7 +113,7 @@ describe('PingProcessor', () => {
     });
 
     test('Failing to deserialize the ciphertext should be logged', async () => {
-      const error = new Error('Nope');
+      const error = new Error('Failed to deserialise');
       jest.spyOn(EnvelopedData, 'deserialize').mockImplementationOnce(() => {
         throw error;
       });
@@ -121,14 +121,16 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith(
-        { err: error, jobId: job.id },
-        'Invalid service message',
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Invalid service message', {
+          err: expect.objectContaining({ message: error.message }),
+          jobId: job.id,
+        }),
       );
     });
 
     test('Failing to unwrap the service message should be logged', async () => {
-      const error = new Error('Nope');
+      const error = new Error('Failed to unwrap');
       jest.spyOn(Parcel.prototype, 'unwrapPayload').mockImplementationOnce(() => {
         throw error;
       });
@@ -136,9 +138,11 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith(
-        { err: error, jobId: job.id },
-        'Invalid service message',
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Invalid service message', {
+          err: expect.objectContaining({ message: error.message }),
+          jobId: job.id,
+        }),
       );
     });
 
@@ -155,9 +159,8 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith(
-        { jobId: job.id, messageType },
-        'Invalid service message type',
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Invalid service message type', { messageType, jobId: job.id }),
       );
       expect(pohttp.deliverParcel).not.toBeCalled();
     });
@@ -171,7 +174,12 @@ describe('PingProcessor', () => {
       const job = await initJob();
       await processor.deliverPongForPing(job);
 
-      expect(mockPino.info).toBeCalledWith({ err: error, jobId: job.id }, 'Invalid ping message');
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Invalid ping message', {
+          err: expect.objectContaining({ message: error.message }),
+          jobId: job.id,
+        }),
+      );
     });
 
     describe('Successful pong delivery', () => {
@@ -246,9 +254,10 @@ describe('PingProcessor', () => {
       });
 
       test('Successful delivery should be logged', () => {
-        expect(mockPino.info).toBeCalledWith(
-          { publicGatewayAddress: stubGatewayAddress },
-          'Successfully delivered pong parcel',
+        expect(mockLogging.logs).toContainEqual(
+          partialPinoLog('info', 'Successfully delivered pong parcel', {
+            publicGatewayAddress: stubGatewayAddress,
+          }),
         );
       });
     });
@@ -263,9 +272,10 @@ describe('PingProcessor', () => {
 
       await expect(processor.deliverPongForPing(await initJob())).toResolve();
 
-      expect(mockPino.info).toBeCalledWith(
-        { err: error },
-        'Discarding pong delivery because server refused parcel',
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Discarding pong delivery because server refused parcel', {
+          err: expect.objectContaining({ message: error.message }),
+        }),
       );
     });
 
@@ -281,26 +291,18 @@ describe('PingProcessor', () => {
     });
 
     describe('Channel session', () => {
+      const recipientSessionKeyId1 = Buffer.from('recipient session key id');
+
       let recipientSessionKeyPair1: CryptoKeyPair;
-      let recipientSessionCert1: Certificate;
-      let stubSessionOriginatorKey: OriginatorSessionKey;
+      let stubSessionOriginatorKey: SessionKey;
       let stubSessionParcelPayload: Buffer;
       let stubJob: Job<QueuedPing>;
       beforeAll(async () => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
         recipientSessionKeyPair1 = await generateECDHKeyPair();
-        recipientSessionCert1 = await issueInitialDHKeyCertificate({
-          issuerCertificate: pingRecipientCertificate,
-          issuerPrivateKey: keyPairSet.pdaGrantee.privateKey,
-          subjectPublicKey: recipientSessionKeyPair1.publicKey,
-          validityEndDate: tomorrow,
+        const { envelopedData } = await SessionEnvelopedData.encrypt(serviceMessageSerialized, {
+          keyId: recipientSessionKeyId1,
+          publicKey: recipientSessionKeyPair1.publicKey,
         });
-
-        const { envelopedData } = await SessionEnvelopedData.encrypt(
-          serviceMessageSerialized,
-          recipientSessionCert1,
-        );
         stubSessionOriginatorKey = await envelopedData.getOriginatorKey();
         stubSessionParcelPayload = Buffer.from(envelopedData.serialize());
 
@@ -310,7 +312,7 @@ describe('PingProcessor', () => {
       beforeEach(async () => {
         await mockPrivateKeyStore.registerInitialSessionKey(
           recipientSessionKeyPair1.privateKey,
-          recipientSessionCert1,
+          recipientSessionKeyId1,
         );
       });
 
@@ -331,7 +333,7 @@ describe('PingProcessor', () => {
         expectBuffersToEqual(encryptCallArgs[0], expectedPongMessage.serialize());
 
         // Check public key used
-        const actualOriginatorKey = encryptCallArgs[1] as OriginatorSessionKey;
+        const actualOriginatorKey = encryptCallArgs[1] as SessionKey;
         expect(actualOriginatorKey).toHaveProperty('keyId', stubSessionOriginatorKey.keyId);
         expectBuffersToEqual(
           await derSerializePublicKey(actualOriginatorKey.publicKey),
@@ -347,9 +349,11 @@ describe('PingProcessor', () => {
         const encryptCallResult = await encryptSpy.mock.results[0].value;
         const keyId = Buffer.from(encryptCallResult.dhKeyId);
         expect(mockPrivateKeyStore.keys).toHaveProperty(keyId.toString('hex'));
-        expect(mockPrivateKeyStore.keys[keyId.toString('hex')]).toEqual({
+        expect(
+          mockPrivateKeyStore.keys[keyId.toString('hex')],
+        ).toEqual<SubsequentSessionPrivateKeyData>({
           keyDer: await derSerializePrivateKey(encryptCallResult.dhPrivateKey),
-          recipientPublicKeyDigest: expect.anything(),
+          peerPrivateAddress: await pingSenderCertificate.calculateSubjectPrivateAddress(),
           type: 'session-subsequent',
         });
       });
@@ -359,21 +363,27 @@ describe('PingProcessor', () => {
         jest.spyOn(SessionEnvelopedData.prototype, 'getOriginatorKey').mockRejectedValueOnce(err);
 
         await processor.deliverPongForPing(stubJob);
-        expect(mockPino.info).toBeCalledTimes(1);
 
-        expect(mockPino.info).toBeCalledWith({ err, jobId: stubJob.id }, 'Invalid service message');
+        expect(mockLogging.logs).toContainEqual(
+          partialPinoLog('info', 'Invalid service message', {
+            err: expect.objectContaining({ message: err.message }),
+
+            jobId: stubJob.id,
+          }),
+        );
       });
 
       test('Use of unknown public key ids should be gracefully logged', async () => {
         // tslint:disable-next-line:no-delete no-object-mutation
-        delete mockPrivateKeyStore.keys[recipientSessionCert1.getSerialNumberHex()];
+        delete mockPrivateKeyStore.keys[recipientSessionKeyId1.toString('hex')];
 
         await processor.deliverPongForPing(stubJob);
 
-        expect(mockPino.info).toBeCalledTimes(1);
-        expect(mockPino.info).toBeCalledWith(
-          { err: expect.any(UnknownKeyError), jobId: stubJob.id },
-          'Invalid service message',
+        expect(mockLogging.logs).toContainEqual(
+          partialPinoLog('info', 'Invalid service message', {
+            err: expect.objectContaining({ type: UnknownKeyError.name }),
+            jobId: stubJob.id,
+          }),
         );
       });
     });
