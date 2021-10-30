@@ -26,7 +26,6 @@ async function main(): Promise<void> {
   try {
     await privateKeyStore.fetchNodeKey(endpointKeyId);
     console.log(`Identity key ${PONG_ENDPOINT_KEY_ID_BASE64} already exists`);
-    return;
   } catch (error) {
     console.log(`Identity key will be created because it doesn't already exist`);
     await createIdentityKey(endpointKeyId);
