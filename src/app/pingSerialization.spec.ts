@@ -1,6 +1,6 @@
 import { Certificate } from '@relaycorp/relaynet-core';
 import {
-  generateNodeKeyPairSet,
+  generateIdentityKeyPairSet,
   generatePDACertificationPath,
   PDACertPath,
 } from '@relaycorp/relaynet-testing';
@@ -17,7 +17,7 @@ jest.mock('uuid4', () => {
 
 let peerCertificatePath: PDACertPath;
 beforeAll(async () => {
-  const nodeKeyPairSet = await generateNodeKeyPairSet();
+  const nodeKeyPairSet = await generateIdentityKeyPairSet();
   peerCertificatePath = await generatePDACertificationPath(nodeKeyPairSet);
 });
 

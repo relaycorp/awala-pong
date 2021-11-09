@@ -15,7 +15,7 @@ import {
 } from '@relaycorp/relaynet-core';
 import * as pohttp from '@relaycorp/relaynet-pohttp';
 import {
-  generateNodeKeyPairSet,
+  generateIdentityKeyPairSet,
   generatePDACertificationPath,
   NodeKeyPairSet,
   PDACertPath,
@@ -68,7 +68,7 @@ describe('PingProcessor', () => {
     let serviceMessageSerialized: ArrayBuffer;
     let stubParcelPayload: Buffer;
     beforeAll(async () => {
-      keyPairSet = await generateNodeKeyPairSet();
+      keyPairSet = await generateIdentityKeyPairSet();
       certificatePath = await generatePDACertificationPath(keyPairSet);
 
       pingSenderCertificate = await generateStubNodeCertificate(
