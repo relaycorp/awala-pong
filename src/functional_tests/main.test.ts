@@ -11,7 +11,7 @@ import {
 } from '@relaycorp/relaynet-core';
 import { deliverParcel } from '@relaycorp/relaynet-pohttp';
 import {
-  generateNodeKeyPairSet,
+  generateIdentityKeyPairSet,
   generatePDACertificationPath,
   NodeKeyPairSet,
   PDACertPath,
@@ -58,7 +58,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
   let certificatePath: PDACertPath;
   let pongEndpointCertificate: Certificate;
   beforeAll(async () => {
-    keyPairSet = await generateNodeKeyPairSet();
+    keyPairSet = await generateIdentityKeyPairSet();
     certificatePath = await generatePDACertificationPath(keyPairSet);
 
     const tomorrow = new Date();
