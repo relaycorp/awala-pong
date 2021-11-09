@@ -1,5 +1,5 @@
 import {
-  generateNodeKeyPairSet,
+  generateIdentityKeyPairSet,
   generatePDACertificationPath,
   NodeKeyPairSet,
   PDACertPath,
@@ -37,7 +37,7 @@ const validRequestOptions: HTTPInjectOptions = {
 let keyPairSet: NodeKeyPairSet;
 let certificatePath: PDACertPath;
 beforeAll(async () => {
-  keyPairSet = await generateNodeKeyPairSet();
+  keyPairSet = await generateIdentityKeyPairSet();
   certificatePath = await generatePDACertificationPath(keyPairSet);
 
   const payload = await generatePingParcel(
