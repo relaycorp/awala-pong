@@ -26,7 +26,7 @@
     "node": ">=16"
   },
   "devDependencies": {
-    "@relaycorp/relaynet-testing": "^2.0.1",
+    "@relaycorp/relaynet-testing": "^2.2.6",
     "@relaycorp/shared-config": "^1.6.0",
     "@semantic-release/exec": "^6.0.3",
     "@types/binary-parser": "^1.5.1",
