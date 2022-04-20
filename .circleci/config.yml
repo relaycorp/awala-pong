@@ -1,7 +1,8 @@
 version: 2.1
 jobs:
   'functional-tests':
-    machine: true
+    machine:
+      image: ubuntu-2004:202201-02
     steps:
       - checkout
       - run:
