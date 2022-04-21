@@ -19,3 +19,7 @@ dependencies:
     version: 12.0.0
     tags: [dev]
     repository: https://charts.bitnami.com/bitnami
+  - name: mockserver
+    version: 5.13.2
+    tags: [dev]
+    repository: https://www.mock-server.com
