@@ -25,9 +25,9 @@ portForward:
   resourceName: relaynet-pong-vault
   port: 8200
   localPort: 8200
-- resourceType: deployment
-  resourceName: mockserver
-  port: 1080
+- resourceType: service
+  resourceName: mock-public-gateway
+  port: 80
   localPort: 1080
 - resourceType: service
   resourceName: relaynet-pong-pohttp

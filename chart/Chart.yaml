@@ -20,6 +20,7 @@ dependencies:
     tags: [dev]
     repository: https://charts.bitnami.com/bitnami
   - name: mockserver
+    alias: mock-public-gateway
     version: 5.13.2
     tags: [dev]
     repository: https://www.mock-server.com

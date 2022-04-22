@@ -19,35 +19,25 @@ import { mockServerClient } from 'mockserver-client';
 import { serializePing } from '../app/pingSerialization';
 import { generateStubNodeCertificate } from '../testUtils/awala';
 
-const GATEWAY_PORT = 1080;
-const GATEWAY_ADDRESS = `http://mockserver:${GATEWAY_PORT}/`;
+const GATEWAY_ADDRESS = `http://mock-public-gateway`;
 
 const PONG_PUBLIC_ADDRESS = 'endpoint.local';
 const PONG_ENDPOINT_LOCAL_URL = 'http://127.0.0.1:8080';
 
 describe('End-to-end test for successful delivery of ping and pong messages', () => {
   const mockGatewayServerClient = mockServerClient('127.0.0.1', 1080);
+  const resetMockGatewayServer = async () => {
+    await mockGatewayServerClient.reset();
+  };
+  beforeAll(resetMockGatewayServer);
   beforeEach(async () => {
     await mockGatewayServerClient.mockAnyResponse({
-      httpRequest: {
-        headers: [
-          {
-            name: 'Content-Type',
-            values: ['application/vnd.awala.parcel'],
-          },
-        ],
-        method: 'POST',
-        path: '/',
-      },
-      httpResponse: {
-        statusCode: 202,
-      },
+      httpRequest: { method: 'POST', path: '/' },
+      httpResponse: { statusCode: 202 },
       times: { remainingTimes: 1, unlimited: false },
     });
   });
-  afterEach(async () => {
-    await mockGatewayServerClient.reset();
-  });
+  afterEach(resetMockGatewayServer);
 
   let pongConnectionParams: PublicNodeConnectionParams;
   beforeAll(async () => {
@@ -113,9 +103,8 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     // Allow sufficient time for the background job to deliver the message
     await sleep(2);
 
-    await mockGatewayServerClient.verify({ path: '/' }, 1, 1);
-
     const requests = await mockGatewayServerClient.retrieveRecordedRequests({ path: '/' });
+    expect(requests).toHaveLength(1);
 
     expect(requests[0].body).toHaveProperty('type', 'BINARY');
     const pongParcelSerialized = Buffer.from((requests[0].body as any).base64Bytes, 'base64');
