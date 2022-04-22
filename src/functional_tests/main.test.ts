@@ -1,10 +1,8 @@
-import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
   Certificate,
   EnvelopedData,
-  generateECDHKeyPair,
-  issueEndpointCertificate,
   Parcel,
+  PublicNodeConnectionParams,
   ServiceMessage,
   SessionEnvelopedData,
   SessionKey,
@@ -13,102 +11,69 @@ import { deliverParcel } from '@relaycorp/relaynet-pohttp';
 import {
   generateIdentityKeyPairSet,
   generatePDACertificationPath,
-  NodeKeyPairSet,
-  PDACertPath,
 } from '@relaycorp/relaynet-testing';
-import axios from 'axios';
 import bufferToArray from 'buffer-to-arraybuffer';
-import { get as getEnvVar } from 'env-var';
-import { logDiffOn501, Route, Stubborn } from 'stubborn-ws';
+import { get as httpGet } from 'http';
+import { mockServerClient } from 'mockserver-client';
 
 import { serializePing } from '../app/pingSerialization';
-import { generatePingParcel, generateStubNodeCertificate } from '../testUtils/awala';
+import { generateStubNodeCertificate } from '../testUtils/awala';
 
-const GATEWAY_PORT = 4000;
-const GATEWAY_ADDRESS = `http://gateway:${GATEWAY_PORT}/`;
+const GATEWAY_PORT = 1080;
+const GATEWAY_ADDRESS = `http://mockserver:${GATEWAY_PORT}/`;
 
 const PONG_PUBLIC_ADDRESS = 'endpoint.local';
-const PONG_SERVICE_URL = 'http://app:8080/';
-
-const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
-const PONG_ENDPOINT_SESSION_KEY_ID_BASE64 = getEnvVar('ENDPOINT_SESSION_KEY_ID')
-  .required()
-  .asString();
-const PONG_ENDPOINT_SESSION_KEY_ID = Buffer.from(PONG_ENDPOINT_SESSION_KEY_ID_BASE64, 'base64');
-
-const privateKeyStore = new VaultPrivateKeyStore('http://vault:8200', 'root', 'pong-keys');
+const PONG_ENDPOINT_LOCAL_URL = 'http://127.0.0.1:8080';
 
 describe('End-to-end test for successful delivery of ping and pong messages', () => {
-  const mockGatewayServer = new Stubborn({ host: '0.0.0.0' });
-  let gatewayEndpointRoute: Route;
-
-  configureMockGatewayServer();
-
-  beforeAll(async () => {
-    // Wait a little longer for backing services to become available
-    await sleep(1);
-
-    // tslint:disable-next-line:no-object-mutation
-    process.env.POHTTP_TLS_REQUIRED = 'false';
-  });
-
-  configureVault();
-
-  let keyPairSet: NodeKeyPairSet;
-  let certificatePath: PDACertPath;
-  let pongEndpointCertificate: Certificate;
-  beforeAll(async () => {
-    keyPairSet = await generateIdentityKeyPairSet();
-    certificatePath = await generatePDACertificationPath(keyPairSet);
-
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    pongEndpointCertificate = await issueEndpointCertificate({
-      issuerPrivateKey: keyPairSet.pdaGrantee.privateKey,
-      subjectPublicKey: keyPairSet.pdaGrantee.publicKey,
-      validityEndDate: tomorrow,
+  const mockGatewayServerClient = mockServerClient('127.0.0.1', 1080);
+  beforeEach(async () => {
+    await mockGatewayServerClient.mockAnyResponse({
+      httpRequest: {
+        headers: [
+          {
+            name: 'Content-Type',
+            values: ['application/vnd.awala.parcel'],
+          },
+        ],
+        method: 'POST',
+        path: '/',
+      },
+      httpResponse: {
+        statusCode: 202,
+      },
+      times: { remainingTimes: 1, unlimited: false },
     });
-    // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
-    // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
-    // tslint:disable-next-line:no-object-mutation
-    (pongEndpointCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex =
-      bufferToArray(Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64'));
-    await privateKeyStore.saveNodeKey(keyPairSet.pdaGrantee.privateKey, pongEndpointCertificate);
+  });
+  afterEach(async () => {
+    await mockGatewayServerClient.reset();
   });
 
-  test('Ping-pong without channel session protocol', async () => {
-    const pingParcel = bufferToArray(
-      await generatePingParcel(
-        `http://${PONG_PUBLIC_ADDRESS}`,
-        pongEndpointCertificate,
-        keyPairSet,
-        certificatePath,
-      ),
+  let pongConnectionParams: PublicNodeConnectionParams;
+  beforeAll(async () => {
+    const connectionParamsSerialized = await downloadFileFromURL(
+      `${PONG_ENDPOINT_LOCAL_URL}/connection-params.der`,
     );
+    pongConnectionParams = await PublicNodeConnectionParams.deserialize(
+      bufferToArray(connectionParamsSerialized),
+    );
+  });
 
-    await deliverParcel(PONG_SERVICE_URL, pingParcel, {
-      gatewayAddress: GATEWAY_ADDRESS,
-    });
-
-    await sleep(2);
-    expect(gatewayEndpointRoute.countCalls()).toEqual(1);
-
-    await validatePongDelivery(keyPairSet.privateEndpoint.privateKey);
+  let pingSenderKeyPair: CryptoKeyPair;
+  let pingSenderCertificate: Certificate;
+  beforeAll(async () => {
+    const keyPairSet = await generateIdentityKeyPairSet();
+    const pdaPath = await generatePDACertificationPath(keyPairSet);
+    pingSenderKeyPair = keyPairSet.privateEndpoint;
+    pingSenderCertificate = pdaPath.privateEndpoint;
   });
 
   test('Ping pong with channel session protocol', async () => {
-    const endpointInitialSessionKeyPair = await generateECDHKeyPair();
-    await privateKeyStore.saveInitialSessionKey(
-      endpointInitialSessionKeyPair.privateKey,
-      PONG_ENDPOINT_SESSION_KEY_ID,
+    const { pingParcelSerialized, dhPrivateKey } = await generateSessionPingParcel(
+      pongConnectionParams.sessionKey,
     );
 
-    const { pingParcelSerialized, dhPrivateKey } = await generateSessionPingParcel({
-      keyId: PONG_ENDPOINT_SESSION_KEY_ID,
-      publicKey: endpointInitialSessionKeyPair.publicKey,
-    });
-
-    await deliverParcel(PONG_SERVICE_URL, pingParcelSerialized, {
+    await deliverParcel(PONG_ENDPOINT_LOCAL_URL, pingParcelSerialized, {
       gatewayAddress: GATEWAY_ADDRESS,
     });
 
@@ -120,13 +85,13 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     readonly dhPrivateKey: CryptoKey;
   }> {
     const pda = await generateStubNodeCertificate(
-      await pongEndpointCertificate.getPublicKey(),
-      keyPairSet.privateEndpoint.privateKey,
-      { issuerCertificate: certificatePath.privateEndpoint },
+      await pongConnectionParams.identityKey,
+      pingSenderKeyPair.privateKey,
+      { issuerCertificate: pingSenderCertificate },
     );
     const serviceMessage = new ServiceMessage(
       'application/vnd.awala.ping-v1.ping',
-      serializePing(pda, [certificatePath.privateEndpoint, certificatePath.privateGateway]),
+      serializePing(pda, [pingSenderCertificate]),
     );
     const { dhPrivateKey, envelopedData } = await SessionEnvelopedData.encrypt(
       serviceMessage.serialize(),
@@ -134,15 +99,13 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
     const parcel = new Parcel(
       `https://${PONG_PUBLIC_ADDRESS}`,
-      certificatePath.privateEndpoint,
+      pingSenderCertificate,
       Buffer.from(envelopedData.serialize()),
     );
 
     return {
       dhPrivateKey,
-      pingParcelSerialized: Buffer.from(
-        await parcel.serialize(keyPairSet.privateEndpoint.privateKey),
-      ),
+      pingParcelSerialized: Buffer.from(await parcel.serialize(pingSenderKeyPair.privateKey)),
     };
   }
 
@@ -150,13 +113,16 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     // Allow sufficient time for the background job to deliver the message
     await sleep(2);
 
-    expect(gatewayEndpointRoute.countCalls()).toEqual(1);
+    await mockGatewayServerClient.verify({ path: '/' }, 1, 1);
 
-    const pongParcelSerialized = gatewayEndpointRoute.getCall(0).body as unknown as Buffer;
+    const requests = await mockGatewayServerClient.retrieveRecordedRequests({ path: '/' });
+
+    expect(requests[0].body).toHaveProperty('type', 'BINARY');
+    const pongParcelSerialized = Buffer.from((requests[0].body as any).base64Bytes, 'base64');
     const pongParcel = await Parcel.deserialize(bufferToArray(pongParcelSerialized));
     expect(pongParcel).toHaveProperty(
       'recipientAddress',
-      certificatePath.privateEndpoint.getCommonName(),
+      await pingSenderCertificate.calculateSubjectPrivateAddress(),
     );
     const pongParcelPayload = EnvelopedData.deserialize(
       bufferToArray(pongParcel.payloadSerialized as Buffer),
@@ -166,39 +132,26 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     expect(pongServiceMessage).toHaveProperty('type', 'application/vnd.awala.ping-v1.pong');
     expect(pongServiceMessage).toHaveProperty('content.byteLength', 36);
   }
-
-  function configureMockGatewayServer(): void {
-    beforeAll(async () => mockGatewayServer.start(GATEWAY_PORT));
-    afterAll(async () => mockGatewayServer.stop());
-
-    afterEach(() => mockGatewayServer.clear());
-    beforeEach(() => {
-      gatewayEndpointRoute = mockGatewayServer
-        .post('/')
-        .setHeader('Content-Type', 'application/vnd.awala.parcel')
-        .setBody((body) => !!body)
-        .setResponseStatusCode(202);
-      logDiffOn501(mockGatewayServer, gatewayEndpointRoute);
-    });
-  }
 });
 
 async function sleep(seconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1_000));
 }
 
-function configureVault(): void {
-  const vaultClient = axios.create({
-    baseURL: 'http://vault:8200/v1',
-    headers: { 'X-Vault-Token': 'root' },
-  });
-  beforeAll(async () => {
-    await vaultClient.post('/sys/mounts/pong-keys', {
-      options: { version: '2' },
-      type: 'kv',
+async function downloadFileFromURL(url: string): Promise<Buffer> {
+  // tslint:disable-next-line:readonly-array
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    httpGet(url, { timeout: 2_000 }, (response) => {
+      if (response.statusCode !== 200) {
+        return reject(new Error(`Failed to download ${url} (HTTP ${response.statusCode})`));
+      }
+
+      response.on('error', reject);
+
+      response.on('data', (chunk) => chunks.push(chunk));
+
+      response.on('end', () => resolve(Buffer.concat(chunks)));
     });
-  });
-  afterAll(async () => {
-    await vaultClient.delete('/sys/mounts/pong-keys');
   });
 }

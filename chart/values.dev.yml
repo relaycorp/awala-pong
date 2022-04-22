@@ -5,6 +5,7 @@ logging:
   level: debug
 
 public_endpoint_address: endpoint.local
+pohttp_tls_required: false
 
 redis:
   host: relaynet-pong-redis-headless
