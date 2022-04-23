@@ -1,9 +1,12 @@
 dependencies:
 - name: vault
   repository: https://helm.releases.hashicorp.com
-  version: 0.8.0
+  version: 0.10.0
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 12.0.0
-digest: sha256:3fc3d32dc2b59d3ad009cc6df1c92d9caf1a181aff0ff8d161badb8514a9fbb0
-generated: "2021-02-28T22:01:42.157356617Z"
+- name: mockserver
+  repository: https://www.mock-server.com
+  version: 5.13.2
+digest: sha256:c43d15e3fd4db88ab3b9763f767b40d0e38a41112bd2fda5126ed3263f1ee939
+generated: "2022-04-22T23:48:28.862664591+02:00"
