@@ -10,4 +10,4 @@ kubectl port-forward --address 127.0.0.1 svc/relaynet-pong-pohttp 8080:80 &
 kubectl port-forward --address 127.0.0.1 svc/mock-public-gateway 1080:80 &
 
 # Check at least one of the ports:
-timeout 5 sh -c "while ! wget --spider http://127.0.0.1:1080 ; do sleep 1s ; done"
+timeout 5 sh -c "while ! wget --spider http://127.0.0.1:8080 ; do sleep 1s ; done"
