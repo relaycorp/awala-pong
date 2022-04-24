@@ -26,7 +26,15 @@ const privateKeyStore = initVaultKeyStore();
 
 async function main(): Promise<void> {
   const config = Config.initFromEnv();
+  try {
+    await createIdentityKeyIfMissing(config);
+    await createInitialSessionKeyIfMissing(config);
+  } finally {
+    config.close();
+  }
+}
 
+async function createIdentityKeyIfMissing(config: Config): Promise<void> {
   const endpointKeyId = Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64');
   try {
     const nodeKey = await privateKeyStore.fetchNodeKey(endpointKeyId);
@@ -45,7 +53,9 @@ async function main(): Promise<void> {
       await getPrivateAddressFromIdentityKey(identityPublicKey),
     );
   }
+}
 
+async function createInitialSessionKeyIfMissing(config: Config): Promise<void> {
   const endpointSessionKeyId = Buffer.from(PONG_ENDPOINT_SESSION_KEY_ID_BASE64, 'base64');
   try {
     await privateKeyStore.fetchInitialSessionKey(endpointSessionKeyId);

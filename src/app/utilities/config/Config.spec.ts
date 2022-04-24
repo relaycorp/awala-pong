@@ -46,6 +46,25 @@ describe('get', () => {
   });
 });
 
+describe('close', () => {
+  test('Redis connection should be disconnected', () => {
+    const mockRedisKeyv = {
+      redis: { disconnect: jest.fn() },
+    };
+    const config = new Config(mockRedisKeyv as any);
+
+    config.close();
+
+    expect(mockRedisKeyv.redis.disconnect).toHaveBeenCalledWith();
+  });
+
+  test('Nothing should be done by default', () => {
+    const config = new Config({} as any);
+
+    config.close();
+  });
+});
+
 describe('initFromEnv', () => {
   const CONFIG_URL = 'scheme://foo';
   const mockEnvVars = configureMockEnvVars({ CONFIG_URL });

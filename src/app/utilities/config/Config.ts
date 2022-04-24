@@ -1,3 +1,4 @@
+import KeyvRedis from '@keyv/redis';
 import { get as getEnvVar } from 'env-var';
 import Keyv from 'keyv';
 
@@ -23,5 +24,9 @@ export class Config {
   public async get(key: ConfigItem): Promise<string | null> {
     const value = await this.keyv.get(key);
     return value ?? null;
+  }
+
+  public close(): void {
+    (this.keyv as unknown as KeyvRedis).redis?.disconnect();
   }
 }
