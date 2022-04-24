@@ -27,6 +27,7 @@ export class Config {
   }
 
   public close(): void {
-    (this.keyv as unknown as KeyvRedis).redis?.disconnect();
+    const redis = (this.keyv.opts.store as KeyvRedis).redis;
+    redis?.disconnect();
   }
 }
