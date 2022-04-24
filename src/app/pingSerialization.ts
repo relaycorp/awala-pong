@@ -44,7 +44,7 @@ export function deserializePing(pingSerialized: Buffer): Ping {
   try {
     pda = deserializeCertificate(pingJson.pda);
   } catch (err) {
-    throw new PingSerializationError(err, 'Invalid PDA');
+    throw new PingSerializationError(err as Error, 'Invalid PDA');
   }
 
   if (!Array.isArray(pingJson.pda_chain)) {
@@ -54,7 +54,7 @@ export function deserializePing(pingSerialized: Buffer): Ping {
   try {
     pdaChain = pingJson.pda_chain.map(deserializeCertificate);
   } catch (err) {
-    throw new PingSerializationError(err, 'PDA chain contains invalid item');
+    throw new PingSerializationError(err as Error, 'PDA chain contains invalid item');
   }
 
   return { id: pingJson.id, pda, pdaChain };
@@ -72,8 +72,11 @@ function deserializeCertificate(certificateDerBase64: any): Certificate {
 
   try {
     return Certificate.deserialize(bufferToArray(certificateDer));
-  } catch (error) {
-    throw new PingSerializationError(error, 'Certificate is base64-encoded but not DER-encoded');
+  } catch (err) {
+    throw new PingSerializationError(
+      err as Error,
+      'Certificate is base64-encoded but not DER-encoded',
+    );
   }
 }
 
