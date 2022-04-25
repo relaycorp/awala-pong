@@ -29,13 +29,8 @@ spec:
           command:
             - node
             - build/main/bin/generate-keypairs.js
-          env:
-            - name: VAULT_URL
-              value: "http://{{ .Values.vault.host }}:{{ .Values.vault.port }}"
-            - name: VAULT_KV_PREFIX
-              value: {{ .Values.vault.session_keys_mount_path }}
           envFrom:
             - configMapRef:
-                name: {{ include "..fullname" . }}-endpoint-keys
+                name: {{ include "..fullname" . }}
             - secretRef:
                 name: {{ include "..fullname" . }}-vault

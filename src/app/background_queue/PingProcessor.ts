@@ -1,12 +1,9 @@
-import { VaultPrivateKeyStore } from '@relaycorp/keystore-vault';
 import {
-  Certificate,
   Parcel,
+  PrivateKeyStore,
   ServiceMessage,
   SessionEnvelopedData,
   SessionKey,
-  SessionlessEnvelopedData,
-  UnboundKeyPair,
 } from '@relaycorp/relaynet-core';
 import { deliverParcel, PoHTTPInvalidParcelError } from '@relaycorp/relaynet-pohttp';
 import bufferToArray from 'buffer-to-arraybuffer';
@@ -16,19 +13,29 @@ import { Logger } from 'pino';
 
 import { deserializePing, Ping } from '../pingSerialization';
 import { base64Decode } from '../utilities/base64';
+import { Config } from '../utilities/config/Config';
+import { ConfigItem } from '../utilities/config/ConfigItem';
 import { QueuedPing } from './QueuedPing';
 
 export class PingProcessor {
   constructor(
-    protected readonly currentEndpointKeyId: Buffer,
-    protected readonly privateKeyStore: VaultPrivateKeyStore,
+    protected readonly config: Config,
+    protected readonly privateKeyStore: PrivateKeyStore,
     protected readonly logger: Logger,
   ) {}
 
   public async deliverPongForPing(job: Job<QueuedPing>): Promise<void> {
-    // We should be supporting multiple keys so we can do key rotation.
-    // See: https://github.com/relaycorp/relaynet-pong/issues/14
-    const keyPair = await this.privateKeyStore.fetchNodeKey(this.currentEndpointKeyId);
+    const currentEndpointPrivateAddress = await this.config.get(ConfigItem.CURRENT_PRIVATE_ADDRESS);
+    if (!currentEndpointPrivateAddress) {
+      throw new Error('There is no current endpoint');
+    }
+
+    const identityPrivateKey = await this.privateKeyStore.retrieveIdentityKey(
+      currentEndpointPrivateAddress,
+    );
+    if (!identityPrivateKey) {
+      throw new Error('Private key for current identity key is missing');
+    }
 
     const pingParcel = await Parcel.deserialize(bufferToArray(base64Decode(job.data.parcel)));
 
@@ -39,8 +46,8 @@ export class PingProcessor {
     }
     const pongParcelSerialized = await this.makePongParcel(
       unwrappingResult.ping,
-      pingParcel.senderCertificate,
-      keyPair,
+      await pingParcel.senderCertificate.calculateSubjectPrivateAddress(),
+      identityPrivateKey,
       unwrappingResult.originatorKey,
     );
     try {
@@ -61,7 +68,7 @@ export class PingProcessor {
   protected async unwrapPing(
     pingParcel: Parcel,
     jobId: string | number,
-  ): Promise<{ readonly ping: Ping; readonly originatorKey?: SessionKey } | undefined> {
+  ): Promise<{ readonly ping: Ping; readonly originatorKey: SessionKey } | undefined> {
     let decryptionResult;
     try {
       decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore);
@@ -90,8 +97,8 @@ export class PingProcessor {
 
   protected async generatePongParcelPayload(
     pingId: string,
-    recipientCertificateOrSessionKey: Certificate | SessionKey,
-    recipientCertificate: Certificate,
+    recipientSessionKey: SessionKey,
+    recipientPrivateAddress: string,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage(
       'application/vnd.awala.ping-v1.pong',
@@ -99,51 +106,38 @@ export class PingProcessor {
     );
     const pongMessageSerialized = pongMessage.serialize();
 
-    let pongParcelPayload;
-    if (recipientCertificateOrSessionKey instanceof Certificate) {
-      pongParcelPayload = await SessionlessEnvelopedData.encrypt(
-        pongMessageSerialized,
-        recipientCertificateOrSessionKey,
-      );
-    } else {
-      const encryptionResult = await SessionEnvelopedData.encrypt(
-        pongMessageSerialized,
-        recipientCertificateOrSessionKey,
-      );
-      pongParcelPayload = encryptionResult.envelopedData;
-      await this.privateKeyStore.saveSubsequentSessionKey(
-        encryptionResult.dhPrivateKey,
-        Buffer.from(encryptionResult.dhKeyId),
-        await recipientCertificate.calculateSubjectPrivateAddress(),
-      );
-    }
+    const {
+      dhPrivateKey,
+      dhKeyId,
+      envelopedData: pongParcelPayload,
+    } = await SessionEnvelopedData.encrypt(pongMessageSerialized, recipientSessionKey);
+    await this.privateKeyStore.saveBoundSessionKey(
+      dhPrivateKey,
+      Buffer.from(dhKeyId),
+      recipientPrivateAddress,
+    );
     return Buffer.from(pongParcelPayload.serialize());
   }
 
   private async makePongParcel(
     ping: Ping,
-    recipientCertificate: Certificate,
-    keyPair: UnboundKeyPair,
-    originatorKey?: SessionKey,
+    recipientPrivateAddress: string,
+    identityPrivateKey: CryptoKey,
+    originatorKey: SessionKey,
   ): Promise<ArrayBuffer> {
     const pongParcelPayload = await this.generatePongParcelPayload(
       ping.id,
-      originatorKey ?? recipientCertificate,
-      recipientCertificate,
+      originatorKey,
+      recipientPrivateAddress,
     );
     const now = new Date();
     const expiryDate = addDays(now, 14);
     const creationDate = subMinutes(now, 5);
-    const pongParcel = new Parcel(
-      recipientCertificate.getCommonName(),
-      ping.pda,
-      pongParcelPayload,
-      {
-        creationDate,
-        senderCaCertificateChain: ping.pdaChain,
-        ttl: differenceInSeconds(expiryDate, creationDate),
-      },
-    );
-    return pongParcel.serialize(keyPair.privateKey);
+    const pongParcel = new Parcel(recipientPrivateAddress, ping.pda, pongParcelPayload, {
+      creationDate,
+      senderCaCertificateChain: ping.pdaChain,
+      ttl: differenceInSeconds(expiryDate, creationDate),
+    });
+    return pongParcel.serialize(identityPrivateKey);
   }
 }

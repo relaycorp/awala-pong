@@ -7,6 +7,7 @@ import {
 import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
 import { generatePingParcel } from '../../testUtils/awala';
+import { mockConfigInitFromEnv } from '../../testUtils/config';
 import { configureMockEnvVars } from '../../testUtils/envVars';
 import { makeMockLogging, MockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pongQueue from '../background_queue/queue';
@@ -16,6 +17,7 @@ import { ENV_VARS, PUBLIC_ENDPOINT_ADDRESS } from './_test_utils';
 import { makeServer } from './server';
 
 const mockEnvVars = configureMockEnvVars(ENV_VARS);
+mockConfigInitFromEnv();
 
 let mockLogging: MockLogging;
 let serverInstance: FastifyInstance;

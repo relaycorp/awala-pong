@@ -2,24 +2,19 @@
 // Can't unit test this file because logic runs at the module level. I don't like this about Bull.
 
 import { Job } from 'bull';
-import { get as getEnvVar } from 'env-var';
 
 import { initVaultKeyStore } from '../backingServices/vault';
+import { Config } from '../utilities/config/Config';
 import { makeLogger } from '../utilities/logging';
 
-import { PingProcessor } from './processor';
+import { PingProcessor } from './PingProcessor';
 import { QueuedPing } from './QueuedPing';
 
-const endpointKeyIdBase64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
-
+const config = Config.initFromEnv();
 const privateKeyStore = initVaultKeyStore();
 
 const logger = makeLogger();
-const processor = new PingProcessor(
-  Buffer.from(endpointKeyIdBase64, 'base64'),
-  privateKeyStore,
-  logger,
-);
+const processor = new PingProcessor(config, privateKeyStore, logger);
 
 export default async function (job: Job<QueuedPing>): Promise<void> {
   try {

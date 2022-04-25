@@ -14,7 +14,6 @@ spec:
     metadata:
       annotations:
         checksum/global-config: {{ include (print $.Template.BasePath "/global-cm.yml") . | sha256sum }}
-        checksum/endpoint-keys: {{ include (print $.Template.BasePath "/endpoint_keys-cm.yml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/vault-secret.yml") . | sha256sum }}
       labels:
         {{- include "..selectorLabels" . | nindent 8 }}
@@ -34,8 +33,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "..fullname" . }}
-            - configMapRef:
-                name: {{ include "..fullname" . }}-endpoint-keys
             - secretRef:
                 name: {{ include "..fullname" . }}-vault
           resources:
