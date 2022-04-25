@@ -68,9 +68,9 @@
   "dependencies": {
     "@keyv/redis": "^2.3.1",
     "@relaycorp/keystore-vault": "^2.0.19",
-    "@relaycorp/pino-cloud": "^1.0.4",
+    "@relaycorp/pino-cloud": "^1.0.14",
     "@relaycorp/relaynet-core": "^1.76.1",
-    "@relaycorp/relaynet-pohttp": "^1.7.31",
+    "@relaycorp/relaynet-pohttp": "^1.7.32",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^4.8.2",
     "date-fns": "^2.25.0",
