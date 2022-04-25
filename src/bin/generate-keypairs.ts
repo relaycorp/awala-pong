@@ -4,64 +4,59 @@
 require('make-promises-safe');
 
 import {
-  generateECDHKeyPair,
   generateRSAKeyPair,
-  issueEndpointCertificate,
+  getPrivateAddressFromIdentityKey,
+  SessionKeyPair,
 } from '@relaycorp/relaynet-core';
-import bufferToArray from 'buffer-to-arraybuffer';
-import { get as getEnvVar } from 'env-var';
 import { initVaultKeyStore } from '../app/backingServices/vault';
-
-const NODE_CERTIFICATE_TTL_DAYS = 180;
-
-const PONG_ENDPOINT_KEY_ID_BASE64 = getEnvVar('ENDPOINT_KEY_ID').required().asString();
-const PONG_ENDPOINT_SESSION_KEY_ID_BASE64 = getEnvVar('ENDPOINT_SESSION_KEY_ID')
-  .required()
-  .asString();
+import { Config } from '../app/utilities/config/Config';
+import { ConfigItem } from '../app/utilities/config/ConfigItem';
 
 const privateKeyStore = initVaultKeyStore();
 
 async function main(): Promise<void> {
-  const endpointKeyId = Buffer.from(PONG_ENDPOINT_KEY_ID_BASE64, 'base64');
+  const config = Config.initFromEnv();
   try {
-    await privateKeyStore.fetchNodeKey(endpointKeyId);
-    console.log(`Identity key ${PONG_ENDPOINT_KEY_ID_BASE64} already exists`);
-  } catch (error) {
-    console.log(`Identity key will be created because it doesn't already exist`);
-    await createIdentityKey(endpointKeyId);
+    await createIdentityKeyIfMissing(config);
+    await createInitialSessionKeyIfMissing(config);
+  } finally {
+    config.close();
   }
+}
 
-  const endpointSessionKeyId = Buffer.from(PONG_ENDPOINT_SESSION_KEY_ID_BASE64, 'base64');
-  try {
-    await privateKeyStore.fetchInitialSessionKey(endpointSessionKeyId);
-    console.log(`Session key ${PONG_ENDPOINT_SESSION_KEY_ID_BASE64} already exists`);
-  } catch (_) {
-    console.log(`Session key will be created because it doesn't already exist`);
-    const initialSessionKeyPair = await generateECDHKeyPair();
-    await privateKeyStore.saveInitialSessionKey(
-      initialSessionKeyPair.privateKey,
-      endpointSessionKeyId,
+async function createIdentityKeyIfMissing(config: Config): Promise<void> {
+  const currentPrivateAddress = await config.get(ConfigItem.CURRENT_PRIVATE_ADDRESS);
+  if (currentPrivateAddress) {
+    console.log(`Identity key ${currentPrivateAddress} already exists`);
+  } else {
+    console.log(`Identity key will be created because it doesn't already exist`);
+
+    const endpointKeyPair = await generateRSAKeyPair();
+    await privateKeyStore.saveIdentityKey(endpointKeyPair.privateKey);
+    await config.set(
+      ConfigItem.CURRENT_PRIVATE_ADDRESS,
+      await getPrivateAddressFromIdentityKey(endpointKeyPair.publicKey),
     );
   }
 }
 
-async function createIdentityKey(endpointKeyId: Buffer): Promise<void> {
-  const endpointKeyPair = await generateRSAKeyPair();
+async function createInitialSessionKeyIfMissing(config: Config): Promise<void> {
+  const endpointSessionKeyIdBase64 = await config.get(ConfigItem.INITIAL_SESSION_KEY_ID_BASE64);
+  if (endpointSessionKeyIdBase64) {
+    console.log(`Session key ${endpointSessionKeyIdBase64} already exists`);
+  } else {
+    console.log(`Session key will be created because it doesn't already exist`);
 
-  const nodeCertEndDate = new Date();
-  nodeCertEndDate.setDate(nodeCertEndDate.getDate() + NODE_CERTIFICATE_TTL_DAYS);
-  const endpointCertificate = await issueEndpointCertificate({
-    issuerPrivateKey: endpointKeyPair.privateKey,
-    subjectPublicKey: endpointKeyPair.publicKey,
-    validityEndDate: nodeCertEndDate,
-  });
-  // Force the certificate to have the serial number specified in ENDPOINT_KEY_ID. This nasty
-  // hack won't be necessary once https://github.com/relaycorp/relaynet-pong/issues/26 is done.
-  // tslint:disable-next-line:no-object-mutation
-  (endpointCertificate as any).pkijsCertificate.serialNumber.valueBlock.valueHex =
-    bufferToArray(endpointKeyId);
-
-  await privateKeyStore.saveNodeKey(endpointKeyPair.privateKey, endpointCertificate);
+    const initialSessionKeyPair = await SessionKeyPair.generate();
+    await privateKeyStore.saveUnboundSessionKey(
+      initialSessionKeyPair.privateKey,
+      initialSessionKeyPair.sessionKey.keyId,
+    );
+    await config.set(
+      ConfigItem.INITIAL_SESSION_KEY_ID_BASE64,
+      initialSessionKeyPair.sessionKey.keyId.toString('base64'),
+    );
+  }
 }
 
 main();

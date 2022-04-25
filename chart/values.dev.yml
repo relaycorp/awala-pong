@@ -5,6 +5,7 @@ logging:
   level: debug
 
 public_endpoint_address: endpoint.local
+pohttp_tls_required: false
 
 redis:
   host: relaynet-pong-redis-headless
@@ -22,5 +23,8 @@ vault:
     dev:
       enabled: true
 
-current_endpoint_key_id: MTM1NzkK
-current_endpoint_session_key_id: OTc1MzEK
+mock-public-gateway:
+  fullnameOverride: mock-public-gateway
+  service:
+    type: ClusterIP
+    port: 80

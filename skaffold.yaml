@@ -1,4 +1,4 @@
-apiVersion: skaffold/v2beta11
+apiVersion: skaffold/v2beta25
 kind: Config
 build:
   artifacts:
@@ -15,9 +15,6 @@ deploy:
       - chart/values.dev.yml
       artifactOverrides:
         image.repository: relaynet-pong
-      setValues:
-        current_endpoint_key_id: aGVsbG8K
-        current_endpoint_session_key_id: OTc1MzEK
       wait: true
       skipBuildDependencies: true
 portForward:
@@ -25,6 +22,10 @@ portForward:
   resourceName: relaynet-pong-vault
   port: 8200
   localPort: 8200
+- resourceType: service
+  resourceName: mock-public-gateway
+  port: 80
+  localPort: 1080
 - resourceType: service
   resourceName: relaynet-pong-pohttp
   port: 80
