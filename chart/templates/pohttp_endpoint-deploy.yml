@@ -14,7 +14,6 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/global-cm.yml") . | sha256sum }}
-        checksum/endpoint-keys: {{ include (print $.Template.BasePath "/endpoint_keys-cm.yml") . | sha256sum }}
       labels:
         {{- include "..selectorLabels" . | nindent 8 }}
         pong.relaycorp.tech/component: pohttp
@@ -38,8 +37,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "..fullname" . }}
-            - configMapRef:
-                name: {{ include "..fullname" . }}-endpoint-keys
             - secretRef:
                 name: {{ include "..fullname" . }}-vault
           ports:

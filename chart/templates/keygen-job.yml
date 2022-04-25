@@ -31,8 +31,6 @@ spec:
             - build/main/bin/generate-keypairs.js
           envFrom:
             - configMapRef:
-                name: {{ include "..fullname" . }}-endpoint-keys
-            - configMapRef:
                 name: {{ include "..fullname" . }}
             - secretRef:
                 name: {{ include "..fullname" . }}-vault
