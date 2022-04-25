@@ -7,7 +7,7 @@ import { initVaultKeyStore } from '../backingServices/vault';
 import { Config } from '../utilities/config/Config';
 import { makeLogger } from '../utilities/logging';
 
-import { PingProcessor } from './processor';
+import { PingProcessor } from './PingProcessor';
 import { QueuedPing } from './QueuedPing';
 
 const config = Config.initFromEnv();
