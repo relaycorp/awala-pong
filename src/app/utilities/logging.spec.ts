@@ -1,6 +1,5 @@
 import { getPinoOptions } from '@relaycorp/pino-cloud';
 import { EnvVarError } from 'env-var';
-import pino from 'pino';
 
 import { configureMockEnvVars } from '../../testUtils/envVars';
 import { getMockInstance } from '../../testUtils/jest';
@@ -49,11 +48,11 @@ describe('makeLogger', () => {
   });
 
   test('Cloud logging options should be used', () => {
-    const messageKey = 'foo';
-    getMockInstance(getPinoOptions).mockReturnValue({ messageKey });
+    const customLevels = { foobar: 100 };
+    getMockInstance(getPinoOptions).mockReturnValue({ customLevels });
     const logger = makeLogger();
 
-    expect(logger[pino.symbols.messageKeySym as any]).toEqual(messageKey);
+    expect(logger.customLevels).toContainEqual(customLevels);
   });
 
   test('App name should be set to LOG_ENV_NAME if present', () => {
