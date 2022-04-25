@@ -89,9 +89,6 @@ describe('makeServer', () => {
     expect(mockFastify.register).toBeCalledWith(require('./parcelDelivery').default, {
       publicEndpointAddress,
     });
-    expect(mockFastify.register).toBeCalledWith(require('./certificates').default, {
-      publicEndpointAddress,
-    });
     expect(mockFastify.register).toBeCalledWith(require('./connectionParams').default, {
       publicEndpointAddress,
     });

@@ -3,7 +3,6 @@ import { FastifyInstance } from 'fastify';
 import { Logger } from 'pino';
 
 import { makeLogger } from '../utilities/logging';
-import certificateRoutes from './certificates';
 import connectionParamsRoutes from './connectionParams';
 import parcelDeliveryRoutes from './parcelDelivery';
 
@@ -33,7 +32,6 @@ export async function makeServer(logger: Logger): Promise<FastifyInstance> {
 
   const publicEndpointAddress = getEnvVar('PUBLIC_ENDPOINT_ADDRESS').required().asString();
   server.register(connectionParamsRoutes, { publicEndpointAddress } as any);
-  server.register(certificateRoutes, { publicEndpointAddress } as any);
   server.register(parcelDeliveryRoutes, { publicEndpointAddress } as any);
 
   server.addContentTypeParser(

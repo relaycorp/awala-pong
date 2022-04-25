@@ -48,7 +48,6 @@ The Bull-backed queue runs as a headless services, with no interface other than 
 
 - Command: `node build/main/bin/background-queue.js`
 - Environment variables:
-  - `ENDPOINT_KEY_ID` (required). The base64-encoded id for the current long-term node key pair -- This is typically an X.509 serial number, hence the base64 encoding. This value should be updated when doing key rotation.
   - Redis environment variables (see below).
   - Vault environment variables (see below).
 
@@ -58,14 +57,9 @@ This script generates the initial key pairs for the endpoint: The long-term node
 
 - Command: `node build/main/bin/generate-keypairs.js`
 - Environment variables:
-  - `ENDPOINT_KEY_ID` (see below). The id to use when saving the new long-term node key pair.
   - Vault environment variables (see below).
 
-No key pair will be generated when there's a private key whose id matches `ENDPOINT_KEY_ID`, so make sure to update that environment variable before running the script.
-
 ### Common environment variables
-
-`ENDPOINT_KEY_ID` does not have to be a cryptographically-secure, random string: It's only used to identify a relatively small number of key pairs. However, because this value should not be reused when rotating keys, it may be easier to satisfy this requirement by using a random string.
 
 Variables relevant to processes using Redis:
 

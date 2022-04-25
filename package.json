@@ -25,7 +25,7 @@
     "node": ">=16"
   },
   "devDependencies": {
-    "@relaycorp/relaynet-testing": "^2.0.1",
+    "@relaycorp/relaynet-testing": "^2.2.12",
     "@relaycorp/shared-config": "^1.6.0",
     "@types/binary-parser": "^1.5.1",
     "@types/bull": "^3.15.8",
@@ -67,10 +67,10 @@
   "homepage": "https://docs.relaycorp.tech/relaynet-pong/",
   "dependencies": {
     "@keyv/redis": "^2.3.1",
-    "@relaycorp/keystore-vault": "^1.2.10",
+    "@relaycorp/keystore-vault": "^2.0.19",
     "@relaycorp/pino-cloud": "^1.0.4",
-    "@relaycorp/relaynet-core": "^1.54.2",
-    "@relaycorp/relaynet-pohttp": "^1.7.7",
+    "@relaycorp/relaynet-core": "^1.76.1",
+    "@relaycorp/relaynet-pohttp": "^1.7.31",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^4.8.2",
     "date-fns": "^2.25.0",
