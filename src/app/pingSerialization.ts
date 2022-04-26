@@ -1,4 +1,4 @@
-import { Certificate, RelaynetError } from '@relaycorp/relaynet-core';
+import { CertificationPath, RelaynetError } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
 import uuid4 from 'uuid4';
 
@@ -6,24 +6,17 @@ export class PingSerializationError extends RelaynetError {}
 
 export interface Ping {
   readonly id: string;
-  readonly pda: Certificate;
-  readonly pdaChain: readonly Certificate[];
+  readonly pdaPath: CertificationPath;
 }
 
-export function serializePing(
-  pda: Certificate,
-  pdaChain: readonly Certificate[],
-  id?: string,
-): Buffer {
+export function serializePing(pdaPath: CertificationPath, id?: string): Buffer {
   if (id?.length === 0) {
     throw new PingSerializationError('Ping id should not be empty');
   }
 
-  const pdaSerialized = serializeCertificate(pda);
   const pingSerialized = {
     id: id ?? uuid4(),
-    pda: pdaSerialized,
-    pda_chain: pdaChain.map(serializeCertificate),
+    pda_path: Buffer.from(pdaPath.serialize()).toString('base64'),
   };
   return Buffer.from(JSON.stringify(pingSerialized));
 }
@@ -40,46 +33,24 @@ export function deserializePing(pingSerialized: Buffer): Ping {
     throw new PingSerializationError('Ping id is missing or it is not a string');
   }
 
-  let pda: Certificate;
-  try {
-    pda = deserializeCertificate(pingJson.pda);
-  } catch (err) {
-    throw new PingSerializationError(err as Error, 'Invalid PDA');
-  }
+  const pdaPath = deserializePDAPath(pingJson.pda_path);
 
-  if (!Array.isArray(pingJson.pda_chain)) {
-    throw new PingSerializationError('PDA chain is not an array');
-  }
-  let pdaChain: readonly Certificate[];
-  try {
-    pdaChain = pingJson.pda_chain.map(deserializeCertificate);
-  } catch (err) {
-    throw new PingSerializationError(err as Error, 'PDA chain contains invalid item');
-  }
-
-  return { id: pingJson.id, pda, pdaChain };
+  return { id: pingJson.id, pdaPath };
 }
 
-function deserializeCertificate(certificateDerBase64: any): Certificate {
+function deserializePDAPath(certificateDerBase64: any): CertificationPath {
   if (typeof certificateDerBase64 !== 'string') {
-    throw new PingSerializationError('Certificate is missing');
+    throw new PingSerializationError('PDA path is absent');
   }
 
   const certificateDer = Buffer.from(certificateDerBase64, 'base64');
   if (certificateDer.byteLength === 0) {
-    throw new PingSerializationError('Certificate is not base64-encoded');
+    throw new PingSerializationError('PDA path is not base64-encoded');
   }
 
   try {
-    return Certificate.deserialize(bufferToArray(certificateDer));
+    return CertificationPath.deserialize(bufferToArray(certificateDer));
   } catch (err) {
-    throw new PingSerializationError(
-      err as Error,
-      'Certificate is base64-encoded but not DER-encoded',
-    );
+    throw new PingSerializationError(err as Error, 'Malformed PDA path');
   }
-}
-
-function serializeCertificate(certificate: Certificate): string {
-  return Buffer.from(certificate.serialize()).toString('base64');
 }

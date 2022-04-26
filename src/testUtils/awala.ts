@@ -1,5 +1,6 @@
 import {
   Certificate,
+  CertificationPath,
   issueGatewayCertificate,
   Parcel,
   ServiceMessage,
@@ -54,8 +55,10 @@ export function generatePingServiceMessage(
   pingId?: string,
 ): ArrayBuffer {
   const pingMessage = serializePing(
-    certificatePath.pdaGrantee,
-    [certificatePath.privateEndpoint, certificatePath.privateGateway],
+    new CertificationPath(certificatePath.pdaGrantee, [
+      certificatePath.privateEndpoint,
+      certificatePath.privateGateway,
+    ]),
     pingId,
   );
   const serviceMessage = new ServiceMessage('application/vnd.awala.ping-v1.ping', pingMessage);

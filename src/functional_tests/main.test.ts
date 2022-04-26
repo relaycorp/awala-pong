@@ -1,5 +1,6 @@
 import {
   Certificate,
+  CertificationPath,
   EnvelopedData,
   Parcel,
   PublicNodeConnectionParams,
@@ -81,7 +82,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
     const serviceMessage = new ServiceMessage(
       'application/vnd.awala.ping-v1.ping',
-      serializePing(pda, [pingSenderCertificate]),
+      serializePing(new CertificationPath(pda, [pingSenderCertificate])),
     );
     const { dhPrivateKey, envelopedData } = await SessionEnvelopedData.encrypt(
       serviceMessage.serialize(),

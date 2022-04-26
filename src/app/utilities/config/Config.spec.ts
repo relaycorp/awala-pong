@@ -3,7 +3,7 @@ import Keyv from 'keyv';
 
 import { configureMockEnvVars } from '../../../testUtils/envVars';
 import { getMockContext } from '../../../testUtils/jest';
-import { catchError } from '../../../testUtils/promises';
+import { catchError } from '../../../testUtils/errors';
 import { Config } from './Config';
 import { ConfigError } from './ConfigError';
 import { ConfigItem } from './ConfigItem';
