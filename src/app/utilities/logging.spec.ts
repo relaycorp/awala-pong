@@ -48,12 +48,12 @@ describe('makeLogger', () => {
     expect(() => makeLogger()).toThrowWithMessage(EnvVarError, /APP_VERSION/);
   });
 
-  test('Cloud logging options should be used', () => {
+  test('Cloud logging options should be honoured', () => {
     const messageKey = 'foo';
     getMockInstance(getPinoOptions).mockReturnValue({ messageKey });
     const logger = makeLogger();
 
-    expect(logger[pino.symbols.messageKeySym as any]).toEqual(messageKey);
+    expect(logger).toHaveProperty([pino.symbols.messageKeySym], messageKey);
   });
 
   test('App name should be set to LOG_ENV_NAME if present', () => {
