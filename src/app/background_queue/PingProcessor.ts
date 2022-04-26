@@ -133,11 +133,16 @@ export class PingProcessor {
     const now = new Date();
     const expiryDate = addDays(now, 14);
     const creationDate = subMinutes(now, 5);
-    const pongParcel = new Parcel(recipientPrivateAddress, ping.pda, pongParcelPayload, {
-      creationDate,
-      senderCaCertificateChain: ping.pdaChain,
-      ttl: differenceInSeconds(expiryDate, creationDate),
-    });
+    const pongParcel = new Parcel(
+      recipientPrivateAddress,
+      ping.pdaPath.leafCertificate,
+      pongParcelPayload,
+      {
+        creationDate,
+        senderCaCertificateChain: ping.pdaPath.certificateAuthorities,
+        ttl: differenceInSeconds(expiryDate, creationDate),
+      },
+    );
     return pongParcel.serialize(identityPrivateKey);
   }
 }

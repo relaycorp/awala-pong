@@ -1,5 +1,6 @@
 import {
   Certificate,
+  CertificationPath,
   derSerializePrivateKey,
   derSerializePublicKey,
   EnvelopedData,
@@ -180,7 +181,7 @@ describe('deliverPongForPing', () => {
     const messageType = 'application/invalid';
     const serviceMessage = new ServiceMessage(
       messageType,
-      pingSerialization.serializePing(certificatePath.pdaGrantee, []),
+      pingSerialization.serializePing(new CertificationPath(certificatePath.pdaGrantee, [])),
     );
     jest
       .spyOn(Parcel.prototype, 'unwrapPayload')
