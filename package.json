@@ -30,7 +30,7 @@
     "@types/binary-parser": "^1.5.1",
     "@types/bull": "^3.15.8",
     "@types/jest": "^27.4.1",
-    "@types/pkijs": "0.0.12",
+    "@types/pkijs": "0.0.13",
     "@types/split2": "^3.2.1",
     "@types/verror": "^1.10.5",
     "jest": "^24.9.0",
