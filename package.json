@@ -74,7 +74,7 @@
     "bull": "^4.8.2",
     "date-fns": "^2.25.0",
     "env-var": "^7.1.1",
-    "fastify": "^2.15.1",
+    "fastify": "^3.29.0",
     "fastify-url-data": "^2.4.0",
     "keyv": "^4.2.2",
     "make-promises-safe": "^5.1.0",
