@@ -69,7 +69,7 @@
     "@relaycorp/keystore-vault": "^2.0.19",
     "@relaycorp/pino-cloud": "^1.0.14",
     "@relaycorp/relaynet-core": "^1.76.2",
-    "@relaycorp/relaynet-pohttp": "^1.7.32",
+    "@relaycorp/relaynet-pohttp": "^1.7.34",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^4.8.2",
     "date-fns": "^2.25.0",
@@ -78,7 +78,7 @@
     "fastify-url-data": "^2.4.0",
     "keyv": "^4.2.2",
     "make-promises-safe": "^5.1.0",
-    "pino": "^7.10.0",
+    "pino": "^7.11.0",
     "uuid4": "^2.0.2",
     "verror": "^1.10.1"
   }
