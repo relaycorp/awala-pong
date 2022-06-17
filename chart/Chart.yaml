@@ -16,7 +16,7 @@ dependencies:
     tags: [dev]
     repository: https://helm.releases.hashicorp.com
   - name: redis
-    version: 12.0.0
+    version: 16.12.2
     tags: [dev]
     repository: https://charts.bitnami.com/bitnami
   - name: mockserver
