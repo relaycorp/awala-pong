@@ -4,9 +4,9 @@ dependencies:
   version: 0.10.0
 - name: redis
   repository: https://charts.bitnami.com/bitnami
-  version: 12.0.0
+  version: 16.12.2
 - name: mockserver
   repository: https://www.mock-server.com
   version: 5.13.2
-digest: sha256:c43d15e3fd4db88ab3b9763f767b40d0e38a41112bd2fda5126ed3263f1ee939
-generated: "2022-04-22T23:48:28.862664591+02:00"
+digest: sha256:26dc04a9d78d2e2afce54b2807aec5d0c5d3456f02b289430a2b8e454cc65d2c
+generated: "2022-06-17T14:32:46.83415756+01:00"
