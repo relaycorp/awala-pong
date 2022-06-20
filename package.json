@@ -78,7 +78,7 @@
     "fastify-url-data": "^2.4.0",
     "keyv": "^4.2.2",
     "make-promises-safe": "^5.1.0",
-    "pino": "^7.11.0",
+    "pino": "^8.0.0",
     "uuid4": "^2.0.2",
     "verror": "^1.10.1"
   }
