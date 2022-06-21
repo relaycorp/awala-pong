@@ -69,7 +69,7 @@
     "@relaycorp/keystore-vault": "^2.0.21",
     "@relaycorp/pino-cloud": "^1.0.16",
     "@relaycorp/relaynet-core": "^1.76.2",
-    "@relaycorp/relaynet-pohttp": "^1.7.34",
+    "@relaycorp/relaynet-pohttp": "^1.7.38",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^4.8.2",
     "date-fns": "^2.25.0",
