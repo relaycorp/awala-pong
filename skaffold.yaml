@@ -9,6 +9,12 @@ build:
 deploy:
   helm:
     releases:
+    - name: dev-backing-services
+      chartPath: chart/dev-backing-services
+      valuesFiles:
+        - chart/dev-backing-services/values.yml
+      wait: true
+      skipBuildDependencies: true
     - name: relaynet-pong
       chartPath: chart
       valuesFiles:
@@ -19,7 +25,7 @@ deploy:
       skipBuildDependencies: true
 portForward:
 - resourceType: service
-  resourceName: relaynet-pong-vault
+  resourceName: dev-backing-services-vault
   port: 8200
   localPort: 8200
 - resourceType: service
