@@ -8,7 +8,7 @@ public_endpoint_address: endpoint.local
 pohttp_tls_required: false
 
 redis:
-  host: dev-backing-services-headless
+  host: dev-backing-services-redis-headless
 
 vault:
   host: dev-backing-services-vault
