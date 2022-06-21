@@ -61,7 +61,6 @@ redis:
 vault:
   port: '8200'
   session_keys_mount_path: pong-keys
-  enable_secret: false
 
 http_request_id_header: X-Request-Id
 pohttp_tls_required: true

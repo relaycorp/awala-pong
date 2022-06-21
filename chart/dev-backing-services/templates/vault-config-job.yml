@@ -1,10 +1,7 @@
-{{- if .Values.vault.enable_secret -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "..fullname" . }}-vault-config
-  labels:
-  {{- include "..labels" . | nindent 4 }}
+  name: vault-config
   annotations:
     "helm.sh/hook": post-install
     "helm.sh/hook-weight": "0"
@@ -18,9 +15,7 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     spec:
-      serviceAccountName: {{ include "..fullname" . }}-vault-config
-      securityContext:
-      {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      serviceAccountName: vault-config-sa
       shareProcessNamespace: true
       restartPolicy: OnFailure
       containers:
@@ -37,8 +32,5 @@ spec:
             - name: VAULT_ADDR
               value: "http://{{ .Values.vault.host }}:{{ .Values.vault.port }}"
           envFrom:
-            - configMapRef:
-                name: {{ include "..fullname" . }}
             - secretRef:
-                name: {{ include "..fullname" . }}-vault
-{{- end }}
+                name: vault-config

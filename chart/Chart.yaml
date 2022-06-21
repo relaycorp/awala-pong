@@ -9,18 +9,3 @@ type: application
 version: 1.0.0
 
 appVersion: 1.4.5
-
-dependencies:
-  - name: vault
-    version: 0.10.0
-    tags: [dev]
-    repository: https://helm.releases.hashicorp.com
-  - name: redis
-    version: 16.12.2
-    tags: [dev]
-    repository: https://charts.bitnami.com/bitnami
-  - name: mockserver
-    alias: mock-public-gateway
-    version: 5.13.2
-    tags: [dev]
-    repository: https://www.mock-server.com
