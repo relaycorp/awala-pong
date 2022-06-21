@@ -10,4 +10,4 @@ docs/.sass-cache
 docs/_site
 docs/vendor
 
-chart/charts
+chart/dev-backing-services/charts

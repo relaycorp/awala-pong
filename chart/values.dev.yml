@@ -8,24 +8,8 @@ public_endpoint_address: endpoint.local
 pohttp_tls_required: false
 
 redis:
-  host: relaynet-pong-redis-headless
-  auth:
-    enabled: false
-  architecture: standalone
-  master:
-    persistence:
-      enabled: false
+  host: dev-backing-services-redis-headless
 
 vault:
-  host: relaynet-pong-vault
+  host: dev-backing-services-vault
   token: root
-  enable_secret: true
-  server:
-    dev:
-      enabled: true
-
-mock-public-gateway:
-  fullnameOverride: mock-public-gateway
-  service:
-    type: ClusterIP
-    port: 80

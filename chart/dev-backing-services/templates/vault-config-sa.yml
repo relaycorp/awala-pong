@@ -1,9 +1,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "..fullname" . }}-vault-config
-  labels:
-  {{- include "..labels" . | nindent 4 }}
+  name: vault-config-sa
   annotations:
     "helm.sh/hook": post-install
     "helm.sh/hook-weight": "-1"
