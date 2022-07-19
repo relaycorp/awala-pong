@@ -64,6 +64,7 @@ describe('deliverPongForPing', () => {
   let keyPairSet: NodeKeyPairSet;
   let certificatePath: PDACertPath;
   let pingSenderCertificate: Certificate;
+  let recipientPrivateAddress: string;
   let recipientSessionKeyPair1: SessionKeyPair;
   beforeAll(async () => {
     keyPairSet = await generateIdentityKeyPairSet();
@@ -75,18 +76,23 @@ describe('deliverPongForPing', () => {
       validityEndDate: certificatePath.privateEndpoint.expiryDate,
     });
 
+    recipientPrivateAddress = await getPrivateAddressFromIdentityKey(
+      keyPairSet.pdaGrantee.publicKey,
+    );
+
     recipientSessionKeyPair1 = await SessionKeyPair.generate();
   });
   beforeEach(async () => {
-    await mockPrivateKeyStore.saveIdentityKey(keyPairSet.pdaGrantee.privateKey);
-    await config.set(
-      ConfigItem.CURRENT_PRIVATE_ADDRESS,
-      await getPrivateAddressFromIdentityKey(keyPairSet.pdaGrantee.publicKey),
+    await mockPrivateKeyStore.saveIdentityKey(
+      recipientPrivateAddress,
+      keyPairSet.pdaGrantee.privateKey,
     );
+    await config.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, recipientPrivateAddress);
 
-    await mockPrivateKeyStore.saveUnboundSessionKey(
+    await mockPrivateKeyStore.saveSessionKey(
       recipientSessionKeyPair1.privateKey,
       recipientSessionKeyPair1.sessionKey.keyId,
+      recipientPrivateAddress,
     );
   });
   afterEach(() => {
@@ -116,10 +122,7 @@ describe('deliverPongForPing', () => {
   beforeEach(async () => {
     jest.restoreAllMocks();
 
-    jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(
-      // @ts-ignore
-      undefined,
-    );
+    jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(undefined as any);
   });
 
   test('Error should be thrown if there is no current endpoint', async () => {
@@ -293,6 +296,7 @@ describe('deliverPongForPing', () => {
           mockPrivateKeyStore.sessionKeys[keyId.toString('hex')],
         ).toEqual<SessionPrivateKeyData>({
           keySerialized: await derSerializePrivateKey(encryptCallResult.dhPrivateKey),
+          privateAddress: recipientPrivateAddress,
           peerPrivateAddress: await pingSenderCertificate.calculateSubjectPrivateAddress(),
         });
       });

@@ -39,15 +39,14 @@ beforeAll(async () => {
 beforeEach(async () => {
   mockPrivateKeyStore.clear();
 
-  await mockPrivateKeyStore.saveIdentityKey(identityKeyPair.privateKey);
-  await mockConfig.set(
-    ConfigItem.CURRENT_PRIVATE_ADDRESS,
-    await getPrivateAddressFromIdentityKey(identityKeyPair.publicKey),
-  );
+  const privateAddress = await getPrivateAddressFromIdentityKey(identityKeyPair.publicKey);
+  await mockPrivateKeyStore.saveIdentityKey(privateAddress, identityKeyPair.privateKey);
+  await mockConfig.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, privateAddress);
 
-  await mockPrivateKeyStore.saveUnboundSessionKey(
+  await mockPrivateKeyStore.saveSessionKey(
     sessionKeyPair.privateKey,
     sessionKeyPair.sessionKey.keyId,
+    privateAddress,
   );
   await mockConfig.set(
     ConfigItem.INITIAL_SESSION_KEY_ID_BASE64,

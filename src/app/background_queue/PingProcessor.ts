@@ -46,6 +46,7 @@ export class PingProcessor {
     }
     const pongParcelSerialized = await this.makePongParcel(
       unwrappingResult.ping,
+      currentEndpointPrivateAddress,
       await pingParcel.senderCertificate.calculateSubjectPrivateAddress(),
       identityPrivateKey,
       unwrappingResult.originatorKey,
@@ -99,6 +100,7 @@ export class PingProcessor {
     pingId: string,
     recipientSessionKey: SessionKey,
     recipientPrivateAddress: string,
+    senderPrivateAddress: string,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage(
       'application/vnd.awala.ping-v1.pong',
@@ -111,9 +113,10 @@ export class PingProcessor {
       dhKeyId,
       envelopedData: pongParcelPayload,
     } = await SessionEnvelopedData.encrypt(pongMessageSerialized, recipientSessionKey);
-    await this.privateKeyStore.saveBoundSessionKey(
+    await this.privateKeyStore.saveSessionKey(
       dhPrivateKey,
       Buffer.from(dhKeyId),
+      senderPrivateAddress,
       recipientPrivateAddress,
     );
     return Buffer.from(pongParcelPayload.serialize());
@@ -121,6 +124,7 @@ export class PingProcessor {
 
   private async makePongParcel(
     ping: Ping,
+    senderPrivateAddress: string,
     recipientPrivateAddress: string,
     identityPrivateKey: CryptoKey,
     originatorKey: SessionKey,
@@ -129,6 +133,7 @@ export class PingProcessor {
       ping.id,
       originatorKey,
       recipientPrivateAddress,
+      senderPrivateAddress,
     );
     const now = new Date();
     const expiryDate = addDays(now, 14);
