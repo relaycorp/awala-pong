@@ -13,7 +13,7 @@ import { FastifyInstance, HTTPInjectOptions, HTTPInjectResponse } from 'fastify'
 import { makeInMemoryConfig, mockConfigInitFromEnv } from '../../testUtils/config';
 import { configureMockEnvVars } from '../../testUtils/envVars';
 import { mockSpy } from '../../testUtils/jest';
-import { makeMockLogging, MockLogSet, partialPinoLog } from '../../testUtils/logging';
+import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as vault from '../backingServices/vault';
 import { ConfigItem } from '../utilities/config/ConfigItem';
 import { ENV_VARS, PUBLIC_ENDPOINT_ADDRESS } from './_test_utils';
@@ -55,10 +55,8 @@ beforeEach(async () => {
 });
 
 let serverInstance: FastifyInstance;
-let mockLogs: MockLogSet;
+const mockLogging = makeMockLogging();
 beforeEach(async () => {
-  const mockLogging = makeMockLogging();
-  mockLogs = mockLogging.logs;
   serverInstance = await makeServer(mockLogging.logger);
 });
 
@@ -75,7 +73,9 @@ describe('GET', () => {
       const response = await serverInstance.inject(requestOpts);
 
       expectResponseToBe500(response);
-      expect(mockLogs).toContainEqual(partialPinoLog('fatal', 'Current identity key is unset'));
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('fatal', 'Current identity key is unset'),
+      );
     });
 
     test('Response code should be 500 if the current private key is missing', async () => {
@@ -85,7 +85,7 @@ describe('GET', () => {
       const response = await serverInstance.inject(requestOpts);
 
       expectResponseToBe500(response);
-      expect(mockLogs).toContainEqual(
+      expect(mockLogging.logs).toContainEqual(
         partialPinoLog('fatal', 'Current identity key is missing', {
           privateAddress: await getPrivateAddressFromIdentityKey(identityKeyPair.publicKey),
         }),
@@ -98,7 +98,9 @@ describe('GET', () => {
       const response = await serverInstance.inject(requestOpts);
 
       expectResponseToBe500(response);
-      expect(mockLogs).toContainEqual(partialPinoLog('fatal', 'Current session key is unset'));
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('fatal', 'Current session key is unset'),
+      );
     });
 
     test('Response code should be 500 if the current session key is missing', async () => {
@@ -108,7 +110,7 @@ describe('GET', () => {
       const response = await serverInstance.inject(requestOpts);
 
       expectResponseToBe500(response);
-      expect(mockLogs).toContainEqual(
+      expect(mockLogging.logs).toContainEqual(
         partialPinoLog('fatal', 'Current session key is missing', {
           sessionKeyId: sessionKeyPair.sessionKey.keyId.toString('base64'),
           err: expect.objectContaining({ type: UnknownKeyError.name }),

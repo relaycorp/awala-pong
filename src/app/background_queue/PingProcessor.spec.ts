@@ -30,7 +30,7 @@ import { generatePingServiceMessage } from '../../testUtils/awala';
 import { expectBuffersToEqual } from '../../testUtils/buffers';
 import { makeInMemoryConfig } from '../../testUtils/config';
 import { getMockContext, getMockInstance } from '../../testUtils/jest';
-import { makeMockLogging, MockLogging, partialPinoLog } from '../../testUtils/logging';
+import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utilities/base64';
 import { Config } from '../utilities/config/Config';
@@ -50,10 +50,7 @@ beforeEach(() => {
   getMockInstance(pohttp.deliverParcel).mockRestore();
 });
 
-let mockLogging: MockLogging;
-beforeEach(() => {
-  mockLogging = makeMockLogging();
-});
+const mockLogging = makeMockLogging();
 
 afterAll(jest.restoreAllMocks);
 
