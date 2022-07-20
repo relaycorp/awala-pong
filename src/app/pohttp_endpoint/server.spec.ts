@@ -2,7 +2,7 @@ import { EnvVarError } from 'env-var';
 
 import { configureMockEnvVars } from '../../testUtils/envVars';
 import { getMockContext, mockSpy } from '../../testUtils/jest';
-import { makeMockLogging, MockLogging } from '../../testUtils/logging';
+import { makeMockLogging } from '../../testUtils/logging';
 import * as logging from '../utilities/logging';
 import * as server from './server';
 
@@ -20,10 +20,7 @@ const mockFastify = {
 };
 jest.mock('fastify', () => jest.fn().mockImplementation(() => mockFastify));
 
-let mockLogging: MockLogging;
-beforeEach(() => {
-  mockLogging = makeMockLogging();
-});
+const mockLogging = makeMockLogging();
 
 afterAll(() => {
   jest.restoreAllMocks();

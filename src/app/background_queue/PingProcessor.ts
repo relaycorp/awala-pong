@@ -39,13 +39,18 @@ export class PingProcessor {
 
     const pingParcel = await Parcel.deserialize(bufferToArray(base64Decode(job.data.parcel)));
 
-    const unwrappingResult = await this.unwrapPing(pingParcel, job.id);
+    const unwrappingResult = await this.unwrapPing(
+      pingParcel,
+      job.id,
+      currentEndpointPrivateAddress,
+    );
     if (unwrappingResult === undefined) {
       // Service message was invalid; errors were already logged.
       return;
     }
     const pongParcelSerialized = await this.makePongParcel(
       unwrappingResult.ping,
+      currentEndpointPrivateAddress,
       await pingParcel.senderCertificate.calculateSubjectPrivateAddress(),
       identityPrivateKey,
       unwrappingResult.originatorKey,
@@ -68,10 +73,11 @@ export class PingProcessor {
   protected async unwrapPing(
     pingParcel: Parcel,
     jobId: string | number,
+    privateAddress: string,
   ): Promise<{ readonly ping: Ping; readonly originatorKey: SessionKey } | undefined> {
     let decryptionResult;
     try {
-      decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore);
+      decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore, privateAddress);
     } catch (error) {
       // The sender didn't create a valid service message, so let's ignore it.
       this.logger.info({ err: error, jobId }, 'Invalid service message');
@@ -99,6 +105,7 @@ export class PingProcessor {
     pingId: string,
     recipientSessionKey: SessionKey,
     recipientPrivateAddress: string,
+    senderPrivateAddress: string,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage(
       'application/vnd.awala.ping-v1.pong',
@@ -111,9 +118,10 @@ export class PingProcessor {
       dhKeyId,
       envelopedData: pongParcelPayload,
     } = await SessionEnvelopedData.encrypt(pongMessageSerialized, recipientSessionKey);
-    await this.privateKeyStore.saveBoundSessionKey(
+    await this.privateKeyStore.saveSessionKey(
       dhPrivateKey,
       Buffer.from(dhKeyId),
+      senderPrivateAddress,
       recipientPrivateAddress,
     );
     return Buffer.from(pongParcelPayload.serialize());
@@ -121,6 +129,7 @@ export class PingProcessor {
 
   private async makePongParcel(
     ping: Ping,
+    senderPrivateAddress: string,
     recipientPrivateAddress: string,
     identityPrivateKey: CryptoKey,
     originatorKey: SessionKey,
@@ -129,6 +138,7 @@ export class PingProcessor {
       ping.id,
       originatorKey,
       recipientPrivateAddress,
+      senderPrivateAddress,
     );
     const now = new Date();
     const expiryDate = addDays(now, 14);

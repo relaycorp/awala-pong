@@ -23,8 +23,18 @@ export default async function registerRoutes(
     method: ['GET'],
     url: '/connection-params.der',
     async handler(req, reply): Promise<FastifyReply<any>> {
-      const identityPublicKey = await retrieveIdentityPublicKey(config, privateKeyStore, req.log);
-      const sessionKey = await retrieveSessionKey(config, privateKeyStore, req.log);
+      const privateAddress = await config.get(ConfigItem.CURRENT_PRIVATE_ADDRESS);
+      const identityPublicKey = await retrieveIdentityPublicKey(
+        privateAddress,
+        privateKeyStore,
+        req.log,
+      );
+      const sessionKey = await retrieveSessionKey(
+        privateAddress!,
+        config,
+        privateKeyStore,
+        req.log,
+      );
       if (!identityPublicKey || !sessionKey) {
         return reply.code(500).send({ message: 'Internal server error' });
       }
@@ -40,11 +50,10 @@ export default async function registerRoutes(
 }
 
 async function retrieveIdentityPublicKey(
-  config: Config,
+  privateAddress: string | null,
   privateKeyStore: PrivateKeyStore,
   logger: Logger,
 ): Promise<CryptoKey | null> {
-  const privateAddress = await config.get(ConfigItem.CURRENT_PRIVATE_ADDRESS);
   if (!privateAddress) {
     logger.fatal('Current identity key is unset');
     return null;
@@ -58,6 +67,7 @@ async function retrieveIdentityPublicKey(
 }
 
 async function retrieveSessionKey(
+  privateAddress: string,
   config: Config,
   privateKeyStore: PrivateKeyStore,
   logger: Logger,
@@ -70,7 +80,7 @@ async function retrieveSessionKey(
   const keyId = Buffer.from(keyIdBase64, 'base64');
   let privateKey: CryptoKey;
   try {
-    privateKey = await privateKeyStore.retrieveUnboundSessionKey(keyId);
+    privateKey = await privateKeyStore.retrieveUnboundSessionKey(keyId, privateAddress);
   } catch (err) {
     logger.fatal({ err, sessionKeyId: keyIdBase64 }, 'Current session key is missing');
     return null;

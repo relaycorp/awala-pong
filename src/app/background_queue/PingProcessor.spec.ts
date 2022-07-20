@@ -30,7 +30,7 @@ import { generatePingServiceMessage } from '../../testUtils/awala';
 import { expectBuffersToEqual } from '../../testUtils/buffers';
 import { makeInMemoryConfig } from '../../testUtils/config';
 import { getMockContext, getMockInstance } from '../../testUtils/jest';
-import { makeMockLogging, MockLogging, partialPinoLog } from '../../testUtils/logging';
+import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pingSerialization from '../pingSerialization';
 import { base64Encode } from '../utilities/base64';
 import { Config } from '../utilities/config/Config';
@@ -50,10 +50,7 @@ beforeEach(() => {
   getMockInstance(pohttp.deliverParcel).mockRestore();
 });
 
-let mockLogging: MockLogging;
-beforeEach(() => {
-  mockLogging = makeMockLogging();
-});
+const mockLogging = makeMockLogging();
 
 afterAll(jest.restoreAllMocks);
 
@@ -64,6 +61,7 @@ describe('deliverPongForPing', () => {
   let keyPairSet: NodeKeyPairSet;
   let certificatePath: PDACertPath;
   let pingSenderCertificate: Certificate;
+  let recipientPrivateAddress: string;
   let recipientSessionKeyPair1: SessionKeyPair;
   beforeAll(async () => {
     keyPairSet = await generateIdentityKeyPairSet();
@@ -75,18 +73,23 @@ describe('deliverPongForPing', () => {
       validityEndDate: certificatePath.privateEndpoint.expiryDate,
     });
 
+    recipientPrivateAddress = await getPrivateAddressFromIdentityKey(
+      keyPairSet.pdaGrantee.publicKey,
+    );
+
     recipientSessionKeyPair1 = await SessionKeyPair.generate();
   });
   beforeEach(async () => {
-    await mockPrivateKeyStore.saveIdentityKey(keyPairSet.pdaGrantee.privateKey);
-    await config.set(
-      ConfigItem.CURRENT_PRIVATE_ADDRESS,
-      await getPrivateAddressFromIdentityKey(keyPairSet.pdaGrantee.publicKey),
+    await mockPrivateKeyStore.saveIdentityKey(
+      recipientPrivateAddress,
+      keyPairSet.pdaGrantee.privateKey,
     );
+    await config.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, recipientPrivateAddress);
 
-    await mockPrivateKeyStore.saveUnboundSessionKey(
+    await mockPrivateKeyStore.saveSessionKey(
       recipientSessionKeyPair1.privateKey,
       recipientSessionKeyPair1.sessionKey.keyId,
+      recipientPrivateAddress,
     );
   });
   afterEach(() => {
@@ -116,10 +119,7 @@ describe('deliverPongForPing', () => {
   beforeEach(async () => {
     jest.restoreAllMocks();
 
-    jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(
-      // @ts-ignore
-      undefined,
-    );
+    jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(undefined as any);
   });
 
   test('Error should be thrown if there is no current endpoint', async () => {
@@ -293,6 +293,7 @@ describe('deliverPongForPing', () => {
           mockPrivateKeyStore.sessionKeys[keyId.toString('hex')],
         ).toEqual<SessionPrivateKeyData>({
           keySerialized: await derSerializePrivateKey(encryptCallResult.dhPrivateKey),
+          privateAddress: recipientPrivateAddress,
           peerPrivateAddress: await pingSenderCertificate.calculateSubjectPrivateAddress(),
         });
       });
@@ -358,11 +359,8 @@ describe('deliverPongForPing', () => {
 
   test('Pong should discarded if server rejects parcel as invalid', async () => {
     const error = new pohttp.PoHTTPInvalidParcelError('Nope');
-    // @ts-ignore
-    pohttp.deliverParcel.mockRestore();
-    jest.spyOn(pohttp, 'deliverParcel').mockImplementation(async () => {
-      throw error;
-    });
+    getMockInstance(pohttp.deliverParcel).mockRestore();
+    jest.spyOn(pohttp, 'deliverParcel').mockRejectedValue(error);
 
     await expect(processor.deliverPongForPing(await initJob())).toResolve();
 
@@ -375,11 +373,8 @@ describe('deliverPongForPing', () => {
 
   test('Parcel delivery errors should be propagated', async () => {
     const error = new Error('Nope');
-    // @ts-ignore
-    pohttp.deliverParcel.mockRestore();
-    jest.spyOn(pohttp, 'deliverParcel').mockImplementation(async () => {
-      throw error;
-    });
+    getMockInstance(pohttp.deliverParcel).mockRestore();
+    jest.spyOn(pohttp, 'deliverParcel').mockRejectedValue(error);
 
     await expect(processor.deliverPongForPing(await initJob())).rejects.toEqual(error);
   });

@@ -9,7 +9,7 @@ import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 import { generatePingParcel } from '../../testUtils/awala';
 import { mockConfigInitFromEnv } from '../../testUtils/config';
 import { configureMockEnvVars } from '../../testUtils/envVars';
-import { makeMockLogging, MockLogging, partialPinoLog } from '../../testUtils/logging';
+import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utilities/base64';
@@ -19,10 +19,9 @@ import { makeServer } from './server';
 const mockEnvVars = configureMockEnvVars(ENV_VARS);
 mockConfigInitFromEnv();
 
-let mockLogging: MockLogging;
+const mockLogging = makeMockLogging();
 let serverInstance: FastifyInstance;
 beforeEach(async () => {
-  mockLogging = makeMockLogging();
   serverInstance = await makeServer(mockLogging.logger);
 });
 
