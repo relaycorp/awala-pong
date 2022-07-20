@@ -359,11 +359,8 @@ describe('deliverPongForPing', () => {
 
   test('Pong should discarded if server rejects parcel as invalid', async () => {
     const error = new pohttp.PoHTTPInvalidParcelError('Nope');
-    // @ts-ignore
-    pohttp.deliverParcel.mockRestore();
-    jest.spyOn(pohttp, 'deliverParcel').mockImplementation(async () => {
-      throw error;
-    });
+    getMockInstance(pohttp.deliverParcel).mockRestore();
+    jest.spyOn(pohttp, 'deliverParcel').mockRejectedValue(error);
 
     await expect(processor.deliverPongForPing(await initJob())).toResolve();
 
@@ -376,11 +373,8 @@ describe('deliverPongForPing', () => {
 
   test('Parcel delivery errors should be propagated', async () => {
     const error = new Error('Nope');
-    // @ts-ignore
-    pohttp.deliverParcel.mockRestore();
-    jest.spyOn(pohttp, 'deliverParcel').mockImplementation(async () => {
-      throw error;
-    });
+    getMockInstance(pohttp.deliverParcel).mockRestore();
+    jest.spyOn(pohttp, 'deliverParcel').mockRejectedValue(error);
 
     await expect(processor.deliverPongForPing(await initJob())).rejects.toEqual(error);
   });
