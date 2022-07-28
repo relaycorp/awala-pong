@@ -4,7 +4,7 @@ import {
   derSerializePrivateKey,
   derSerializePublicKey,
   EnvelopedData,
-  getPrivateAddressFromIdentityKey,
+  getIdFromIdentityKey,
   issueEndpointCertificate,
   MockPrivateKeyStore,
   Parcel,
@@ -61,7 +61,7 @@ describe('deliverPongForPing', () => {
   let keyPairSet: NodeKeyPairSet;
   let certificatePath: PDACertPath;
   let pingSenderCertificate: Certificate;
-  let recipientPrivateAddress: string;
+  let recipientId: string;
   let recipientSessionKeyPair1: SessionKeyPair;
   beforeAll(async () => {
     keyPairSet = await generateIdentityKeyPairSet();
@@ -73,23 +73,18 @@ describe('deliverPongForPing', () => {
       validityEndDate: certificatePath.privateEndpoint.expiryDate,
     });
 
-    recipientPrivateAddress = await getPrivateAddressFromIdentityKey(
-      keyPairSet.pdaGrantee.publicKey,
-    );
+    recipientId = await getIdFromIdentityKey(keyPairSet.pdaGrantee.publicKey);
 
     recipientSessionKeyPair1 = await SessionKeyPair.generate();
   });
   beforeEach(async () => {
-    await mockPrivateKeyStore.saveIdentityKey(
-      recipientPrivateAddress,
-      keyPairSet.pdaGrantee.privateKey,
-    );
-    await config.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, recipientPrivateAddress);
+    await mockPrivateKeyStore.saveIdentityKey(recipientId, keyPairSet.pdaGrantee.privateKey);
+    await config.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, recipientId);
 
     await mockPrivateKeyStore.saveSessionKey(
       recipientSessionKeyPair1.privateKey,
       recipientSessionKeyPair1.sessionKey.keyId,
-      recipientPrivateAddress,
+      recipientId,
     );
   });
   afterEach(() => {
@@ -230,10 +225,7 @@ describe('deliverPongForPing', () => {
     });
 
     test('Parcel recipient should be sender of ping message', () => {
-      expect(deliveredParcel).toHaveProperty(
-        'recipientAddress',
-        pingSenderCertificate.getCommonName(),
-      );
+      expect(deliveredParcel.recipient.id).toEqual(pingSenderCertificate.getCommonName());
     });
 
     test('Ping sender certificate chain should be in pong sender chain', () => {
@@ -293,8 +285,8 @@ describe('deliverPongForPing', () => {
           mockPrivateKeyStore.sessionKeys[keyId.toString('hex')],
         ).toEqual<SessionPrivateKeyData>({
           keySerialized: await derSerializePrivateKey(encryptCallResult.dhPrivateKey),
-          privateAddress: recipientPrivateAddress,
-          peerPrivateAddress: await pingSenderCertificate.calculateSubjectPrivateAddress(),
+          nodeId: recipientId,
+          peerId: await pingSenderCertificate.calculateSubjectId(),
         });
       });
 
@@ -386,9 +378,14 @@ describe('deliverPongForPing', () => {
     }> = {},
   ): Promise<Job<QueuedPing>> {
     const finalPayload = options.parcelPayload ?? parcelPayload;
-    const parcel = new Parcel('https://ping.relaycorp.tech', pingSenderCertificate, finalPayload, {
-      senderCaCertificateChain: [certificatePath.privateGateway],
-    });
+    const parcel = new Parcel(
+      { id: recipientId, internetAddress: 'ping.relaycorp.tech' },
+      pingSenderCertificate,
+      finalPayload,
+      {
+        senderCaCertificateChain: [certificatePath.privateGateway],
+      },
+    );
     const data: QueuedPing = {
       gatewayAddress: options.gatewayAddress ?? 'dummy-gateway',
       parcel: base64Encode(await parcel.serialize(keyPairSet.privateEndpoint.privateKey)),

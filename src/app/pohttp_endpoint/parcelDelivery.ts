@@ -73,7 +73,7 @@ export default async function registerRoutes(
       }
       const isRecipientValid = isParcelRecipientValid(
         parcel.recipientAddress,
-        options.publicEndpointAddress,
+        options.internetAddress,
         requireTlsUrls,
       );
       if (!isRecipientValid) {

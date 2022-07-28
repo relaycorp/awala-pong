@@ -27,7 +27,7 @@ export async function generateStubNodeCertificate(
 }
 
 export async function generatePingParcel(
-  recipientAddress: string,
+  recipientId: string,
   recipientIdCertificate: Certificate,
   keyPairSet: NodeKeyPairSet,
   certificatePath: PDACertPath,
@@ -42,7 +42,7 @@ export async function generatePingParcel(
     recipientIdCertificate,
   );
   const parcel = new Parcel(
-    recipientAddress,
+    { id: recipientId },
     parcelSenderCertificate,
     parcelPayloadSerialized,
     creationDate ? { creationDate } : {},

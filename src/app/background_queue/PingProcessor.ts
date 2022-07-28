@@ -39,11 +39,7 @@ export class PingProcessor {
 
     const pingParcel = await Parcel.deserialize(bufferToArray(base64Decode(job.data.parcel)));
 
-    const unwrappingResult = await this.unwrapPing(
-      pingParcel,
-      job.id,
-      currentEndpointPrivateAddress,
-    );
+    const unwrappingResult = await this.unwrapPing(pingParcel, job.id);
     if (unwrappingResult === undefined) {
       // Service message was invalid; errors were already logged.
       return;
@@ -51,7 +47,7 @@ export class PingProcessor {
     const pongParcelSerialized = await this.makePongParcel(
       unwrappingResult.ping,
       currentEndpointPrivateAddress,
-      await pingParcel.senderCertificate.calculateSubjectPrivateAddress(),
+      await pingParcel.senderCertificate.calculateSubjectId(),
       identityPrivateKey,
       unwrappingResult.originatorKey,
     );
@@ -73,11 +69,10 @@ export class PingProcessor {
   protected async unwrapPing(
     pingParcel: Parcel,
     jobId: string | number,
-    privateAddress: string,
   ): Promise<{ readonly ping: Ping; readonly originatorKey: SessionKey } | undefined> {
     let decryptionResult;
     try {
-      decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore, privateAddress);
+      decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore);
     } catch (error) {
       // The sender didn't create a valid service message, so let's ignore it.
       this.logger.info({ err: error, jobId }, 'Invalid service message');
@@ -144,7 +139,7 @@ export class PingProcessor {
     const expiryDate = addDays(now, 14);
     const creationDate = subMinutes(now, 5);
     const pongParcel = new Parcel(
-      recipientPrivateAddress,
+      { id: recipientPrivateAddress },
       ping.pdaPath.leafCertificate,
       pongParcelPayload,
       {

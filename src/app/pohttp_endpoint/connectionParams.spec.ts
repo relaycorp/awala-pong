@@ -1,7 +1,7 @@
 import {
   derSerializePublicKey,
   generateRSAKeyPair,
-  getPrivateAddressFromIdentityKey,
+  getIdFromIdentityKey,
   MockPrivateKeyStore,
   PublicNodeConnectionParams,
   SessionKeyPair,
@@ -16,7 +16,7 @@ import { mockSpy } from '../../testUtils/jest';
 import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as vault from '../backingServices/vault';
 import { ConfigItem } from '../utilities/config/ConfigItem';
-import { ENV_VARS, PUBLIC_ENDPOINT_ADDRESS } from './_test_utils';
+import { ENV_VARS, ENDPOINT_INTERNET_ADDRESS } from './_test_utils';
 import { makeServer } from './server';
 
 jest.mock('../background_queue/queue');
@@ -39,7 +39,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   mockPrivateKeyStore.clear();
 
-  const privateAddress = await getPrivateAddressFromIdentityKey(identityKeyPair.publicKey);
+  const privateAddress = await getIdFromIdentityKey(identityKeyPair.publicKey);
   await mockPrivateKeyStore.saveIdentityKey(privateAddress, identityKeyPair.privateKey);
   await mockConfig.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, privateAddress);
 
@@ -87,7 +87,7 @@ describe('GET', () => {
       expectResponseToBe500(response);
       expect(mockLogging.logs).toContainEqual(
         partialPinoLog('fatal', 'Current identity key is missing', {
-          privateAddress: await getPrivateAddressFromIdentityKey(identityKeyPair.publicKey),
+          privateAddress: await getIdFromIdentityKey(identityKeyPair.publicKey),
         }),
       );
     });
@@ -140,7 +140,7 @@ describe('GET', () => {
     const response = await serverInstance.inject(requestOpts);
 
     const params = await deserializeParams(response.rawPayload);
-    expect(params.publicAddress).toEqual(PUBLIC_ENDPOINT_ADDRESS);
+    expect(params.internetAddress).toEqual(ENDPOINT_INTERNET_ADDRESS);
   });
 
   test('Identity key should be DER serialization of public key', async () => {

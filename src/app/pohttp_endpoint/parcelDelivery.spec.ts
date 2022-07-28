@@ -13,7 +13,7 @@ import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import { base64Encode } from '../utilities/base64';
-import { ENV_VARS, PUBLIC_ENDPOINT_ADDRESS } from './_test_utils';
+import { ENV_VARS, ENDPOINT_INTERNET_ADDRESS } from './_test_utils';
 import { makeServer } from './server';
 
 const mockEnvVars = configureMockEnvVars(ENV_VARS);
@@ -28,7 +28,7 @@ beforeEach(async () => {
 const validRequestOptions: HTTPInjectOptions = {
   headers: {
     'Content-Type': 'application/vnd.awala.parcel',
-    Host: `pohttp-${PUBLIC_ENDPOINT_ADDRESS}`,
+    Host: `pohttp-${ENDPOINT_INTERNET_ADDRESS}`,
     'X-Awala-Gateway': 'https://gateway.example',
   },
   method: 'POST',
@@ -42,7 +42,7 @@ beforeAll(async () => {
   certificatePath = await generatePDACertificationPath(keyPairSet);
 
   const payload = await generatePingParcel(
-    `https://${PUBLIC_ENDPOINT_ADDRESS}`,
+    `https://${ENDPOINT_INTERNET_ADDRESS}`,
     certificatePath.privateEndpoint,
     keyPairSet,
     certificatePath,
@@ -178,7 +178,7 @@ describe('receiveParcel', () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const payload = await generatePingParcel(
-      `https://${PUBLIC_ENDPOINT_ADDRESS}/`,
+      `https://${ENDPOINT_INTERNET_ADDRESS}/`,
       certificatePath.privateEndpoint,
       keyPairSet,
       certificatePath,
@@ -257,7 +257,7 @@ describe('receiveParcel', () => {
   test('Non-TLS URLs should be allowed when POHTTP_TLS_REQUIRED=false', async () => {
     mockEnvVars({ ...ENV_VARS, POHTTP_TLS_REQUIRED: 'false' });
     const stubPayload = await generatePingParcel(
-      `http://${PUBLIC_ENDPOINT_ADDRESS}`,
+      `http://${ENDPOINT_INTERNET_ADDRESS}`,
       certificatePath.privateEndpoint,
       keyPairSet,
       certificatePath,

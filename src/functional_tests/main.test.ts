@@ -112,7 +112,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     const pongParcel = await Parcel.deserialize(bufferToArray(pongParcelSerialized));
     expect(pongParcel).toHaveProperty(
       'recipientAddress',
-      await pingSenderCertificate.calculateSubjectPrivateAddress(),
+      await pingSenderCertificate.calculateSubjectId(),
     );
     const pongParcelPayload = EnvelopedData.deserialize(
       bufferToArray(pongParcel.payloadSerialized as Buffer),
