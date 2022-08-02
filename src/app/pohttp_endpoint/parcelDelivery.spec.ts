@@ -181,7 +181,7 @@ describe('receiveParcel', () => {
     );
   });
 
-  test('Parcel should be ignored if recipient private address does not match', async () => {
+  test('Parcel should be ignored if recipient id does not match', async () => {
     const invalidRecipient = { ...pingParcelRecipient, id: `${pingParcelRecipient.id}abc` };
     const payload = await generatePingParcel(
       invalidRecipient,
@@ -198,7 +198,7 @@ describe('receiveParcel', () => {
     expect(response).toHaveProperty('statusCode', 202);
     expect(JSON.parse(response.payload)).toBeEmptyObject();
     expect(mockLogging.logs).toContainEqual(
-      partialPinoLog('info', 'Parcel is bound for recipient with different private address', {
+      partialPinoLog('info', 'Parcel is bound for recipient with different id', {
         recipient: invalidRecipient,
       }),
     );

@@ -87,7 +87,7 @@ async function isPrivateAddressValid(recipient: Recipient, log: Logger): Promise
   const privateKeyStore = initVaultKeyStore();
   const keyExists = await privateKeyStore.retrieveIdentityKey(recipient.id);
   if (!keyExists) {
-    log.info({ recipient }, 'Parcel is bound for recipient with different private address');
+    log.info({ recipient }, 'Parcel is bound for recipient with different id');
   }
   return !!keyExists;
 }
