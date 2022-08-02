@@ -64,7 +64,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       pongConnectionParams.sessionKey,
     );
 
-    await deliverParcel(PONG_ENDPOINT_LOCAL_URL, pingParcelSerialized);
+    await deliverParcel(PONG_ENDPOINT_LOCAL_URL, pingParcelSerialized, { useTls: false });
 
     await validatePongDelivery(dhPrivateKey);
   });
