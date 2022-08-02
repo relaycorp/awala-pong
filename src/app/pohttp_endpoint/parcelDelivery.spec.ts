@@ -8,7 +8,7 @@ import {
 import { subDays } from 'date-fns';
 import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
-import { generatePingParcel, PONG_ENDPOINT_INTERNET_ADDRESS } from '../../testUtils/awala';
+import { generatePingParcel, PONG_INTERNET_ADDRESS } from '../../testUtils/awala';
 import { mockConfigInitFromEnv } from '../../testUtils/config';
 import { configureMockEnvVars } from '../../testUtils/envVars';
 import { mockSpy } from '../../testUtils/jest';
@@ -32,7 +32,7 @@ beforeEach(async () => {
 const validRequestOptions: HTTPInjectOptions = {
   headers: {
     'Content-Type': 'application/vnd.awala.parcel',
-    Host: `pohttp-${PONG_ENDPOINT_INTERNET_ADDRESS}`,
+    Host: `pohttp-${PONG_INTERNET_ADDRESS}`,
   },
   method: 'POST',
   payload: {},
@@ -50,7 +50,7 @@ beforeAll(async () => {
   pongEndpointId = await getIdFromIdentityKey(keyPairSet.pdaGrantee.publicKey);
   pingParcelRecipient = {
     id: pongEndpointId,
-    internetAddress: PONG_ENDPOINT_INTERNET_ADDRESS,
+    internetAddress: PONG_INTERNET_ADDRESS,
   };
   const payload = await generatePingParcel(
     pingParcelRecipient,
@@ -207,7 +207,7 @@ describe('receiveParcel', () => {
   test('Parcel should be refused if recipient Internet address does not match', async () => {
     const invalidRecipient = {
       ...pingParcelRecipient,
-      internetAddress: `not-${PONG_ENDPOINT_INTERNET_ADDRESS}`,
+      internetAddress: `not-${PONG_INTERNET_ADDRESS}`,
     };
     const payload = await generatePingParcel(
       invalidRecipient,

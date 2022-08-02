@@ -1,5 +1,5 @@
 import { EnvVarError } from 'env-var';
-import { PONG_ENDPOINT_INTERNET_ADDRESS } from '../../testUtils/awala';
+import { PONG_INTERNET_ADDRESS } from '../../testUtils/awala';
 
 import { configureMockEnvVars } from '../../testUtils/envVars';
 import { getMockContext, mockSpy } from '../../testUtils/jest';
@@ -9,7 +9,7 @@ import * as server from './server';
 
 import fastify = require('fastify');
 
-const envVars = { PUBLIC_ENDPOINT_ADDRESS: PONG_ENDPOINT_INTERNET_ADDRESS };
+const envVars = { PONG_INTERNET_ADDRESS };
 const mockEnvVars = configureMockEnvVars(envVars);
 
 const mockFastify = {
@@ -83,7 +83,7 @@ describe('makeServer', () => {
   test('Routes should be loaded', async () => {
     await server.makeServer(mockLogging.logger);
 
-    const routeOptions = { internetAddress: PONG_ENDPOINT_INTERNET_ADDRESS };
+    const routeOptions = { internetAddress: PONG_INTERNET_ADDRESS };
     expect(mockFastify.register).toBeCalledWith(require('./parcelDelivery').default, routeOptions);
     expect(mockFastify.register).toBeCalledWith(
       require('./connectionParams').default,

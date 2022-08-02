@@ -11,7 +11,7 @@ import { NodeKeyPairSet, PDACertPath } from '@relaycorp/relaynet-testing';
 
 import { serializePing } from '../app/pingSerialization';
 
-export const PONG_ENDPOINT_INTERNET_ADDRESS = 'ping.example.com';
+export const PONG_INTERNET_ADDRESS = 'ping.example.com';
 export const GATEWAY_INTERNET_ADDRESS = 'westeros.relaycorp.cloud';
 
 export async function generateStubNodeCertificate(

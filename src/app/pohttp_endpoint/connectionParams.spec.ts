@@ -9,7 +9,7 @@ import {
 } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { FastifyInstance, HTTPInjectOptions, HTTPInjectResponse } from 'fastify';
-import { PONG_ENDPOINT_INTERNET_ADDRESS } from '../../testUtils/awala';
+import { PONG_INTERNET_ADDRESS } from '../../testUtils/awala';
 
 import { makeInMemoryConfig, mockConfigInitFromEnv } from '../../testUtils/config';
 import { configureMockEnvVars } from '../../testUtils/envVars';
@@ -141,7 +141,7 @@ describe('GET', () => {
     const response = await serverInstance.inject(requestOpts);
 
     const params = await deserializeParams(response.rawPayload);
-    expect(params.internetAddress).toEqual(PONG_ENDPOINT_INTERNET_ADDRESS);
+    expect(params.internetAddress).toEqual(PONG_INTERNET_ADDRESS);
   });
 
   test('Identity key should be DER serialization of public key', async () => {

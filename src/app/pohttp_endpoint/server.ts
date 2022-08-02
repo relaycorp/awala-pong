@@ -33,11 +33,9 @@ export async function makeServer(logger: Logger): Promise<FastifyInstance> {
 
   server.register(fastifyUrlData);
 
-  const publicEndpointAddress = getEnvVar('PUBLIC_ENDPOINT_ADDRESS').required().asString();
+  const internetAddress = getEnvVar('PONG_INTERNET_ADDRESS').required().asString();
   ROUTES.forEach((route) => {
-    server.register<RouteOptions, any>(route, {
-      internetAddress: publicEndpointAddress,
-    });
+    server.register<RouteOptions, any>(route, { internetAddress });
   });
 
   server.addContentTypeParser(
