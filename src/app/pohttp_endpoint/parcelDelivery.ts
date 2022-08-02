@@ -1,6 +1,5 @@
 import { Parcel, Recipient } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
-import { get as getEnvVar } from 'env-var';
 import { FastifyInstance, FastifyReply, Logger } from 'fastify';
 
 import { initQueue } from '../background_queue/queue';
@@ -52,15 +51,6 @@ export default async function registerRoutes(
         return reply.code(415).send();
       }
 
-      const requireTlsUrls = getEnvVar('POHTTP_TLS_REQUIRED').default('true').asBool();
-
-      const gatewayAddress = request.headers['x-awala-gateway'] || '';
-      if (!isValidGatewayAddress(gatewayAddress, requireTlsUrls)) {
-        return reply
-          .code(400)
-          .send({ message: 'X-Awala-Gateway should be set to a valid PoHTTP endpoint' });
-      }
-
       let parcel;
       try {
         parcel = await Parcel.deserialize(bufferToArray(request.body));
@@ -81,7 +71,7 @@ export default async function registerRoutes(
         return reply.code(403).send({ message: 'Invalid parcel recipient' });
       }
 
-      const queueMessage: QueuedPing = { gatewayAddress, parcel: base64Encode(request.body) };
+      const queueMessage: QueuedPing = { parcel: base64Encode(request.body) };
       try {
         await pongQueue.add(queueMessage);
       } catch (error) {
@@ -91,16 +81,6 @@ export default async function registerRoutes(
       return reply.code(202).send({});
     },
   });
-}
-
-function isValidGatewayAddress(gatewayAddress: string, requireTlsUrls: boolean): boolean {
-  let urlParsed;
-  try {
-    urlParsed = new URL(gatewayAddress);
-  } catch (_error) {
-    return false;
-  }
-  return urlParsed.protocol === 'https:' || (!requireTlsUrls && urlParsed.protocol === 'http:');
 }
 
 async function isPrivateAddressValid(recipient: Recipient, log: Logger): Promise<boolean> {

@@ -33,7 +33,6 @@ const validRequestOptions: HTTPInjectOptions = {
   headers: {
     'Content-Type': 'application/vnd.awala.parcel',
     Host: `pohttp-${PONG_ENDPOINT_INTERNET_ADDRESS}`,
-    'X-Awala-Gateway': 'https://gateway.example',
   },
   method: 'POST',
   payload: {},
@@ -145,41 +144,6 @@ describe('receiveParcel', () => {
     expect(response).toHaveProperty('statusCode', 415);
   });
 
-  describe('X-Awala-Gateway request header', () => {
-    const validationErrorMessage = 'X-Awala-Gateway should be set to a valid PoHTTP endpoint';
-
-    test('X-Awala-Gateway should not be absent', async () => {
-      const allHeaders = validRequestOptions.headers as { readonly [key: string]: string };
-      const headers = Object.keys(allHeaders)
-        .filter((h) => h !== 'X-Awala-Gateway')
-        .reduce((a, h) => ({ ...a, [h]: allHeaders[h] }), {});
-      const response = await serverInstance.inject({ ...validRequestOptions, headers });
-
-      expect(response).toHaveProperty('statusCode', 400);
-      expect(JSON.parse(response.payload)).toHaveProperty('message', validationErrorMessage);
-    });
-
-    test('X-Awala-Gateway should not be an invalid URI', async () => {
-      const response = await serverInstance.inject({
-        ...validRequestOptions,
-        headers: { ...validRequestOptions.headers, 'X-Awala-Gateway': 'foo@example.com' },
-      });
-
-      expect(response).toHaveProperty('statusCode', 400);
-      expect(JSON.parse(response.payload)).toHaveProperty('message', validationErrorMessage);
-    });
-
-    test('Any schema other than "https" should be refused', async () => {
-      const response = await serverInstance.inject({
-        ...validRequestOptions,
-        headers: { ...validRequestOptions.headers, 'X-Awala-Gateway': 'http://example.com' },
-      });
-
-      expect(response).toHaveProperty('statusCode', 400);
-      expect(JSON.parse(response.payload)).toHaveProperty('message', validationErrorMessage);
-    });
-  });
-
   test('Request body should be refused if it is not a valid RAMF-serialized parcel', async () => {
     const payload = Buffer.from('');
     const response = await serverInstance.inject({
@@ -279,9 +243,6 @@ describe('receiveParcel', () => {
 
       expect(pongQueueAddSpy).toBeCalledTimes(1);
       const expectedMessageData: QueuedPing = {
-        gatewayAddress: (validRequestOptions.headers as { readonly [k: string]: string })[
-          'X-Awala-Gateway'
-        ],
         parcel: base64Encode(validRequestOptions.payload as Buffer),
       };
       expect(pongQueueAddSpy).toBeCalledWith(expectedMessageData);
