@@ -36,7 +36,7 @@ async function createIdentityKeyIfMissing(config: Config): Promise<string> {
 }
 
 async function createInitialSessionKeyIfMissing(
-  privateAddress: string,
+  endpointId: string,
   config: Config,
 ): Promise<void> {
   const endpointSessionKeyIdBase64 = await config.get(ConfigItem.INITIAL_SESSION_KEY_ID_BASE64);
@@ -49,7 +49,7 @@ async function createInitialSessionKeyIfMissing(
     await privateKeyStore.saveSessionKey(
       initialSessionKeyPair.privateKey,
       initialSessionKeyPair.sessionKey.keyId,
-      privateAddress,
+      endpointId,
     );
     await config.set(
       ConfigItem.INITIAL_SESSION_KEY_ID_BASE64,
