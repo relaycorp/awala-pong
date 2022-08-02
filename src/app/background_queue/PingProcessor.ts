@@ -9,6 +9,7 @@ import { deliverParcel, PoHTTPInvalidParcelError } from '@relaycorp/relaynet-poh
 import bufferToArray from 'buffer-to-arraybuffer';
 import { Job } from 'bull';
 import { addDays, differenceInSeconds, subMinutes } from 'date-fns';
+import { get as getEnvVar } from 'env-var';
 import { Logger } from 'pino';
 
 import { deserializePing, Ping } from '../pingSerialization';
@@ -52,8 +53,9 @@ export class PingProcessor {
       unwrappingResult.originatorKey,
     );
     const publicGatewayAddress = unwrappingResult.ping.endpointInternetAddress;
+    const useTls = getEnvVar('POHTTP_TLS_REQUIRED').default('true').asBool();
     try {
-      await deliverParcel(publicGatewayAddress, pongParcelSerialized);
+      await deliverParcel(publicGatewayAddress, pongParcelSerialized, { useTls });
     } catch (err) {
       if (err instanceof PoHTTPInvalidParcelError) {
         this.logger.info({ err }, 'Discarding pong delivery because server refused parcel');

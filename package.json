@@ -51,7 +51,7 @@
     "@relaycorp/awala-keystore-cloud": "^2.0.10",
     "@relaycorp/pino-cloud": "^1.0.19",
     "@relaycorp/relaynet-core": "^1.81.10",
-    "@relaycorp/relaynet-pohttp": "^1.7.44",
+    "@relaycorp/relaynet-pohttp": "^1.7.50",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^4.8.4",
     "date-fns": "^2.29.1",

@@ -8,21 +8,16 @@ export function configureMockEnvVars(envVars: EnvVarSet = {}): (envVars: EnvVarS
   const mockEnvVarGet = jest.spyOn(envVar, 'get');
 
   function setEnvVars(newEnvVars: EnvVarSet): void {
-    mockEnvVarGet.mockReset();
     mockEnvVarGet.mockImplementation((...args: readonly any[]) => {
       const originalEnvVar = jest.requireActual('env-var');
       const env = originalEnvVar.from(newEnvVars);
-
       return env.get(...args);
     });
   }
 
-  beforeAll(() => setEnvVars(envVars));
   beforeEach(() => setEnvVars(envVars));
-
-  afterAll(() => {
-    mockEnvVarGet.mockRestore();
-  });
+  afterEach(() => mockEnvVarGet.mockReset());
+  afterAll(() => mockEnvVarGet.mockRestore());
 
   return (newEnvVars: EnvVarSet) => setEnvVars(newEnvVars);
 }

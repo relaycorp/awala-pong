@@ -2,6 +2,7 @@ import {
   Certificate,
   CertificationPath,
   EnvelopedData,
+  getIdFromIdentityKey,
   Parcel,
   PublicNodeConnectionParams,
   ServiceMessage,
@@ -20,9 +21,8 @@ import { mockServerClient } from 'mockserver-client';
 import { serializePing } from '../app/pingSerialization';
 import { generateStubNodeCertificate } from '../testUtils/awala';
 
-const GATEWAY_ADDRESS = `http://mock-public-gateway`;
+const GATEWAY_INTERNET_ADDRESS = 'mock-public-gateway';
 
-const PONG_PUBLIC_ADDRESS = 'endpoint.local';
 const PONG_ENDPOINT_LOCAL_URL = 'http://127.0.0.1:8080';
 
 describe('End-to-end test for successful delivery of ping and pong messages', () => {
@@ -64,9 +64,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
       pongConnectionParams.sessionKey,
     );
 
-    await deliverParcel(PONG_ENDPOINT_LOCAL_URL, pingParcelSerialized, {
-      gatewayAddress: GATEWAY_ADDRESS,
-    });
+    await deliverParcel(PONG_ENDPOINT_LOCAL_URL, pingParcelSerialized);
 
     await validatePongDelivery(dhPrivateKey);
   });
@@ -82,14 +80,17 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     );
     const serviceMessage = new ServiceMessage(
       'application/vnd.awala.ping-v1.ping',
-      serializePing(new CertificationPath(pda, [pingSenderCertificate])),
+      serializePing(new CertificationPath(pda, [pingSenderCertificate]), GATEWAY_INTERNET_ADDRESS),
     );
     const { dhPrivateKey, envelopedData } = await SessionEnvelopedData.encrypt(
       serviceMessage.serialize(),
       initialSessionKey,
     );
     const parcel = new Parcel(
-      `https://${PONG_PUBLIC_ADDRESS}`,
+      {
+        id: await getIdFromIdentityKey(pongConnectionParams.identityKey),
+        internetAddress: pongConnectionParams.internetAddress,
+      },
       pingSenderCertificate,
       Buffer.from(envelopedData.serialize()),
     );

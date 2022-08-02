@@ -50,6 +50,7 @@ The Bull-backed queue runs as a headless services, with no interface other than 
 - Environment variables:
   - Redis environment variables (see below).
   - Vault environment variables (see below).
+  - `POHTTP_TLS_REQUIRED` (default: `true`).
 
 ### Script to generate key pairs
 
@@ -65,7 +66,6 @@ Variables relevant to processes using Redis:
 
 - `REDIS_HOST` (required).
 - `REDIS_PORT` (default: `6379`).
-- `POHTTP_TLS_REQUIRED` (default: `true`).
 
 Variables relevant to processes using Hashicorp Vault:
 

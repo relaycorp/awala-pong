@@ -30,9 +30,9 @@ async function createIdentityKeyIfMissing(config: Config): Promise<string> {
 
   console.log(`Identity key will be created because it doesn't already exist`);
 
-  const { privateAddress } = await privateKeyStore.generateIdentityKeyPair();
-  await config.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, privateAddress);
-  return privateAddress;
+  const { id } = await privateKeyStore.generateIdentityKeyPair();
+  await config.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, id);
+  return id;
 }
 
 async function createInitialSessionKeyIfMissing(

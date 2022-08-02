@@ -29,6 +29,7 @@ import Keyv from 'keyv';
 import { GATEWAY_INTERNET_ADDRESS, generatePingServiceMessage } from '../../testUtils/awala';
 import { expectBuffersToEqual } from '../../testUtils/buffers';
 import { makeInMemoryConfig } from '../../testUtils/config';
+import { configureMockEnvVars } from '../../testUtils/envVars';
 import { getMockContext, getMockInstance } from '../../testUtils/jest';
 import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pingSerialization from '../pingSerialization';
@@ -37,6 +38,8 @@ import { Config } from '../utilities/config/Config';
 import { ConfigItem } from '../utilities/config/ConfigItem';
 import { PingProcessor } from './PingProcessor';
 import { QueuedPing } from './QueuedPing';
+
+const mockEnvVars = configureMockEnvVars();
 
 jest.mock('@relaycorp/relaynet-pohttp', () => {
   const actualPohttp = jest.requireActual('@relaycorp/relaynet-pohttp');
@@ -51,8 +54,6 @@ beforeEach(() => {
 });
 
 const mockLogging = makeMockLogging();
-
-afterAll(jest.restoreAllMocks);
 
 const { config } = makeInMemoryConfig();
 
@@ -116,8 +117,6 @@ describe('deliverPongForPing', () => {
   });
 
   beforeEach(async () => {
-    jest.restoreAllMocks();
-
     jest.spyOn(pohttp, 'deliverParcel').mockResolvedValueOnce(undefined as any);
   });
 
@@ -215,6 +214,46 @@ describe('deliverPongForPing', () => {
     );
   });
 
+  describe('TLS', () => {
+    test('TLS should be used if POHTTP_TLS_REQUIRED is undefined', async () => {
+      const job = await initJob();
+
+      await processor.deliverPongForPing(job);
+
+      expect(pohttp.deliverParcel).toBeCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ useTls: true }),
+      );
+    });
+
+    test('TLS should be used if POHTTP_TLS_REQUIRED is true', async () => {
+      mockEnvVars({ POHTTP_TLS_REQUIRED: 'true' });
+      const job = await initJob();
+
+      await processor.deliverPongForPing(job);
+
+      expect(pohttp.deliverParcel).toBeCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ useTls: true }),
+      );
+    });
+
+    test('TLS should not be used if POHTTP_TLS_REQUIRED is false', async () => {
+      mockEnvVars({ POHTTP_TLS_REQUIRED: 'false' });
+      const job = await initJob();
+
+      await processor.deliverPongForPing(job);
+
+      expect(pohttp.deliverParcel).toBeCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ useTls: false }),
+      );
+    });
+  });
+
   describe('Successful pong delivery', () => {
     let deliveredParcel: Parcel;
     beforeEach(async () => {
@@ -228,6 +267,12 @@ describe('deliverPongForPing', () => {
 
       expect(Parcel.prototype.serialize).toBeCalledTimes(1);
       deliveredParcel = getMockContext(Parcel.prototype.serialize).instances[0];
+    });
+
+    afterEach(() => {
+      getMockInstance(SessionEnvelopedData.encrypt).mockRestore();
+      getMockInstance(ServiceMessage.prototype.serialize).mockRestore();
+      getMockInstance(Parcel.prototype.serialize).mockRestore();
     });
 
     test('Parcel recipient should be sender of ping message', () => {
