@@ -16,7 +16,7 @@ import { mockSpy } from '../../testUtils/jest';
 import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as vault from '../backingServices/vault';
 import { ConfigItem } from '../utilities/config/ConfigItem';
-import { ENV_VARS, ENDPOINT_INTERNET_ADDRESS } from './_test_utils';
+import { ENV_VARS, PONG_ENDPOINT_INTERNET_ADDRESS } from './_test_utils';
 import { makeServer } from './server';
 
 jest.mock('../background_queue/queue');
@@ -140,7 +140,7 @@ describe('GET', () => {
     const response = await serverInstance.inject(requestOpts);
 
     const params = await deserializeParams(response.rawPayload);
-    expect(params.internetAddress).toEqual(ENDPOINT_INTERNET_ADDRESS);
+    expect(params.internetAddress).toEqual(PONG_ENDPOINT_INTERNET_ADDRESS);
   });
 
   test('Identity key should be DER serialization of public key', async () => {

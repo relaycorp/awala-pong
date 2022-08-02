@@ -5,6 +5,7 @@ import { Logger } from 'pino';
 import { makeLogger } from '../utilities/logging';
 import connectionParamsRoutes from './connectionParams';
 import parcelDeliveryRoutes from './parcelDelivery';
+import RouteOptions from './RouteOptions';
 
 // I wish I could just do `import * as fastify from 'fastify'` or `import fastify from 'fastify'`
 // but neither worked regardless of the values set in esModuleInterop/allowSyntheticDefaultImports
@@ -14,6 +15,8 @@ import fastifyUrlData = require('fastify-url-data');
 const DEFAULT_REQUEST_ID_HEADER = 'X-Request-Id';
 const SERVER_PORT = 8080;
 const SERVER_HOST = '0.0.0.0';
+
+const ROUTES = [connectionParamsRoutes, parcelDeliveryRoutes];
 
 /**
  * Initialize a Fastify server instance.
@@ -31,8 +34,11 @@ export async function makeServer(logger: Logger): Promise<FastifyInstance> {
   server.register(fastifyUrlData);
 
   const publicEndpointAddress = getEnvVar('PUBLIC_ENDPOINT_ADDRESS').required().asString();
-  server.register(connectionParamsRoutes, { publicEndpointAddress } as any);
-  server.register(parcelDeliveryRoutes, { publicEndpointAddress } as any);
+  ROUTES.forEach((route) => {
+    server.register<RouteOptions, any>(route, {
+      internetAddress: publicEndpointAddress,
+    });
+  });
 
   server.addContentTypeParser(
     'application/vnd.awala.parcel',

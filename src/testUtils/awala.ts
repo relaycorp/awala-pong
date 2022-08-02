@@ -3,6 +3,7 @@ import {
   CertificationPath,
   issueGatewayCertificate,
   Parcel,
+  Recipient,
   ServiceMessage,
   SessionlessEnvelopedData,
 } from '@relaycorp/relaynet-core';
@@ -27,7 +28,7 @@ export async function generateStubNodeCertificate(
 }
 
 export async function generatePingParcel(
-  recipientId: string,
+  recipient: Recipient,
   recipientIdCertificate: Certificate,
   keyPairSet: NodeKeyPairSet,
   certificatePath: PDACertPath,
@@ -42,7 +43,7 @@ export async function generatePingParcel(
     recipientIdCertificate,
   );
   const parcel = new Parcel(
-    { id: recipientId },
+    recipient,
     parcelSenderCertificate,
     parcelPayloadSerialized,
     creationDate ? { creationDate } : {},

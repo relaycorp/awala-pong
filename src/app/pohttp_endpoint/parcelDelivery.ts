@@ -1,10 +1,11 @@
-import { Parcel } from '@relaycorp/relaynet-core';
+import { Parcel, Recipient } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { get as getEnvVar } from 'env-var';
-import { FastifyInstance, FastifyReply } from 'fastify';
+import { FastifyInstance, FastifyReply, Logger } from 'fastify';
 
 import { initQueue } from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
+import { initVaultKeyStore } from '../backingServices/vault';
 import { base64Encode } from '../utilities/base64';
 import RouteOptions from './RouteOptions';
 
@@ -71,12 +72,12 @@ export default async function registerRoutes(
       } catch (_) {
         return reply.code(403).send({ message: 'Parcel is well-formed but invalid' });
       }
-      const isRecipientValid = isParcelRecipientValid(
-        parcel.recipientAddress,
-        options.internetAddress,
-        requireTlsUrls,
-      );
-      if (!isRecipientValid) {
+
+      if (!(await isPrivateAddressValid(parcel.recipient, request.log))) {
+        return reply.code(202).send({});
+      }
+
+      if (!isInternetAddressValid(parcel.recipient, options.internetAddress, request.log)) {
         return reply.code(403).send({ message: 'Invalid parcel recipient' });
       }
 
@@ -102,13 +103,23 @@ function isValidGatewayAddress(gatewayAddress: string, requireTlsUrls: boolean):
   return urlParsed.protocol === 'https:' || (!requireTlsUrls && urlParsed.protocol === 'http:');
 }
 
-function isParcelRecipientValid(
-  parcelRecipient: string,
-  publicEndpointAddress: string,
-  requireTlsUrls: boolean,
-): boolean {
-  if (parcelRecipient === `https://${publicEndpointAddress}`) {
-    return true;
+async function isPrivateAddressValid(recipient: Recipient, log: Logger): Promise<boolean> {
+  const privateKeyStore = initVaultKeyStore();
+  const keyExists = await privateKeyStore.retrieveIdentityKey(recipient.id);
+  if (!keyExists) {
+    log.info({ recipient }, 'Parcel is bound for recipient with different private address');
   }
-  return !requireTlsUrls && parcelRecipient === `http://${publicEndpointAddress}`;
+  return !!keyExists;
+}
+
+function isInternetAddressValid(
+  recipient: Recipient,
+  publicEndpointAddress: string,
+  logger: Logger,
+): boolean {
+  const isValid = recipient.internetAddress === publicEndpointAddress;
+  if (!isValid) {
+    logger.info({ recipient }, 'Parcel is bound for recipient with different Internet address');
+  }
+  return isValid;
 }

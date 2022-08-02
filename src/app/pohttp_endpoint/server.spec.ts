@@ -4,12 +4,12 @@ import { configureMockEnvVars } from '../../testUtils/envVars';
 import { getMockContext, mockSpy } from '../../testUtils/jest';
 import { makeMockLogging } from '../../testUtils/logging';
 import * as logging from '../utilities/logging';
+import { PONG_ENDPOINT_INTERNET_ADDRESS } from './_test_utils';
 import * as server from './server';
 
 import fastify = require('fastify');
 
-const publicEndpointAddress = 'example.com';
-const envVars = { PUBLIC_ENDPOINT_ADDRESS: publicEndpointAddress };
+const envVars = { PUBLIC_ENDPOINT_ADDRESS: PONG_ENDPOINT_INTERNET_ADDRESS };
 const mockEnvVars = configureMockEnvVars(envVars);
 
 const mockFastify = {
@@ -83,12 +83,12 @@ describe('makeServer', () => {
   test('Routes should be loaded', async () => {
     await server.makeServer(mockLogging.logger);
 
-    expect(mockFastify.register).toBeCalledWith(require('./parcelDelivery').default, {
-      publicEndpointAddress,
-    });
-    expect(mockFastify.register).toBeCalledWith(require('./connectionParams').default, {
-      publicEndpointAddress,
-    });
+    const routeOptions = { internetAddress: PONG_ENDPOINT_INTERNET_ADDRESS };
+    expect(mockFastify.register).toBeCalledWith(require('./parcelDelivery').default, routeOptions);
+    expect(mockFastify.register).toBeCalledWith(
+      require('./connectionParams').default,
+      routeOptions,
+    );
   });
 
   test('Fastify instance should be ready', async () => {
