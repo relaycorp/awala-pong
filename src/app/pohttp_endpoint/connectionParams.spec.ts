@@ -137,7 +137,7 @@ describe('GET', () => {
     expect(response.headers).toHaveProperty('content-type', 'application/vnd.etsi.tsl.der');
   });
 
-  test('Public address should match expected value', async () => {
+  test('Internet address should match expected value', async () => {
     const response = await serverInstance.inject(requestOpts);
 
     const params = await deserializeParams(response.rawPayload);

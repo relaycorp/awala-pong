@@ -27,10 +27,13 @@ afterAll(() => {
 });
 
 describe('makeServer', () => {
-  test('Public endpoint address should be required', async () => {
+  test('Internet address should be required', async () => {
     mockEnvVars({});
 
-    await expect(server.makeServer(mockLogging.logger)).rejects.toBeInstanceOf(EnvVarError);
+    await expect(server.makeServer(mockLogging.logger)).rejects.toThrowWithMessage(
+      EnvVarError,
+      /PONG_INTERNET_ADDRESS/,
+    );
   });
 
   test('Specified logger should be used', async () => {

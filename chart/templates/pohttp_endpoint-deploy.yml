@@ -33,7 +33,7 @@ spec:
             - name: PONG_REQUEST_ID_HEADER
               value: {{ .Values.http_request_id_header }}
             - name: PONG_INTERNET_ADDRESS
-              value: {{ required "Public endpoint address is required" .Values.internet_address }}
+              value: {{ required "Internet address is required" .Values.internet_address }}
           envFrom:
             - configMapRef:
                 name: {{ include "..fullname" . }}
