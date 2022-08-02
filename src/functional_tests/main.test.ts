@@ -111,10 +111,7 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
     expect(requests[0].body).toHaveProperty('type', 'BINARY');
     const pongParcelSerialized = Buffer.from((requests[0].body as any).base64Bytes, 'base64');
     const pongParcel = await Parcel.deserialize(bufferToArray(pongParcelSerialized));
-    expect(pongParcel).toHaveProperty(
-      'recipientAddress',
-      await pingSenderCertificate.calculateSubjectId(),
-    );
+    expect(pongParcel.recipient.id).toEqual(await pingSenderCertificate.calculateSubjectId());
     const pongParcelPayload = EnvelopedData.deserialize(
       bufferToArray(pongParcel.payloadSerialized as Buffer),
     );
