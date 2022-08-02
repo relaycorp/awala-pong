@@ -32,8 +32,8 @@ spec:
           env:
             - name: PONG_REQUEST_ID_HEADER
               value: {{ .Values.http_request_id_header }}
-            - name: PUBLIC_ENDPOINT_ADDRESS
-              value: {{ required "Public endpoint address is required" .Values.public_endpoint_address }}
+            - name: PONG_INTERNET_ADDRESS
+              value: {{ required "Internet address is required" .Values.internet_address }}
           envFrom:
             - configMapRef:
                 name: {{ include "..fullname" . }}
