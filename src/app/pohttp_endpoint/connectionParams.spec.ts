@@ -1,7 +1,7 @@
 import {
   derSerializePublicKey,
   generateRSAKeyPair,
-  getPrivateAddressFromIdentityKey,
+  getIdFromIdentityKey,
   MockPrivateKeyStore,
   PublicNodeConnectionParams,
   SessionKeyPair,
@@ -9,6 +9,7 @@ import {
 } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { FastifyInstance, HTTPInjectOptions, HTTPInjectResponse } from 'fastify';
+import { PONG_INTERNET_ADDRESS } from '../../testUtils/awala';
 
 import { makeInMemoryConfig, mockConfigInitFromEnv } from '../../testUtils/config';
 import { configureMockEnvVars } from '../../testUtils/envVars';
@@ -16,7 +17,7 @@ import { mockSpy } from '../../testUtils/jest';
 import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as vault from '../backingServices/vault';
 import { ConfigItem } from '../utilities/config/ConfigItem';
-import { ENV_VARS, PUBLIC_ENDPOINT_ADDRESS } from './_test_utils';
+import { ENV_VARS } from './_test_utils';
 import { makeServer } from './server';
 
 jest.mock('../background_queue/queue');
@@ -39,7 +40,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   mockPrivateKeyStore.clear();
 
-  const privateAddress = await getPrivateAddressFromIdentityKey(identityKeyPair.publicKey);
+  const privateAddress = await getIdFromIdentityKey(identityKeyPair.publicKey);
   await mockPrivateKeyStore.saveIdentityKey(privateAddress, identityKeyPair.privateKey);
   await mockConfig.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, privateAddress);
 
@@ -87,7 +88,7 @@ describe('GET', () => {
       expectResponseToBe500(response);
       expect(mockLogging.logs).toContainEqual(
         partialPinoLog('fatal', 'Current identity key is missing', {
-          privateAddress: await getPrivateAddressFromIdentityKey(identityKeyPair.publicKey),
+          privateAddress: await getIdFromIdentityKey(identityKeyPair.publicKey),
         }),
       );
     });
@@ -136,11 +137,11 @@ describe('GET', () => {
     expect(response.headers).toHaveProperty('content-type', 'application/vnd.etsi.tsl.der');
   });
 
-  test('Public address should match expected value', async () => {
+  test('Internet address should match expected value', async () => {
     const response = await serverInstance.inject(requestOpts);
 
     const params = await deserializeParams(response.rawPayload);
-    expect(params.publicAddress).toEqual(PUBLIC_ENDPOINT_ADDRESS);
+    expect(params.internetAddress).toEqual(PONG_INTERNET_ADDRESS);
   });
 
   test('Identity key should be DER serialization of public key', async () => {

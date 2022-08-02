@@ -30,6 +30,9 @@ spec:
           image: {{ include "..image" . | quote }}
           imagePullPolicy: IfNotPresent
           command: ['node', 'build/main/bin/background-queue.js']
+          env:
+            - name: POHTTP_TLS_REQUIRED
+              value: '{{ .Values.pohttp_tls_required }}'
           envFrom:
             - configMapRef:
                 name: {{ include "..fullname" . }}

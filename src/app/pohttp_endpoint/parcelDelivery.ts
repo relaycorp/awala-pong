@@ -1,10 +1,10 @@
-import { Parcel } from '@relaycorp/relaynet-core';
+import { Parcel, Recipient } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
-import { get as getEnvVar } from 'env-var';
-import { FastifyInstance, FastifyReply } from 'fastify';
+import { FastifyInstance, FastifyReply, Logger } from 'fastify';
 
 import { initQueue } from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
+import { initVaultKeyStore } from '../backingServices/vault';
 import { base64Encode } from '../utilities/base64';
 import RouteOptions from './RouteOptions';
 
@@ -51,15 +51,6 @@ export default async function registerRoutes(
         return reply.code(415).send();
       }
 
-      const requireTlsUrls = getEnvVar('POHTTP_TLS_REQUIRED').default('true').asBool();
-
-      const gatewayAddress = request.headers['x-awala-gateway'] || '';
-      if (!isValidGatewayAddress(gatewayAddress, requireTlsUrls)) {
-        return reply
-          .code(400)
-          .send({ message: 'X-Awala-Gateway should be set to a valid PoHTTP endpoint' });
-      }
-
       let parcel;
       try {
         parcel = await Parcel.deserialize(bufferToArray(request.body));
@@ -71,16 +62,16 @@ export default async function registerRoutes(
       } catch (_) {
         return reply.code(403).send({ message: 'Parcel is well-formed but invalid' });
       }
-      const isRecipientValid = isParcelRecipientValid(
-        parcel.recipientAddress,
-        options.publicEndpointAddress,
-        requireTlsUrls,
-      );
-      if (!isRecipientValid) {
+
+      if (!(await isPrivateAddressValid(parcel.recipient, request.log))) {
+        return reply.code(202).send({});
+      }
+
+      if (!isInternetAddressValid(parcel.recipient, options.internetAddress, request.log)) {
         return reply.code(403).send({ message: 'Invalid parcel recipient' });
       }
 
-      const queueMessage: QueuedPing = { gatewayAddress, parcel: base64Encode(request.body) };
+      const queueMessage: QueuedPing = { parcel: base64Encode(request.body) };
       try {
         await pongQueue.add(queueMessage);
       } catch (error) {
@@ -92,23 +83,23 @@ export default async function registerRoutes(
   });
 }
 
-function isValidGatewayAddress(gatewayAddress: string, requireTlsUrls: boolean): boolean {
-  let urlParsed;
-  try {
-    urlParsed = new URL(gatewayAddress);
-  } catch (_error) {
-    return false;
+async function isPrivateAddressValid(recipient: Recipient, log: Logger): Promise<boolean> {
+  const privateKeyStore = initVaultKeyStore();
+  const keyExists = await privateKeyStore.retrieveIdentityKey(recipient.id);
+  if (!keyExists) {
+    log.info({ recipient }, 'Parcel is bound for recipient with different id');
   }
-  return urlParsed.protocol === 'https:' || (!requireTlsUrls && urlParsed.protocol === 'http:');
+  return !!keyExists;
 }
 
-function isParcelRecipientValid(
-  parcelRecipient: string,
+function isInternetAddressValid(
+  recipient: Recipient,
   publicEndpointAddress: string,
-  requireTlsUrls: boolean,
+  logger: Logger,
 ): boolean {
-  if (parcelRecipient === `https://${publicEndpointAddress}`) {
-    return true;
+  const isValid = recipient.internetAddress === publicEndpointAddress;
+  if (!isValid) {
+    logger.info({ recipient }, 'Parcel is bound for recipient with different Internet address');
   }
-  return !requireTlsUrls && parcelRecipient === `http://${publicEndpointAddress}`;
+  return isValid;
 }

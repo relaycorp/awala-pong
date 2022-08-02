@@ -40,7 +40,7 @@ export default async function registerRoutes(
       }
 
       const params = new PublicNodeConnectionParams(
-        options.publicEndpointAddress,
+        options.internetAddress,
         identityPublicKey,
         sessionKey,
       );

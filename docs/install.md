@@ -39,6 +39,6 @@ Check out [`relaycorp/relaynet-pong-chart`](https://github.com/relaycorp/relayne
 | `vault.enable_secret` | boolean | `false` | Whether to enable the Vault K/V engine after installing the chart |
 | `vault.token` (required) | string | | The Vault authentication token |
 | `http_request_id_header` | string | `X-Request-Id` | The HTTP request id header to be passed to the PoHTTP endpoint server |
-| `public_endpoint_address` | string | | The public endpoint address (e.g., `endpoint.com`) |
+| `internet_address` | string | | The Internet address of the endpoint (e.g., `endpoint.com`) |
 | `pohttp_tls_required` | boolean | `true` | Whether the gateway receiving a pong message must use TLS |
 | `backgroundQueue.replicaCount` | number | `1` | Number of replicas for the background queue |
