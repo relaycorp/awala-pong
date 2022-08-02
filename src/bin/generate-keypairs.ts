@@ -35,10 +35,7 @@ async function createIdentityKeyIfMissing(config: Config): Promise<string> {
   return id;
 }
 
-async function createInitialSessionKeyIfMissing(
-  endpointId: string,
-  config: Config,
-): Promise<void> {
+async function createInitialSessionKeyIfMissing(endpointId: string, config: Config): Promise<void> {
   const endpointSessionKeyIdBase64 = await config.get(ConfigItem.INITIAL_SESSION_KEY_ID_BASE64);
   if (endpointSessionKeyIdBase64) {
     console.log(`Session key ${endpointSessionKeyIdBase64} already exists`);
