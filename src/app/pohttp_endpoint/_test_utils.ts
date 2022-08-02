@@ -1,4 +1,4 @@
-export const PONG_ENDPOINT_INTERNET_ADDRESS = 'ping.example.com';
+import { PONG_ENDPOINT_INTERNET_ADDRESS } from '../../testUtils/awala';
 
 export const ENV_VARS = {
   PUBLIC_ENDPOINT_ADDRESS: PONG_ENDPOINT_INTERNET_ADDRESS,

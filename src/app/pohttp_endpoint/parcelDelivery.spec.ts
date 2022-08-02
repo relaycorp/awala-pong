@@ -8,7 +8,7 @@ import {
 import { subDays } from 'date-fns';
 import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
-import { generatePingParcel } from '../../testUtils/awala';
+import { generatePingParcel, PONG_ENDPOINT_INTERNET_ADDRESS } from '../../testUtils/awala';
 import { mockConfigInitFromEnv } from '../../testUtils/config';
 import { configureMockEnvVars } from '../../testUtils/envVars';
 import { mockSpy } from '../../testUtils/jest';
@@ -17,7 +17,7 @@ import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
 import * as vault from '../backingServices/vault';
 import { base64Encode } from '../utilities/base64';
-import { ENV_VARS, PONG_ENDPOINT_INTERNET_ADDRESS } from './_test_utils';
+import { ENV_VARS } from './_test_utils';
 import { makeServer } from './server';
 
 configureMockEnvVars(ENV_VARS);

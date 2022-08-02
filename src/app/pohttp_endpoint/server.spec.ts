@@ -1,10 +1,10 @@
 import { EnvVarError } from 'env-var';
+import { PONG_ENDPOINT_INTERNET_ADDRESS } from '../../testUtils/awala';
 
 import { configureMockEnvVars } from '../../testUtils/envVars';
 import { getMockContext, mockSpy } from '../../testUtils/jest';
 import { makeMockLogging } from '../../testUtils/logging';
 import * as logging from '../utilities/logging';
-import { PONG_ENDPOINT_INTERNET_ADDRESS } from './_test_utils';
 import * as server from './server';
 
 import fastify = require('fastify');

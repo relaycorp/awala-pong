@@ -9,6 +9,7 @@ import {
 } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
 import { FastifyInstance, HTTPInjectOptions, HTTPInjectResponse } from 'fastify';
+import { PONG_ENDPOINT_INTERNET_ADDRESS } from '../../testUtils/awala';
 
 import { makeInMemoryConfig, mockConfigInitFromEnv } from '../../testUtils/config';
 import { configureMockEnvVars } from '../../testUtils/envVars';
@@ -16,7 +17,7 @@ import { mockSpy } from '../../testUtils/jest';
 import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as vault from '../backingServices/vault';
 import { ConfigItem } from '../utilities/config/ConfigItem';
-import { ENV_VARS, PONG_ENDPOINT_INTERNET_ADDRESS } from './_test_utils';
+import { ENV_VARS } from './_test_utils';
 import { makeServer } from './server';
 
 jest.mock('../background_queue/queue');

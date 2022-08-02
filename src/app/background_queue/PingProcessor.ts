@@ -51,8 +51,9 @@ export class PingProcessor {
       identityPrivateKey,
       unwrappingResult.originatorKey,
     );
+    const publicGatewayAddress = unwrappingResult.ping.endpointInternetAddress;
     try {
-      await deliverParcel(job.data.gatewayAddress, pongParcelSerialized);
+      await deliverParcel(publicGatewayAddress, pongParcelSerialized);
     } catch (err) {
       if (err instanceof PoHTTPInvalidParcelError) {
         this.logger.info({ err }, 'Discarding pong delivery because server refused parcel');
@@ -60,10 +61,7 @@ export class PingProcessor {
       }
       throw err;
     }
-    this.logger.info(
-      { publicGatewayAddress: job.data.gatewayAddress },
-      'Successfully delivered pong parcel',
-    );
+    this.logger.info({ publicGatewayAddress }, 'Successfully delivered pong parcel');
   }
 
   protected async unwrapPing(

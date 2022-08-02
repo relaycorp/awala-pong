@@ -11,6 +11,9 @@ import { NodeKeyPairSet, PDACertPath } from '@relaycorp/relaynet-testing';
 
 import { serializePing } from '../app/pingSerialization';
 
+export const PONG_ENDPOINT_INTERNET_ADDRESS = 'ping.example.com';
+export const GATEWAY_INTERNET_ADDRESS = 'westeros.relaycorp.cloud';
+
 export async function generateStubNodeCertificate(
   subjectPublicKey: CryptoKey,
   issuerPrivateKey: CryptoKey,
@@ -41,6 +44,7 @@ export async function generatePingParcel(
   const parcelPayloadSerialized = await generatePingParcelPayload(
     certificatePath,
     recipientIdCertificate,
+    recipient.internetAddress ?? GATEWAY_INTERNET_ADDRESS,
   );
   const parcel = new Parcel(
     recipient,
@@ -53,6 +57,7 @@ export async function generatePingParcel(
 
 export function generatePingServiceMessage(
   certificatePath: PDACertPath,
+  endpointInternetAddress: string,
   pingId?: string,
 ): ArrayBuffer {
   const pingMessage = serializePing(
@@ -60,6 +65,7 @@ export function generatePingServiceMessage(
       certificatePath.privateEndpoint,
       certificatePath.privateGateway,
     ]),
+    endpointInternetAddress,
     pingId,
   );
   const serviceMessage = new ServiceMessage('application/vnd.awala.ping-v1.ping', pingMessage);
@@ -69,8 +75,12 @@ export function generatePingServiceMessage(
 async function generatePingParcelPayload(
   certificatePath: PDACertPath,
   recipientIdCertificate: Certificate,
+  recipientInternetAddress: string,
 ): Promise<Buffer> {
-  const serviceMessageSerialized = generatePingServiceMessage(certificatePath);
+  const serviceMessageSerialized = generatePingServiceMessage(
+    certificatePath,
+    recipientInternetAddress,
+  );
   const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
     serviceMessageSerialized,
     recipientIdCertificate,

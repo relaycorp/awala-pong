@@ -26,7 +26,7 @@ import { Job } from 'bull';
 import { addDays, subMinutes, subSeconds } from 'date-fns';
 import Keyv from 'keyv';
 
-import { generatePingServiceMessage } from '../../testUtils/awala';
+import { GATEWAY_INTERNET_ADDRESS, generatePingServiceMessage } from '../../testUtils/awala';
 import { expectBuffersToEqual } from '../../testUtils/buffers';
 import { makeInMemoryConfig } from '../../testUtils/config';
 import { getMockContext, getMockInstance } from '../../testUtils/jest';
@@ -97,7 +97,11 @@ describe('deliverPongForPing', () => {
   let parcelPayload: Buffer;
   let pingSenderSessionKey: SessionKey;
   beforeAll(async () => {
-    serviceMessageSerialized = generatePingServiceMessage(certificatePath, pingId);
+    serviceMessageSerialized = generatePingServiceMessage(
+      certificatePath,
+      GATEWAY_INTERNET_ADDRESS,
+      pingId,
+    );
     const { envelopedData } = await SessionEnvelopedData.encrypt(
       serviceMessageSerialized,
       recipientSessionKeyPair1.sessionKey,
@@ -176,7 +180,10 @@ describe('deliverPongForPing', () => {
     const messageType = 'application/invalid';
     const serviceMessage = new ServiceMessage(
       messageType,
-      pingSerialization.serializePing(new CertificationPath(certificatePath.pdaGrantee, [])),
+      pingSerialization.serializePing(
+        new CertificationPath(certificatePath.pdaGrantee, []),
+        GATEWAY_INTERNET_ADDRESS,
+      ),
     );
     jest
       .spyOn(Parcel.prototype, 'unwrapPayload')
@@ -209,13 +216,12 @@ describe('deliverPongForPing', () => {
   });
 
   describe('Successful pong delivery', () => {
-    const stubGatewayAddress = 'https://example.com';
     let deliveredParcel: Parcel;
     beforeEach(async () => {
       jest.spyOn(SessionEnvelopedData, 'encrypt');
       jest.spyOn(ServiceMessage.prototype, 'serialize');
 
-      const job = await initJob({ gatewayAddress: stubGatewayAddress });
+      const job = await initJob();
       jest.spyOn(Parcel.prototype, 'serialize');
 
       await processor.deliverPongForPing(job);
@@ -337,13 +343,13 @@ describe('deliverPongForPing', () => {
 
     test('Parcel should be delivered to the specified gateway', () => {
       const deliverParcelCall = getMockContext(pohttp.deliverParcel).calls[0];
-      expect(deliverParcelCall[0]).toEqual(stubGatewayAddress);
+      expect(deliverParcelCall[0]).toEqual(GATEWAY_INTERNET_ADDRESS);
     });
 
     test('Successful delivery should be logged', () => {
       expect(mockLogging.logs).toContainEqual(
         partialPinoLog('info', 'Successfully delivered pong parcel', {
-          publicGatewayAddress: stubGatewayAddress,
+          publicGatewayAddress: GATEWAY_INTERNET_ADDRESS,
         }),
       );
     });
@@ -374,7 +380,6 @@ describe('deliverPongForPing', () => {
   async function initJob(
     options: Partial<{
       readonly parcelPayload: Buffer;
-      readonly gatewayAddress: string;
     }> = {},
   ): Promise<Job<QueuedPing>> {
     const finalPayload = options.parcelPayload ?? parcelPayload;
@@ -387,7 +392,6 @@ describe('deliverPongForPing', () => {
       },
     );
     const data: QueuedPing = {
-      gatewayAddress: options.gatewayAddress ?? 'dummy-gateway',
       parcel: base64Encode(await parcel.serialize(keyPairSet.privateEndpoint.privateKey)),
     };
     return { data, id: 'random-id' } as any;
