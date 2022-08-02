@@ -21,7 +21,7 @@ import { mockServerClient } from 'mockserver-client';
 import { serializePing } from '../app/pingSerialization';
 import { generateStubNodeCertificate } from '../testUtils/awala';
 
-const GATEWAY_INTERNET_ADDRESS = 'mock-public-gateway';
+const GATEWAY_INTERNET_ADDRESS = 'mock-public-gateway.default.svc.cluster.local';
 
 const PONG_ENDPOINT_LOCAL_URL = 'http://127.0.0.1:8080';
 
