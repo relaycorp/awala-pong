@@ -275,7 +275,7 @@ describe('deliverPongForPing', () => {
       getMockInstance(Parcel.prototype.serialize).mockRestore();
     });
 
-    test('Parcel recipient should be sender of ping message', () => {
+    test('Parcel recipient id should be that of sender of ping message', () => {
       expect(deliveredParcel.recipient.id).toEqual(pingSenderCertificate.getCommonName());
     });
 
@@ -428,14 +428,9 @@ describe('deliverPongForPing', () => {
     }> = {},
   ): Promise<Job<QueuedPing>> {
     const finalPayload = options.parcelPayload ?? parcelPayload;
-    const parcel = new Parcel(
-      { id: recipientId, internetAddress: 'ping.relaycorp.tech' },
-      pingSenderCertificate,
-      finalPayload,
-      {
-        senderCaCertificateChain: [certificatePath.privateGateway],
-      },
-    );
+    const parcel = new Parcel({ id: recipientId }, pingSenderCertificate, finalPayload, {
+      senderCaCertificateChain: [certificatePath.privateGateway],
+    });
     const data: QueuedPing = {
       parcel: base64Encode(await parcel.serialize(keyPairSet.privateEndpoint.privateKey)),
     };
