@@ -9,6 +9,7 @@ import { deliverParcel, PoHTTPInvalidParcelError } from '@relaycorp/relaynet-poh
 import bufferToArray from 'buffer-to-arraybuffer';
 import { Job } from 'bull';
 import { addDays, differenceInSeconds, subMinutes } from 'date-fns';
+import { get as getEnvVar } from 'env-var';
 import { Logger } from 'pino';
 
 import { deserializePing, Ping } from '../pingSerialization';
@@ -39,11 +40,7 @@ export class PingProcessor {
 
     const pingParcel = await Parcel.deserialize(bufferToArray(base64Decode(job.data.parcel)));
 
-    const unwrappingResult = await this.unwrapPing(
-      pingParcel,
-      job.id,
-      currentEndpointPrivateAddress,
-    );
+    const unwrappingResult = await this.unwrapPing(pingParcel, job.id);
     if (unwrappingResult === undefined) {
       // Service message was invalid; errors were already logged.
       return;
@@ -51,12 +48,14 @@ export class PingProcessor {
     const pongParcelSerialized = await this.makePongParcel(
       unwrappingResult.ping,
       currentEndpointPrivateAddress,
-      await pingParcel.senderCertificate.calculateSubjectPrivateAddress(),
+      await pingParcel.senderCertificate.calculateSubjectId(),
       identityPrivateKey,
       unwrappingResult.originatorKey,
     );
+    const publicGatewayAddress = unwrappingResult.ping.endpointInternetAddress;
+    const useTls = getEnvVar('POHTTP_TLS_REQUIRED').default('true').asBool();
     try {
-      await deliverParcel(job.data.gatewayAddress, pongParcelSerialized);
+      await deliverParcel(publicGatewayAddress, pongParcelSerialized, { useTls });
     } catch (err) {
       if (err instanceof PoHTTPInvalidParcelError) {
         this.logger.info({ err }, 'Discarding pong delivery because server refused parcel');
@@ -64,20 +63,16 @@ export class PingProcessor {
       }
       throw err;
     }
-    this.logger.info(
-      { publicGatewayAddress: job.data.gatewayAddress },
-      'Successfully delivered pong parcel',
-    );
+    this.logger.info({ publicGatewayAddress }, 'Successfully delivered pong parcel');
   }
 
   protected async unwrapPing(
     pingParcel: Parcel,
     jobId: string | number,
-    privateAddress: string,
   ): Promise<{ readonly ping: Ping; readonly originatorKey: SessionKey } | undefined> {
     let decryptionResult;
     try {
-      decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore, privateAddress);
+      decryptionResult = await pingParcel.unwrapPayload(this.privateKeyStore);
     } catch (error) {
       // The sender didn't create a valid service message, so let's ignore it.
       this.logger.info({ err: error, jobId }, 'Invalid service message');
@@ -144,7 +139,7 @@ export class PingProcessor {
     const expiryDate = addDays(now, 14);
     const creationDate = subMinutes(now, 5);
     const pongParcel = new Parcel(
-      recipientPrivateAddress,
+      { id: recipientPrivateAddress },
       ping.pdaPath.leafCertificate,
       pongParcelPayload,
       {

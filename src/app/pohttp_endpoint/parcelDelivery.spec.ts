@@ -1,22 +1,26 @@
+import { getIdFromIdentityKey, MockPrivateKeyStore, Recipient } from '@relaycorp/relaynet-core';
 import {
   generateIdentityKeyPairSet,
   generatePDACertificationPath,
   NodeKeyPairSet,
   PDACertPath,
 } from '@relaycorp/relaynet-testing';
+import { subDays } from 'date-fns';
 import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
 
-import { generatePingParcel } from '../../testUtils/awala';
+import { generatePingParcel, PONG_INTERNET_ADDRESS } from '../../testUtils/awala';
 import { mockConfigInitFromEnv } from '../../testUtils/config';
 import { configureMockEnvVars } from '../../testUtils/envVars';
+import { mockSpy } from '../../testUtils/jest';
 import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
 import * as pongQueue from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
+import * as vault from '../backingServices/vault';
 import { base64Encode } from '../utilities/base64';
-import { ENV_VARS, PUBLIC_ENDPOINT_ADDRESS } from './_test_utils';
+import { ENV_VARS } from './_test_utils';
 import { makeServer } from './server';
 
-const mockEnvVars = configureMockEnvVars(ENV_VARS);
+configureMockEnvVars(ENV_VARS);
 mockConfigInitFromEnv();
 
 const mockLogging = makeMockLogging();
@@ -28,21 +32,28 @@ beforeEach(async () => {
 const validRequestOptions: HTTPInjectOptions = {
   headers: {
     'Content-Type': 'application/vnd.awala.parcel',
-    Host: `pohttp-${PUBLIC_ENDPOINT_ADDRESS}`,
-    'X-Awala-Gateway': 'https://gateway.example',
+    Host: `pohttp-${PONG_INTERNET_ADDRESS}`,
   },
   method: 'POST',
   payload: {},
   url: '/',
 };
+
 let keyPairSet: NodeKeyPairSet;
 let certificatePath: PDACertPath;
+let pongEndpointId: string;
+let pingParcelRecipient: Recipient;
 beforeAll(async () => {
   keyPairSet = await generateIdentityKeyPairSet();
   certificatePath = await generatePDACertificationPath(keyPairSet);
 
+  pongEndpointId = await getIdFromIdentityKey(keyPairSet.pdaGrantee.publicKey);
+  pingParcelRecipient = {
+    id: pongEndpointId,
+    internetAddress: PONG_INTERNET_ADDRESS,
+  };
   const payload = await generatePingParcel(
-    `https://${PUBLIC_ENDPOINT_ADDRESS}`,
+    pingParcelRecipient,
     certificatePath.privateEndpoint,
     keyPairSet,
     certificatePath,
@@ -52,6 +63,15 @@ beforeAll(async () => {
   // tslint:disable-next-line:readonly-keyword no-object-mutation
   (validRequestOptions.headers as { [key: string]: string })['Content-Length'] =
     payload.byteLength.toString();
+});
+
+const mockPrivateKeyStore = new MockPrivateKeyStore();
+mockSpy(jest.spyOn(vault, 'initVaultKeyStore'), () => mockPrivateKeyStore);
+beforeEach(async () => {
+  await mockPrivateKeyStore.saveIdentityKey(pongEndpointId, keyPairSet.pdaGrantee.privateKey);
+});
+afterEach(() => {
+  mockPrivateKeyStore.clear();
 });
 
 const pongQueueAddSpy = jest.fn();
@@ -124,41 +144,6 @@ describe('receiveParcel', () => {
     expect(response).toHaveProperty('statusCode', 415);
   });
 
-  describe('X-Awala-Gateway request header', () => {
-    const validationErrorMessage = 'X-Awala-Gateway should be set to a valid PoHTTP endpoint';
-
-    test('X-Awala-Gateway should not be absent', async () => {
-      const allHeaders = validRequestOptions.headers as { readonly [key: string]: string };
-      const headers = Object.keys(allHeaders)
-        .filter((h) => h !== 'X-Awala-Gateway')
-        .reduce((a, h) => ({ ...a, [h]: allHeaders[h] }), {});
-      const response = await serverInstance.inject({ ...validRequestOptions, headers });
-
-      expect(response).toHaveProperty('statusCode', 400);
-      expect(JSON.parse(response.payload)).toHaveProperty('message', validationErrorMessage);
-    });
-
-    test('X-Awala-Gateway should not be an invalid URI', async () => {
-      const response = await serverInstance.inject({
-        ...validRequestOptions,
-        headers: { ...validRequestOptions.headers, 'X-Awala-Gateway': 'foo@example.com' },
-      });
-
-      expect(response).toHaveProperty('statusCode', 400);
-      expect(JSON.parse(response.payload)).toHaveProperty('message', validationErrorMessage);
-    });
-
-    test('Any schema other than "https" should be refused', async () => {
-      const response = await serverInstance.inject({
-        ...validRequestOptions,
-        headers: { ...validRequestOptions.headers, 'X-Awala-Gateway': 'http://example.com' },
-      });
-
-      expect(response).toHaveProperty('statusCode', 400);
-      expect(JSON.parse(response.payload)).toHaveProperty('message', validationErrorMessage);
-    });
-  });
-
   test('Request body should be refused if it is not a valid RAMF-serialized parcel', async () => {
     const payload = Buffer.from('');
     const response = await serverInstance.inject({
@@ -175,10 +160,9 @@ describe('receiveParcel', () => {
   });
 
   test('Parcel should be refused if it is well-formed but invalid', async () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterday = subDays(new Date(), 1);
     const payload = await generatePingParcel(
-      `https://${PUBLIC_ENDPOINT_ADDRESS}/`,
+      pingParcelRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
       certificatePath,
@@ -197,9 +181,36 @@ describe('receiveParcel', () => {
     );
   });
 
-  test('Parcel should be refused if target is not current endpoint', async () => {
+  test('Parcel should be ignored if recipient id does not match', async () => {
+    const invalidRecipient = { ...pingParcelRecipient, id: `${pingParcelRecipient.id}abc` };
     const payload = await generatePingParcel(
-      'https://invalid.com/endpoint',
+      invalidRecipient,
+      certificatePath.privateEndpoint,
+      keyPairSet,
+      certificatePath,
+    );
+    const response = await serverInstance.inject({
+      ...validRequestOptions,
+      headers: { ...validRequestOptions.headers, 'Content-Length': payload.byteLength.toString() },
+      payload,
+    });
+
+    expect(response).toHaveProperty('statusCode', 202);
+    expect(JSON.parse(response.payload)).toBeEmptyObject();
+    expect(mockLogging.logs).toContainEqual(
+      partialPinoLog('info', 'Parcel is bound for recipient with different id', {
+        recipient: invalidRecipient,
+      }),
+    );
+  });
+
+  test('Parcel should be refused if recipient Internet address does not match', async () => {
+    const invalidRecipient = {
+      ...pingParcelRecipient,
+      internetAddress: `not-${PONG_INTERNET_ADDRESS}`,
+    };
+    const payload = await generatePingParcel(
+      invalidRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
       certificatePath,
@@ -212,6 +223,11 @@ describe('receiveParcel', () => {
 
     expect(response).toHaveProperty('statusCode', 403);
     expect(JSON.parse(response.payload)).toHaveProperty('message', 'Invalid parcel recipient');
+    expect(mockLogging.logs).toContainEqual(
+      partialPinoLog('info', 'Parcel is bound for recipient with different Internet address', {
+        recipient: invalidRecipient,
+      }),
+    );
   });
 
   describe('Valid parcel delivery', () => {
@@ -227,9 +243,6 @@ describe('receiveParcel', () => {
 
       expect(pongQueueAddSpy).toBeCalledTimes(1);
       const expectedMessageData: QueuedPing = {
-        gatewayAddress: (validRequestOptions.headers as { readonly [k: string]: string })[
-          'X-Awala-Gateway'
-        ],
         parcel: base64Encode(validRequestOptions.payload as Buffer),
       };
       expect(pongQueueAddSpy).toBeCalledWith(expectedMessageData);
@@ -252,27 +265,5 @@ describe('receiveParcel', () => {
         }),
       );
     });
-  });
-
-  test('Non-TLS URLs should be allowed when POHTTP_TLS_REQUIRED=false', async () => {
-    mockEnvVars({ ...ENV_VARS, POHTTP_TLS_REQUIRED: 'false' });
-    const stubPayload = await generatePingParcel(
-      `http://${PUBLIC_ENDPOINT_ADDRESS}`,
-      certificatePath.privateEndpoint,
-      keyPairSet,
-      certificatePath,
-    );
-
-    const response = await serverInstance.inject({
-      ...validRequestOptions,
-      headers: {
-        ...validRequestOptions.headers,
-        'Content-Length': stubPayload.byteLength.toString(),
-        'X-Awala-Gateway': 'http://example.com',
-      },
-      payload: stubPayload,
-    });
-
-    expect(response).toHaveProperty('statusCode', 202);
   });
 });

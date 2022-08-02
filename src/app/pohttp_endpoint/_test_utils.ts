@@ -1,7 +1,7 @@
-export const PUBLIC_ENDPOINT_ADDRESS = 'ping.example.com';
+import { PONG_INTERNET_ADDRESS } from '../../testUtils/awala';
 
 export const ENV_VARS = {
-  PUBLIC_ENDPOINT_ADDRESS,
+  PONG_INTERNET_ADDRESS,
   REDIS_HOST: 'redis.com',
   VAULT_KV_PREFIX: 'pong-keys',
   VAULT_TOKEN: 'root',
