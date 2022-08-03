@@ -18,7 +18,7 @@ const mockFastify = {
   ready: jest.fn(),
   register: jest.fn(),
 };
-jest.mock('fastify', () => jest.fn().mockImplementation(() => mockFastify));
+jest.mock('fastify', () => ({ fastify: jest.fn().mockImplementation(() => mockFastify) }));
 
 const mockLogging = makeMockLogging();
 
@@ -39,7 +39,7 @@ describe('makeServer', () => {
   test('Specified logger should be used', async () => {
     await server.makeServer(mockLogging.logger);
 
-    expect(fastify).toBeCalledWith(
+    expect(fastify.fastify).toBeCalledWith(
       expect.objectContaining({
         logger: mockLogging.logger,
       }),
@@ -49,7 +49,7 @@ describe('makeServer', () => {
   test('X-Request-Id should be the default request id header', async () => {
     await server.makeServer(mockLogging.logger);
 
-    const fastifyCallArgs = getMockContext(fastify).calls[0];
+    const fastifyCallArgs = getMockContext(fastify.fastify).calls[0];
     expect(fastifyCallArgs[0]).toHaveProperty('requestIdHeader', 'X-Request-Id');
   });
 
@@ -59,7 +59,7 @@ describe('makeServer', () => {
 
     await server.makeServer(mockLogging.logger);
 
-    const fastifyCallArgs = getMockContext(fastify).calls[0];
+    const fastifyCallArgs = getMockContext(fastify.fastify).calls[0];
     expect(fastifyCallArgs[0]).toHaveProperty('requestIdHeader', requestIdHeader);
   });
 
@@ -77,10 +77,10 @@ describe('makeServer', () => {
     await expect(parser({}, stubBody)).resolves.toBe(stubBody);
   });
 
-  test('fastify-url-data should be registered', async () => {
+  test('@fastify/url-data should be registered', async () => {
     await server.makeServer(mockLogging.logger);
 
-    expect(mockFastify.register).toBeCalledWith(require('fastify-url-data'));
+    expect(mockFastify.register).toBeCalledWith(require('@fastify/url-data'));
   });
 
   test('Routes should be loaded', async () => {
@@ -116,7 +116,7 @@ describe('runServer', () => {
     await server.runServer();
 
     expect(mockMakeLogger).toBeCalledWith();
-    expect(fastify).toBeCalledWith(
+    expect(fastify.fastify).toBeCalledWith(
       expect.objectContaining({
         logger: mockLogging.logger,
       }),

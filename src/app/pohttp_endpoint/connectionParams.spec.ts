@@ -8,7 +8,8 @@ import {
   UnknownKeyError,
 } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
-import { FastifyInstance, HTTPInjectOptions, HTTPInjectResponse } from 'fastify';
+import { FastifyInstance, InjectOptions } from 'fastify';
+import { Response } from 'light-my-request';
 import { PONG_INTERNET_ADDRESS } from '../../testUtils/awala';
 
 import { makeInMemoryConfig, mockConfigInitFromEnv } from '../../testUtils/config';
@@ -62,7 +63,7 @@ beforeEach(async () => {
 });
 
 describe('GET', () => {
-  const requestOpts: HTTPInjectOptions = {
+  const requestOpts: InjectOptions = {
     method: 'GET',
     url: '/connection-params.der',
   };
@@ -119,7 +120,7 @@ describe('GET', () => {
       );
     });
 
-    function expectResponseToBe500(response: HTTPInjectResponse): void {
+    function expectResponseToBe500(response: Response): void {
       expect(response.statusCode).toEqual(500);
       expect(response.json()).toEqual({ message: 'Internal server error' });
     }
