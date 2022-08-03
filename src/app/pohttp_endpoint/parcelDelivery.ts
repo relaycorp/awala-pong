@@ -1,6 +1,7 @@
 import { Parcel, Recipient } from '@relaycorp/relaynet-core';
 import bufferToArray from 'buffer-to-arraybuffer';
-import { FastifyInstance, FastifyReply, Logger } from 'fastify';
+import { FastifyInstance, FastifyReply } from 'fastify';
+import { Logger } from 'pino';
 
 import { initQueue } from '../background_queue/queue';
 import { QueuedPing } from '../background_queue/QueuedPing';
@@ -43,7 +44,7 @@ export default async function registerRoutes(
     },
   });
 
-  fastify.route({
+  fastify.route<{ readonly Body: Buffer }>({
     method: 'POST',
     url: '/',
     async handler(request, reply): Promise<FastifyReply<any>> {

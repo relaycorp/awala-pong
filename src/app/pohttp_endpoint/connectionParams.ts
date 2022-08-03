@@ -4,7 +4,8 @@ import {
   PublicNodeConnectionParams,
   SessionKey,
 } from '@relaycorp/relaynet-core';
-import { FastifyInstance, FastifyReply, Logger } from 'fastify';
+import { FastifyInstance, FastifyReply } from 'fastify';
+import { Logger } from 'pino';
 
 import { initVaultKeyStore } from '../backingServices/vault';
 import { Config } from '../utilities/config/Config';

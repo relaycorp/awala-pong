@@ -6,7 +6,7 @@ import {
   PDACertPath,
 } from '@relaycorp/relaynet-testing';
 import { subDays } from 'date-fns';
-import { FastifyInstance, HTTPInjectOptions, HTTPMethod } from 'fastify';
+import { FastifyInstance, HTTPMethods, InjectOptions } from 'fastify';
 
 import { generatePingParcel, PONG_INTERNET_ADDRESS } from '../../testUtils/awala';
 import { mockConfigInitFromEnv } from '../../testUtils/config';
@@ -29,7 +29,7 @@ beforeEach(async () => {
   serverInstance = await makeServer(mockLogging.logger);
 });
 
-const validRequestOptions: HTTPInjectOptions = {
+const validRequestOptions: InjectOptions = {
   headers: {
     'Content-Type': 'application/vnd.awala.parcel',
     Host: `pohttp-${PONG_INTERNET_ADDRESS}`,
@@ -88,7 +88,7 @@ afterAll(() => {
   jest.restoreAllMocks();
 });
 
-test.each(['PUT', 'PATCH', 'DELETE'] as readonly HTTPMethod[])(
+test.each(['PUT', 'PATCH', 'DELETE'] as readonly HTTPMethods[])(
   '%s requests should be refused',
   async (method) => {
     const response = await serverInstance.inject({
