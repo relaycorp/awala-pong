@@ -42,7 +42,7 @@
     "keyv": "^4.3.0",
     "make-promises-safe": "^5.1.0",
     "pino": "^8.3.1",
-    "uuid4": "^2.0.2",
+    "uuid4": "^2.0.3",
     "verror": "^1.10.1"
   },
   "devDependencies": {
