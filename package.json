@@ -29,7 +29,7 @@
   "dependencies": {
     "@fastify/url-data": "^5.1.0",
     "@keyv/redis": "^2.3.8",
-    "@relaycorp/awala-keystore-cloud": "^2.0.14",
+    "@relaycorp/awala-keystore-cloud": "^2.0.16",
     "@relaycorp/pino-cloud": "^1.0.22",
     "@relaycorp/relaynet-core": "^1.81.13",
     "@relaycorp/relaynet-pohttp": "^1.7.50",
@@ -46,7 +46,7 @@
     "verror": "^1.10.1"
   },
   "devDependencies": {
-    "@relaycorp/relaynet-testing": "^2.2.25",
+    "@relaycorp/relaynet-testing": "^2.2.26",
     "@relaycorp/shared-config": "^1.9.1",
     "@types/bull": "^3.15.9",
     "@types/jest": "^28.1.6",
