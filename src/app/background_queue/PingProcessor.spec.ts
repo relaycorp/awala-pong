@@ -80,7 +80,7 @@ describe('deliverPongForPing', () => {
   });
   beforeEach(async () => {
     await mockPrivateKeyStore.saveIdentityKey(recipientId, keyPairSet.pdaGrantee.privateKey);
-    await config.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, recipientId);
+    await config.set(ConfigItem.CURRENT_ID, recipientId);
 
     await mockPrivateKeyStore.saveSessionKey(
       recipientSessionKeyPair1.privateKey,

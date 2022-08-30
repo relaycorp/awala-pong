@@ -14,24 +14,24 @@ const privateKeyStore = initVaultKeyStore();
 async function main(): Promise<void> {
   const config = Config.initFromEnv();
   try {
-    const privateAddress = await createIdentityKeyIfMissing(config);
-    await createInitialSessionKeyIfMissing(privateAddress, config);
+    const id = await createIdentityKeyIfMissing(config);
+    await createInitialSessionKeyIfMissing(id, config);
   } finally {
     config.close();
   }
 }
 
 async function createIdentityKeyIfMissing(config: Config): Promise<string> {
-  const currentPrivateAddress = await config.get(ConfigItem.CURRENT_PRIVATE_ADDRESS);
-  if (currentPrivateAddress) {
-    console.log(`Identity key ${currentPrivateAddress} already exists`);
-    return currentPrivateAddress;
+  const currentId = await config.get(ConfigItem.CURRENT_ID);
+  if (currentId) {
+    console.log(`Identity key ${currentId} already exists`);
+    return currentId;
   }
 
   console.log(`Identity key will be created because it doesn't already exist`);
 
   const { id } = await privateKeyStore.generateIdentityKeyPair();
-  await config.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, id);
+  await config.set(ConfigItem.CURRENT_ID, id);
   return id;
 }
 
