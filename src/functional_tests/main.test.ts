@@ -4,7 +4,7 @@ import {
   EnvelopedData,
   getIdFromIdentityKey,
   Parcel,
-  PublicNodeConnectionParams,
+  NodeConnectionParams,
   ServiceMessage,
   SessionEnvelopedData,
   SessionKey,
@@ -40,12 +40,12 @@ describe('End-to-end test for successful delivery of ping and pong messages', ()
   });
   afterEach(resetMockGatewayServer);
 
-  let pongConnectionParams: PublicNodeConnectionParams;
+  let pongConnectionParams: NodeConnectionParams;
   beforeAll(async () => {
     const connectionParamsSerialized = await downloadFileFromURL(
       `${PONG_ENDPOINT_LOCAL_URL}/connection-params.der`,
     );
-    pongConnectionParams = await PublicNodeConnectionParams.deserialize(
+    pongConnectionParams = await NodeConnectionParams.deserialize(
       bufferToArray(connectionParamsSerialized),
     );
   });
