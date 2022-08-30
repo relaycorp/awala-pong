@@ -31,7 +31,7 @@
     "@keyv/redis": "^2.3.8",
     "@relaycorp/awala-keystore-cloud": "^2.0.20",
     "@relaycorp/pino-cloud": "^1.0.22",
-    "@relaycorp/relaynet-core": "^1.81.17",
+    "@relaycorp/relaynet-core": "^1.82.1",
     "@relaycorp/relaynet-pohttp": "^1.7.52",
     "buffer-to-arraybuffer": "0.0.6",
     "bull": "^4.8.5",
