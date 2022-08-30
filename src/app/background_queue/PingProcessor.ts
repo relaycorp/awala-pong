@@ -26,14 +26,12 @@ export class PingProcessor {
   ) {}
 
   public async deliverPongForPing(job: Job<QueuedPing>): Promise<void> {
-    const currentEndpointPrivateAddress = await this.config.get(ConfigItem.CURRENT_PRIVATE_ADDRESS);
-    if (!currentEndpointPrivateAddress) {
+    const currentEndpointId = await this.config.get(ConfigItem.CURRENT_ID);
+    if (!currentEndpointId) {
       throw new Error('There is no current endpoint');
     }
 
-    const identityPrivateKey = await this.privateKeyStore.retrieveIdentityKey(
-      currentEndpointPrivateAddress,
-    );
+    const identityPrivateKey = await this.privateKeyStore.retrieveIdentityKey(currentEndpointId);
     if (!identityPrivateKey) {
       throw new Error('Private key for current identity key is missing');
     }
@@ -47,7 +45,7 @@ export class PingProcessor {
     }
     const pongParcelSerialized = await this.makePongParcel(
       unwrappingResult.ping,
-      currentEndpointPrivateAddress,
+      currentEndpointId,
       await pingParcel.senderCertificate.calculateSubjectId(),
       identityPrivateKey,
       unwrappingResult.originatorKey,
@@ -99,8 +97,8 @@ export class PingProcessor {
   protected async generatePongParcelPayload(
     pingId: string,
     recipientSessionKey: SessionKey,
-    recipientPrivateAddress: string,
-    senderPrivateAddress: string,
+    recipientId: string,
+    senderId: string,
   ): Promise<Buffer> {
     const pongMessage = new ServiceMessage(
       'application/vnd.awala.ping-v1.pong',
@@ -116,30 +114,30 @@ export class PingProcessor {
     await this.privateKeyStore.saveSessionKey(
       dhPrivateKey,
       Buffer.from(dhKeyId),
-      senderPrivateAddress,
-      recipientPrivateAddress,
+      senderId,
+      recipientId,
     );
     return Buffer.from(pongParcelPayload.serialize());
   }
 
   private async makePongParcel(
     ping: Ping,
-    senderPrivateAddress: string,
-    recipientPrivateAddress: string,
+    senderId: string,
+    recipientId: string,
     identityPrivateKey: CryptoKey,
     originatorKey: SessionKey,
   ): Promise<ArrayBuffer> {
     const pongParcelPayload = await this.generatePongParcelPayload(
       ping.id,
       originatorKey,
-      recipientPrivateAddress,
-      senderPrivateAddress,
+      recipientId,
+      senderId,
     );
     const now = new Date();
     const expiryDate = addDays(now, 14);
     const creationDate = subMinutes(now, 5);
     const pongParcel = new Parcel(
-      { id: recipientPrivateAddress },
+      { id: recipientId },
       ping.pdaPath.leafCertificate,
       pongParcelPayload,
       {
