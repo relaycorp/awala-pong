@@ -29,7 +29,7 @@
   "dependencies": {
     "@fastify/url-data": "^5.1.0",
     "@keyv/redis": "^2.3.8",
-    "@relaycorp/awala-keystore-cloud": "^2.0.17",
+    "@relaycorp/awala-keystore-cloud": "^2.0.20",
     "@relaycorp/pino-cloud": "^1.0.22",
     "@relaycorp/relaynet-core": "^1.82.0",
     "@relaycorp/relaynet-pohttp": "^1.7.52",
