@@ -64,7 +64,7 @@ export default async function registerRoutes(
         return reply.code(403).send({ message: 'Parcel is well-formed but invalid' });
       }
 
-      if (!(await isPrivateAddressValid(parcel.recipient, request.log))) {
+      if (!(await isRecipientValid(parcel.recipient, request.log))) {
         return reply.code(202).send({});
       }
 
@@ -84,7 +84,7 @@ export default async function registerRoutes(
   });
 }
 
-async function isPrivateAddressValid(recipient: Recipient, log: Logger): Promise<boolean> {
+async function isRecipientValid(recipient: Recipient, log: Logger): Promise<boolean> {
   const privateKeyStore = initVaultKeyStore();
   const keyExists = await privateKeyStore.retrieveIdentityKey(recipient.id);
   if (!keyExists) {
