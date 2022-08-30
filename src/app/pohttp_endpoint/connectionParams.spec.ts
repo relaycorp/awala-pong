@@ -3,7 +3,7 @@ import {
   generateRSAKeyPair,
   getIdFromIdentityKey,
   MockPrivateKeyStore,
-  PublicNodeConnectionParams,
+  NodeConnectionParams,
   SessionKeyPair,
   UnknownKeyError,
 } from '@relaycorp/relaynet-core';
@@ -170,7 +170,7 @@ describe('GET', () => {
     );
   });
 
-  async function deserializeParams(paramsSerialized: Buffer): Promise<PublicNodeConnectionParams> {
-    return PublicNodeConnectionParams.deserialize(bufferToArray(paramsSerialized));
+  async function deserializeParams(paramsSerialized: Buffer): Promise<NodeConnectionParams> {
+    return NodeConnectionParams.deserialize(bufferToArray(paramsSerialized));
   }
 });

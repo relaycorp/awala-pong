@@ -1,7 +1,7 @@
 import {
   getRSAPublicKeyFromPrivate,
   PrivateKeyStore,
-  PublicNodeConnectionParams,
+  NodeConnectionParams,
   SessionKey,
 } from '@relaycorp/relaynet-core';
 import { FastifyInstance, FastifyReply } from 'fastify';
@@ -40,7 +40,7 @@ export default async function registerRoutes(
         return reply.code(500).send({ message: 'Internal server error' });
       }
 
-      const params = new PublicNodeConnectionParams(
+      const params = new NodeConnectionParams(
         options.internetAddress,
         identityPublicKey,
         sessionKey,
