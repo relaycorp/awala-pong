@@ -24,9 +24,9 @@ describe('set', () => {
     const config = new Config(stubKeyv);
     const value = 'foo';
 
-    await config.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, value);
+    await config.set(ConfigItem.CURRENT_ID, value);
 
-    await expect(stubKeyv.get(ConfigItem.CURRENT_PRIVATE_ADDRESS)).resolves.toEqual(value);
+    await expect(stubKeyv.get(ConfigItem.CURRENT_ID)).resolves.toEqual(value);
   });
 });
 
@@ -34,15 +34,15 @@ describe('get', () => {
   test('Null should be returned if value does not exist', async () => {
     const config = new Config(stubKeyv);
 
-    await expect(config.get(ConfigItem.CURRENT_PRIVATE_ADDRESS)).resolves.toBeNull();
+    await expect(config.get(ConfigItem.CURRENT_ID)).resolves.toBeNull();
   });
 
   test('Value should be returned if it exists', async () => {
     const config = new Config(stubKeyv);
     const value = 'foo';
-    await stubKeyv.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, value);
+    await stubKeyv.set(ConfigItem.CURRENT_ID, value);
 
-    await expect(config.get(ConfigItem.CURRENT_PRIVATE_ADDRESS)).resolves.toEqual(value);
+    await expect(config.get(ConfigItem.CURRENT_ID)).resolves.toEqual(value);
   });
 });
 
@@ -72,7 +72,7 @@ describe('initFromEnv', () => {
   const mockEnvVars = configureMockEnvVars({ CONFIG_URL });
 
   test('Error should be thrown if CONFIG_URL is not defined', () => {
-    mockEnvVars({ CURRENT_PRIVATE_ADDRESS: undefined });
+    mockEnvVars({});
 
     expect(() => Config.initFromEnv()).toThrowWithMessage(EnvVarError, /CONFIG_URL/);
   });

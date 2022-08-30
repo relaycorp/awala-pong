@@ -41,14 +41,14 @@ beforeAll(async () => {
 beforeEach(async () => {
   mockPrivateKeyStore.clear();
 
-  const privateAddress = await getIdFromIdentityKey(identityKeyPair.publicKey);
-  await mockPrivateKeyStore.saveIdentityKey(privateAddress, identityKeyPair.privateKey);
-  await mockConfig.set(ConfigItem.CURRENT_PRIVATE_ADDRESS, privateAddress);
+  const id = await getIdFromIdentityKey(identityKeyPair.publicKey);
+  await mockPrivateKeyStore.saveIdentityKey(id, identityKeyPair.privateKey);
+  await mockConfig.set(ConfigItem.CURRENT_ID, id);
 
   await mockPrivateKeyStore.saveSessionKey(
     sessionKeyPair.privateKey,
     sessionKeyPair.sessionKey.keyId,
-    privateAddress,
+    id,
   );
   await mockConfig.set(
     ConfigItem.INITIAL_SESSION_KEY_ID_BASE64,
@@ -70,7 +70,7 @@ describe('GET', () => {
 
   describe('Key retrieval errors', () => {
     test('Response code should be 500 if the current private key is unset', async () => {
-      await configKeyv.delete(ConfigItem.CURRENT_PRIVATE_ADDRESS);
+      await configKeyv.delete(ConfigItem.CURRENT_ID);
 
       const response = await serverInstance.inject(requestOpts);
 
@@ -89,7 +89,7 @@ describe('GET', () => {
       expectResponseToBe500(response);
       expect(mockLogging.logs).toContainEqual(
         partialPinoLog('fatal', 'Current identity key is missing', {
-          privateAddress: await getIdFromIdentityKey(identityKeyPair.publicKey),
+          id: await getIdFromIdentityKey(identityKeyPair.publicKey),
         }),
       );
     });
