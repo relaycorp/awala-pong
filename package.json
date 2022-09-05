@@ -30,7 +30,7 @@
     "@fastify/url-data": "^5.1.0",
     "@keyv/redis": "^2.3.8",
     "@relaycorp/awala-keystore-cloud": "^2.0.20",
-    "@relaycorp/pino-cloud": "^1.0.23",
+    "@relaycorp/pino-cloud": "^1.0.24",
     "@relaycorp/relaynet-core": "^1.82.0",
     "@relaycorp/relaynet-pohttp": "^1.7.54",
     "buffer-to-arraybuffer": "0.0.6",
