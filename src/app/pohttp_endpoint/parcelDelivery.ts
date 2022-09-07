@@ -55,20 +55,28 @@ export default async function registerRoutes(
       let parcel;
       try {
         parcel = await Parcel.deserialize(bufferToArray(request.body));
-      } catch (error) {
+      } catch (err) {
+        request.log.info({ err }, 'Refusing malformed parcel');
         return reply.code(403).send({ message: 'Payload is not a valid RAMF-serialized parcel' });
       }
+
+      const parcelAwareLogger = request.log.child({
+        recipient: parcel.recipient,
+        senderId: await parcel.senderCertificate.calculateSubjectId(),
+      });
+
       try {
         await parcel.validate();
-      } catch (_) {
+      } catch (err) {
+        parcelAwareLogger.info({ err }, 'Refusing invalid parcel');
         return reply.code(403).send({ message: 'Parcel is well-formed but invalid' });
       }
 
-      if (!(await isRecipientValid(parcel.recipient, request.log))) {
+      if (!(await isRecipientValid(parcel.recipient, parcelAwareLogger))) {
         return reply.code(202).send({});
       }
 
-      if (!isInternetAddressValid(parcel.recipient, options.internetAddress, request.log)) {
+      if (!isInternetAddressValid(parcel.recipient, options.internetAddress, parcelAwareLogger)) {
         return reply.code(403).send({ message: 'Invalid parcel recipient' });
       }
 
@@ -76,9 +84,11 @@ export default async function registerRoutes(
       try {
         await pongQueue.add(queueMessage);
       } catch (error) {
-        request.log.error({ err: error }, 'Failed to queue ping message');
+        parcelAwareLogger.error({ err: error }, 'Failed to queue ping message');
         return reply.code(500).send({ message: 'Could not queue ping message for processing' });
       }
+
+      parcelAwareLogger.info('Parcel is valid and has been queued');
       return reply.code(202).send({});
     },
   });

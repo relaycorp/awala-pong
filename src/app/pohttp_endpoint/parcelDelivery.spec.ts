@@ -1,4 +1,10 @@
-import { getIdFromIdentityKey, MockPrivateKeyStore, Recipient } from '@relaycorp/relaynet-core';
+import {
+  getIdFromIdentityKey,
+  InvalidMessageError,
+  MockPrivateKeyStore,
+  RAMFSyntaxError,
+  Recipient,
+} from '@relaycorp/relaynet-core';
 import {
   generateIdentityKeyPairSet,
   generatePDACertificationPath,
@@ -130,6 +136,14 @@ describe('Health check', () => {
 });
 
 describe('receiveParcel', () => {
+  let parcelLogAttributes: any;
+  beforeEach(async () => {
+    parcelLogAttributes = {
+      recipient: pingParcelRecipient,
+      senderId: await getIdFromIdentityKey(keyPairSet.privateEndpoint.publicKey),
+    };
+  });
+
   test('Content-Type other than application/vnd.awala.parcel should be refused', async () => {
     const response = await serverInstance.inject({
       ...validRequestOptions,
@@ -157,6 +171,11 @@ describe('receiveParcel', () => {
       'message',
       'Payload is not a valid RAMF-serialized parcel',
     );
+    expect(mockLogging.logs).toContainEqual(
+      partialPinoLog('info', 'Refusing malformed parcel', {
+        err: expect.objectContaining({ type: RAMFSyntaxError.name }),
+      }),
+    );
   });
 
   test('Parcel should be refused if it is well-formed but invalid', async () => {
@@ -179,6 +198,12 @@ describe('receiveParcel', () => {
       'message',
       'Parcel is well-formed but invalid',
     );
+    expect(mockLogging.logs).toContainEqual(
+      partialPinoLog('info', 'Refusing invalid parcel', {
+        ...parcelLogAttributes,
+        err: expect.objectContaining({ type: InvalidMessageError.name }),
+      }),
+    );
   });
 
   test('Parcel should be ignored if recipient id does not match', async () => {
@@ -199,6 +224,7 @@ describe('receiveParcel', () => {
     expect(JSON.parse(response.payload)).toBeEmptyObject();
     expect(mockLogging.logs).toContainEqual(
       partialPinoLog('info', 'Parcel is bound for recipient with different id', {
+        ...parcelLogAttributes,
         recipient: invalidRecipient,
       }),
     );
@@ -225,6 +251,7 @@ describe('receiveParcel', () => {
     expect(JSON.parse(response.payload)).toHaveProperty('message', 'Invalid parcel recipient');
     expect(mockLogging.logs).toContainEqual(
       partialPinoLog('info', 'Parcel is bound for recipient with different Internet address', {
+        ...parcelLogAttributes,
         recipient: invalidRecipient,
       }),
     );
@@ -248,6 +275,14 @@ describe('receiveParcel', () => {
       expect(pongQueueAddSpy).toBeCalledWith(expectedMessageData);
     });
 
+    test('Storage should be logged', async () => {
+      await serverInstance.inject(validRequestOptions);
+
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('info', 'Parcel is valid and has been queued', parcelLogAttributes),
+      );
+    });
+
     test('Failing to queue the ping message should result in a 500 response', async () => {
       const error = new Error('Oops');
       pongQueueAddSpy.mockRejectedValueOnce(error);
@@ -261,6 +296,7 @@ describe('receiveParcel', () => {
 
       expect(mockLogging.logs).toContainEqual(
         partialPinoLog('error', 'Failed to queue ping message', {
+          ...parcelLogAttributes,
           err: expect.objectContaining({ message: error.message }),
         }),
       );
