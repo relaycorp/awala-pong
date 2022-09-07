@@ -2,7 +2,6 @@ import {
   getIdFromIdentityKey,
   InvalidMessageError,
   MockPrivateKeyStore,
-  RAMFSyntaxError,
   Recipient,
 } from '@relaycorp/relaynet-core';
 import {
@@ -173,7 +172,7 @@ describe('receiveParcel', () => {
     );
     expect(mockLogging.logs).toContainEqual(
       partialPinoLog('info', 'Refusing malformed parcel', {
-        err: expect.objectContaining({ type: RAMFSyntaxError.name }),
+        reason: expect.stringContaining('RAMF'),
       }),
     );
   });

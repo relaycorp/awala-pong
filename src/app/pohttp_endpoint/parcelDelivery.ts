@@ -56,7 +56,8 @@ export default async function registerRoutes(
       try {
         parcel = await Parcel.deserialize(bufferToArray(request.body));
       } catch (err) {
-        request.log.info({ err }, 'Refusing malformed parcel');
+        // Don't log the full error because 99.99% of the time the reason will suffice.
+        request.log.info({ reason: (err as Error).message }, 'Refusing malformed parcel');
         return reply.code(403).send({ message: 'Payload is not a valid RAMF-serialized parcel' });
       }
 
