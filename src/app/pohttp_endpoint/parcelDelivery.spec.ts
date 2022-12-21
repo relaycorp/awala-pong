@@ -48,6 +48,7 @@ let keyPairSet: NodeKeyPairSet;
 let certificatePath: PDACertPath;
 let pongEndpointId: string;
 let pingParcelRecipient: Recipient;
+let parcelId: string;
 beforeAll(async () => {
   keyPairSet = await generateIdentityKeyPairSet();
   certificatePath = await generatePDACertificationPath(keyPairSet);
@@ -57,17 +58,19 @@ beforeAll(async () => {
     id: pongEndpointId,
     internetAddress: PONG_INTERNET_ADDRESS,
   };
-  const payload = await generatePingParcel(
+  const { parcelSerialized, parcel } = await generatePingParcel(
     pingParcelRecipient,
     certificatePath.privateEndpoint,
     keyPairSet,
     certificatePath,
   );
   // tslint:disable-next-line:no-object-mutation
-  validRequestOptions.payload = payload;
+  validRequestOptions.payload = parcelSerialized;
   // tslint:disable-next-line:readonly-keyword no-object-mutation
   (validRequestOptions.headers as { [key: string]: string })['Content-Length'] =
-    payload.byteLength.toString();
+    parcelSerialized.byteLength.toString();
+
+  parcelId = parcel.id;
 });
 
 const mockPrivateKeyStore = new MockPrivateKeyStore();
@@ -138,6 +141,7 @@ describe('receiveParcel', () => {
   let parcelLogAttributes: any;
   beforeEach(async () => {
     parcelLogAttributes = {
+      parcelId,
       recipient: pingParcelRecipient,
       senderId: await getIdFromIdentityKey(keyPairSet.privateEndpoint.publicKey),
     };
@@ -179,7 +183,7 @@ describe('receiveParcel', () => {
 
   test('Parcel should be refused if it is well-formed but invalid', async () => {
     const yesterday = subDays(new Date(), 1);
-    const payload = await generatePingParcel(
+    const { parcelSerialized, parcel } = await generatePingParcel(
       pingParcelRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
@@ -188,8 +192,11 @@ describe('receiveParcel', () => {
     );
     const response = await serverInstance.inject({
       ...validRequestOptions,
-      headers: { ...validRequestOptions.headers, 'Content-Length': payload.byteLength.toString() },
-      payload,
+      headers: {
+        ...validRequestOptions.headers,
+        'Content-Length': parcelSerialized.byteLength.toString(),
+      },
+      payload: parcelSerialized,
     });
 
     expect(response).toHaveProperty('statusCode', 403);
@@ -200,6 +207,7 @@ describe('receiveParcel', () => {
     expect(mockLogging.logs).toContainEqual(
       partialPinoLog('info', 'Refusing invalid parcel', {
         ...parcelLogAttributes,
+        parcelId: parcel.id,
         err: expect.objectContaining({ type: InvalidMessageError.name }),
       }),
     );
@@ -207,7 +215,7 @@ describe('receiveParcel', () => {
 
   test('Parcel should be ignored if recipient id does not match', async () => {
     const invalidRecipient = { ...pingParcelRecipient, id: `${pingParcelRecipient.id}abc` };
-    const payload = await generatePingParcel(
+    const { parcelSerialized, parcel } = await generatePingParcel(
       invalidRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
@@ -215,8 +223,11 @@ describe('receiveParcel', () => {
     );
     const response = await serverInstance.inject({
       ...validRequestOptions,
-      headers: { ...validRequestOptions.headers, 'Content-Length': payload.byteLength.toString() },
-      payload,
+      headers: {
+        ...validRequestOptions.headers,
+        'Content-Length': parcelSerialized.byteLength.toString(),
+      },
+      payload: parcelSerialized,
     });
 
     expect(response).toHaveProperty('statusCode', 202);
@@ -224,6 +235,7 @@ describe('receiveParcel', () => {
     expect(mockLogging.logs).toContainEqual(
       partialPinoLog('info', 'Parcel is bound for recipient with different id', {
         ...parcelLogAttributes,
+        parcelId: parcel.id,
         recipient: invalidRecipient,
       }),
     );
@@ -234,7 +246,7 @@ describe('receiveParcel', () => {
       ...pingParcelRecipient,
       internetAddress: `not-${PONG_INTERNET_ADDRESS}`,
     };
-    const payload = await generatePingParcel(
+    const { parcelSerialized, parcel } = await generatePingParcel(
       invalidRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
@@ -242,8 +254,11 @@ describe('receiveParcel', () => {
     );
     const response = await serverInstance.inject({
       ...validRequestOptions,
-      headers: { ...validRequestOptions.headers, 'Content-Length': payload.byteLength.toString() },
-      payload,
+      headers: {
+        ...validRequestOptions.headers,
+        'Content-Length': parcelSerialized.byteLength.toString(),
+      },
+      payload: parcelSerialized,
     });
 
     expect(response).toHaveProperty('statusCode', 403);
@@ -251,6 +266,7 @@ describe('receiveParcel', () => {
     expect(mockLogging.logs).toContainEqual(
       partialPinoLog('info', 'Parcel is bound for recipient with different Internet address', {
         ...parcelLogAttributes,
+        parcelId: parcel.id,
         recipient: invalidRecipient,
       }),
     );

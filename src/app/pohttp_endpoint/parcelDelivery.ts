@@ -62,6 +62,7 @@ export default async function registerRoutes(
       }
 
       const parcelAwareLogger = request.log.child({
+        parcelId: parcel.id,
         recipient: parcel.recipient,
         senderId: await parcel.senderCertificate.calculateSubjectId(),
       });

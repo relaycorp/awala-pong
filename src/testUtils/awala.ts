@@ -30,13 +30,18 @@ export async function generateStubNodeCertificate(
   });
 }
 
+interface GeneratedParcel {
+  readonly parcelSerialized: Buffer;
+  readonly parcel: Parcel;
+}
+
 export async function generatePingParcel(
   recipient: Recipient,
   recipientIdCertificate: Certificate,
   keyPairSet: NodeKeyPairSet,
   certificatePath: PDACertPath,
   creationDate: Date | null = null,
-): Promise<Buffer> {
+): Promise<GeneratedParcel> {
   const parcelSenderCertificate = await generateStubNodeCertificate(
     keyPairSet.privateEndpoint.publicKey,
     keyPairSet.privateEndpoint.privateKey,
@@ -52,7 +57,8 @@ export async function generatePingParcel(
     parcelPayloadSerialized,
     creationDate ? { creationDate } : {},
   );
-  return Buffer.from(await parcel.serialize(keyPairSet.privateEndpoint.privateKey));
+  const serialization = Buffer.from(await parcel.serialize(keyPairSet.privateEndpoint.privateKey));
+  return { parcelSerialized: serialization, parcel };
 }
 
 export function generatePingServiceMessage(
