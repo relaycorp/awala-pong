@@ -28,7 +28,7 @@
   "homepage": "https://docs.relaycorp.tech/relaynet-pong/",
   "dependencies": {
     "@fastify/url-data": "^5.2.0",
-    "@keyv/redis": "^2.3.8",
+    "@keyv/redis": "^2.5.4",
     "@relaycorp/awala-keystore-cloud": "^2.0.21",
     "@relaycorp/pino-cloud": "^1.0.24",
     "@relaycorp/relaynet-core": "^1.82.0",
