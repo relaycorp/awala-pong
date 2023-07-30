@@ -1,6 +1,10 @@
-# Relaynet Pong
+# Awala Pong
 
-This is a server-side implementation of the [Awala Ping service](https://specs.awala.network/RS-014), implemented as an [Awala Internet Endpoint](https://docs.relaycorp.tech/awala-endpoint-internet/) backend.
+This is a server-side implementation of the [Awala Ping service](https://specs.awala.network/RS-014), implemented as an [Awala Internet Endpoint](https://docs.relaycorp.tech/awala-pong/) backend.
+
+# Environment variables
+
+- `CE_TRANSPORT` and `CE_CHANNEL`
 
 # Development
 

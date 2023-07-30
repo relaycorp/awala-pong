@@ -1,0 +1,38 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: awala-pong
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/min-scale: "1"
+      labels:
+        app.kubernetes.io/name: awala-pong
+    spec:
+      containers:
+        - name: server
+          image: dev.local/awala-pong
+          args: [pohttp-server]
+          readinessProbe:
+            httpGet:
+              path: /
+            initialDelaySeconds: 1
+          env:
+            - name: VERSION
+              value: 1.0.0
+---
+apiVersion: sources.knative.dev/v1
+kind: SinkBinding
+metadata:
+  name: awala-pong-sink-binding
+spec:
+  subject:
+    apiVersion: serving.knative.dev/v1
+    kind: Service
+    name: awala-pong-pohttp-server
+  sink:
+    ref:
+      apiVersion: eventing.knative.dev/v1
+      kind: Broker
+      name: awala-pong-broker

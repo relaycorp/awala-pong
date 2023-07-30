@@ -1,0 +1,14 @@
+node_modules
+build
+test
+src/**.js
+.idea/
+.vscode/
+coverage
+**/.DS_Store
+
+docs/.bundle
+docs/.jekyll-cache
+docs/.sass-cache
+docs/_site
+docs/vendor

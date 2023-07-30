@@ -1,0 +1,10 @@
+*
+
+!src
+src/functionalTests
+src/testUtils
+src/**/*.spec.ts
+
+!tsconfig.json
+!package.json
+!package-lock.json

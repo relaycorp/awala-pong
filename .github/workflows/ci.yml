@@ -1,0 +1,17 @@
+name: CI and automated releases
+on:
+  pull_request:
+  push:
+    branches: [master]
+jobs:
+  ci:
+    uses: relaycorp/shared-workflows/.github/workflows/nodejs-knative-ci.yml@main
+    with:
+      docker_image_local_name: dev.local/awala-pong
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+    secrets:
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  release:
+    needs: ci
+    uses: relaycorp/shared-workflows/.github/workflows/nodejs-knative-release.yml@main
