@@ -11,28 +11,24 @@ spec:
         app.kubernetes.io/name: awala-pong
     spec:
       containers:
-        - name: server
+        - name: awala-pong
           image: dev.local/awala-pong
-          args: [pohttp-server]
-          readinessProbe:
-            httpGet:
-              path: /
-            initialDelaySeconds: 1
           env:
             - name: VERSION
               value: 1.0.0
----
-apiVersion: sources.knative.dev/v1
-kind: SinkBinding
-metadata:
-  name: awala-pong-sink-binding
-spec:
-  subject:
-    apiVersion: serving.knative.dev/v1
-    kind: Service
-    name: awala-pong-pohttp-server
-  sink:
-    ref:
-      apiVersion: eventing.knative.dev/v1
-      kind: Broker
-      name: awala-pong-broker
+            - name: CE_TRANSPORT
+              value: ce-http-binary
+            - name: CE_CHANNEL
+              value: http://mock-ce-broker.default
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 3

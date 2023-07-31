@@ -6,7 +6,7 @@ import { configureMockEnvVars as configureMockEnvironmentVariables } from '../te
 import { getMockInstance } from '../testUtils/jest.js';
 
 const REQUIRED_ENV_VARS = {
-  ENDPOINT_VERSION: '1.0.1',
+  VERSION: '1.0.1',
 };
 const mockEnvironmentVariables = configureMockEnvironmentVariables(REQUIRED_ENV_VARS);
 
@@ -43,10 +43,10 @@ describe('makeLogger', () => {
     expect(logger).toHaveProperty('level', loglevel.toLowerCase());
   });
 
-  test('ENDPOINT_VERSION env var should be required', () => {
-    mockEnvironmentVariables({ ...REQUIRED_ENV_VARS, ENDPOINT_VERSION: undefined });
+  test('VERSION env var should be required', () => {
+    mockEnvironmentVariables({ ...REQUIRED_ENV_VARS, VERSION: undefined });
 
-    expect(() => makeLogger()).toThrowWithMessage(env.EnvVarError, /ENDPOINT_VERSION/u);
+    expect(() => makeLogger()).toThrowWithMessage(env.EnvVarError, /VERSION/u);
   });
 
   test('Cloud logging options should be used', () => {
@@ -77,13 +77,13 @@ describe('makeLogger', () => {
     );
   });
 
-  test('ENDPOINT_VERSION should be passed to cloud logging config', () => {
+  test('VERSION should be passed to cloud logging config', () => {
     makeLogger();
 
     expect(getPinoOptions).toHaveBeenCalledWith(
       undefined,
       expect.objectContaining({
-        version: REQUIRED_ENV_VARS.ENDPOINT_VERSION,
+        version: REQUIRED_ENV_VARS.VERSION,
       }),
     );
   });

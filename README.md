@@ -4,6 +4,7 @@ This is a server-side implementation of the [Awala Ping service](https://specs.a
 
 # Environment variables
 
+- `VERSION`
 - `CE_TRANSPORT` and `CE_CHANNEL`
 
 # Development

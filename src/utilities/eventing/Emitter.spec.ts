@@ -3,7 +3,7 @@ import { CloudEvent } from 'cloudevents';
 import envVar from 'env-var';
 
 import { mockSpy } from '../../testUtils/jest.js';
-import { CE_CHANNEL, CE_ID, CE_SOURCE, CE_TRANSPORT } from '../../testUtils/eventing/stubs.js';
+import { CE_CHANNEL, CE_TRANSPORT } from '../../testUtils/eventing/stubs.js';
 import { configureMockEnvVars } from '../../testUtils/envVars.js';
 
 const mockEmitterFunction = mockSpy(jest.fn());
@@ -13,6 +13,9 @@ jest.unstable_mockModule('@relaycorp/cloudevents-transport', () => ({
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const { Emitter } = await import('./Emitter.js');
 const { makeEmitter: ceMakeEmitter } = await import('@relaycorp/cloudevents-transport');
+
+const CE_ID = 'ce-id';
+const CE_SOURCE = 'https://example.com/ce-source';
 
 describe('Emitter', () => {
   const baseEnvVars = { CE_TRANSPORT, CE_CHANNEL };

@@ -6,7 +6,7 @@ const DEFAULT_APP_NAME = 'awala-pong';
 
 export function makeLogger(): Logger {
   const logTarget = env.get('LOG_TARGET').asString();
-  const gatewayVersion = env.get('ENDPOINT_VERSION').required().asString();
+  const gatewayVersion = env.get('VERSION').required().asString();
   const logEnvironmentName = env.get('LOG_ENV_NAME').default(DEFAULT_APP_NAME).asString();
   const appContext = { name: logEnvironmentName, version: gatewayVersion };
   const cloudPinoOptions = getPinoOptions(logTarget as LoggingTarget, appContext);
