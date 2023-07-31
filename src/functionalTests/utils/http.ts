@@ -9,3 +9,11 @@ export async function get(url: string, options: Options = {}): Promise<Response>
     ...options,
   });
 }
+
+export async function post(url: string, options: Options): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    ...options,
+  });
+}

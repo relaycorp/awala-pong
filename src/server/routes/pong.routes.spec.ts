@@ -1,24 +1,15 @@
-import {
-  INCOMING_SERVICE_MESSAGE_TYPE,
-  makeOutgoingCloudEvent,
-} from '@relaycorp/awala-endpoint-internet';
-
 import { makeTestServer } from '../../testUtils/server.js';
 import { postEvent } from '../../testUtils/eventing/cloudEvents.js';
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
 import { mockEmitter } from '../../testUtils/eventing/mockEmitter.js';
 import { partialPinoLog } from '../../testUtils/logging.js';
+import { makePingEvent } from '../../testUtils/eventing/ping.js';
+import { PONG_CONTENT_TYPE } from '../../utilities/ping.js';
 
 describe('Pong route', () => {
   const getTestServerFixture = makeTestServer();
   const emitter = mockEmitter();
-
-  const pingEvent = makeOutgoingCloudEvent({
-    recipientId: 'recipient',
-    senderId: 'sender',
-    contentType: 'application/vnd.awala.ping-v1.ping',
-    content: Buffer.from('the ping id'),
-  }).cloneWith({ type: INCOMING_SERVICE_MESSAGE_TYPE });
+  const pingEvent = makePingEvent();
 
   test('should refuse malformed events', async () => {
     const { server, logs } = getTestServerFixture();
@@ -90,7 +81,7 @@ describe('Pong route', () => {
     const [pongEvent] = emitter.events;
     expect(pongEvent.source).toBe(pingEvent.subject);
     expect(pongEvent.subject).toBe(pingEvent.source);
-    expect(pongEvent.datacontenttype).toBe('application/vnd.awala.ping-v1.pong');
+    expect(pongEvent.datacontenttype).toBe(PONG_CONTENT_TYPE);
     expect(pongEvent.data).toMatchObject(pingEvent.data!);
     expect(logs).toContainEqual(
       partialPinoLog('info', 'Replied to ping message', {

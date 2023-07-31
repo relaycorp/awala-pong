@@ -7,9 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
 import { convertMessageToEvent } from '../../utilities/eventing/receiver.js';
 import { Emitter } from '../../utilities/eventing/Emitter.js';
-
-const PING_CONTENT_TYPE = 'application/vnd.awala.ping-v1.ping';
-const PONG_CONTENT_TYPE = 'application/vnd.awala.ping-v1.pong';
+import { PING_CONTENT_TYPE, PONG_CONTENT_TYPE } from '../../utilities/ping.js';
 
 export default async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   // Accept any content type
