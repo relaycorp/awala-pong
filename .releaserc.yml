@@ -1,15 +1,13 @@
-branch: master
+branches: [main]
 plugins:
-  - "@semantic-release/commit-analyzer"
-  - "@semantic-release/release-notes-generator"
-  - - "@semantic-release/npm"
+  - '@semantic-release/commit-analyzer'
+  - '@semantic-release/release-notes-generator'
+  - - '@semantic-release/npm'
     - npmPublish: false
-  - - "@semantic-release/exec"
-    - prepareCmd: docker tag relaynet-pong:latest ghcr.io/relaycorp/relaynet-pong:${nextRelease.version}
-      publishCmd: docker push ghcr.io/relaycorp/relaynet-pong:${nextRelease.version}
-  - - "@semantic-release/exec"
-    - prepareCmd: helm package chart/ --dependency-update --app-version=${nextRelease.version} --version=${nextRelease.version} --destination=build/
-      publishCmd: .github/scripts/push-helm-chart.sh
-  - - "@semantic-release/github"
+  - - '@semantic-release/exec'
+    - prepareCmd: docker tag relaycorp/awala-pong:ci ghcr.io/relaycorp/awala-pong:${nextRelease.version}
+      publishCmd: docker push ghcr.io/relaycorp/awala-pong:${nextRelease.version}
+  - - '@semantic-release/exec'
+  - - '@semantic-release/github'
     - assets:
-        - path: build/relaynet-pong-*.tgz
+        - path: k8s/*.yml

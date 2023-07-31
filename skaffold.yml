@@ -1,0 +1,14 @@
+apiVersion: skaffold/v4beta2
+kind: Config
+metadata:
+  name: awala-pong
+build:
+  artifacts:
+    - image: dev.local/awala-pong
+  local:
+    push: false
+manifests:
+  rawYaml:
+    - k8s/*.yml
+deploy:
+  kubectl: {}

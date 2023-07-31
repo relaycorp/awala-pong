@@ -1,10 +1,8 @@
 {
-  "extends": "@relaycorp/shared-config",
+  "extends": "@relaycorp/shared-config/tsconfig-esm.json",
   "compilerOptions": {
-    "outDir": "build/main",
-    "rootDir": "src",
-    "types": ["node", "jest"],
-    "typeRoots": ["node_modules/@types", "src/types"]
+    "outDir": "build",
+    "rootDir": "src"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.mjs"]
 }

@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ include "..fullname" . }}-pohttp
-  labels:
-    pong.relaycorp.tech/component: pohttp
-{{- include "..labels" . | nindent 4 -}}

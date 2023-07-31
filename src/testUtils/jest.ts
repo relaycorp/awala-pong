@@ -1,17 +1,8 @@
-export function getMockInstance(mockedObject: any): jest.MockInstance<any, any> {
-  return mockedObject as unknown as jest.MockInstance<any, any>;
-}
-
-export function getMockContext(mockedObject: any): jest.MockContext<any, any> {
-  const mockInstance = getMockInstance(mockedObject);
-  return mockInstance.mock;
-}
-
-// tslint:disable-next-line:readonly-array
-export function mockSpy<T, Y extends any[]>(
-  spy: jest.MockInstance<T, Y>,
-  mockImplementation?: (...args: readonly any[]) => any,
-): jest.MockInstance<T, Y> {
+export function mockSpy<
+  Return,
+  Parameters extends any[],
+  MockType extends jest.MockInstance<Return, Parameters>,
+>(spy: MockType, mockImplementation?: (...args: Parameters) => Return): MockType {
   beforeEach(() => {
     spy.mockReset();
     if (mockImplementation) {
@@ -24,4 +15,13 @@ export function mockSpy<T, Y extends any[]>(
   });
 
   return spy;
+}
+
+export function getMockInstance(mockedObject: any): jest.MockInstance<any, any> {
+  return mockedObject as unknown as jest.MockInstance<any, any>;
+}
+
+export function getMockContext(mockedObject: any): jest.MockContext<any, any> {
+  const mockInstance = getMockInstance(mockedObject);
+  return mockInstance.mock;
 }

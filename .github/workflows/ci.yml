@@ -1,19 +1,22 @@
-name: Run CI and potentially release
+name: CI and automated releases
 on:
   pull_request:
   push:
     branches: [master]
 jobs:
   ci:
-    uses: relaycorp/shared-workflows/.github/workflows/nodejs-server-ci.yml@main
+    uses: relaycorp/shared-workflows/.github/workflows/nodejs-knative-ci.yml@main
     with:
-      docker_image_local_name: relaynet-pong
-      skaffold_version: 1.34.0
+      docker_image_local_name: dev.local/awala-pong
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+      knative_eventing_enabled: false
+    secrets:
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
   release:
     needs: ci
-    uses: relaycorp/shared-workflows/.github/workflows/nodejs-server-release.yml@main
+    uses: relaycorp/shared-workflows/.github/workflows/nodejs-knative-release.yml@main
     with:
-      main_branch: master
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
     secrets:
-      helm_repo_access_token: ${{ secrets.HELM_REPO_ACCESS_TOKEN }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PUSH_PASSWORD }}

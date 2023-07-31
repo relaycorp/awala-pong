@@ -1,34 +1,39 @@
-import pino from 'pino';
+import { type LogDescriptor, pino } from 'pino';
 import split2 from 'split2';
 
-// tslint:disable-next-line:readonly-array
-export type MockLogSet = object[];
+type MockLogSet = object[];
 
-export interface MockLogging {
+interface MockLogging {
   readonly logger: pino.Logger;
   readonly logs: MockLogSet;
 }
 
+export type { MockLogSet };
+
 export function makeMockLogging(): MockLogging {
-  // tslint:disable-next-line:readonly-array
-  const logs: object[] = [];
+  const logs: any[] = [];
   const stream = split2((data) => {
     logs.push(JSON.parse(data));
   });
-  const logger = pino({ level: 'trace' }, stream);
+  const logger = pino({ level: 'debug' }, stream);
 
   beforeEach(() => {
+    // Clear the logs
     logs.splice(0, logs.length);
   });
 
   return { logger, logs };
 }
 
-export function partialPinoLog(level: pino.Level, message: string, extraAttributes?: any): object {
+export function partialPinoLog(
+  level: pino.Level,
+  message: string,
+  extraAttributes: LogDescriptor = {},
+): any {
   const levelNumber = pino.levels.values[level];
-  return expect.objectContaining({
+  return expect.objectContaining<LogDescriptor>({
     level: levelNumber,
     msg: message,
-    ...(extraAttributes && extraAttributes),
+    ...extraAttributes,
   });
 }

@@ -1,23 +1,38 @@
+import { jest } from '@jest/globals';
 import envVar from 'env-var';
 
 interface EnvVarSet {
   readonly [key: string]: string | undefined;
 }
 
-export function configureMockEnvVars(envVars: EnvVarSet = {}): (envVars: EnvVarSet) => void {
-  const mockEnvVarGet = jest.spyOn(envVar, 'get');
+export const REQUIRED_ENV_VARS = {
+  VERSION: '1.0.0',
+};
 
-  function setEnvVars(newEnvVars: EnvVarSet): void {
-    mockEnvVarGet.mockImplementation((...args: readonly any[]) => {
-      const originalEnvVar = jest.requireActual('env-var');
-      const env = originalEnvVar.from(newEnvVars);
-      return env.get(...args);
+export type EnvVarMocker = (envVars: EnvVarSet) => void;
+
+export function configureMockEnvVars(envVars: EnvVarSet = {}): EnvVarMocker {
+  const mockEnvVarGet = jest.spyOn(envVar, 'get');
+  function setEnvironmentVariables(newEnvVars: EnvVarSet): void {
+    mockEnvVarGet.mockReset();
+    mockEnvVarGet.mockImplementation((envVarName) => {
+      const environment = envVar.from(newEnvVars);
+      return environment.get(envVarName);
     });
   }
 
-  beforeEach(() => setEnvVars(envVars));
-  afterEach(() => mockEnvVarGet.mockReset());
-  afterAll(() => mockEnvVarGet.mockRestore());
+  beforeAll(() => {
+    setEnvironmentVariables(envVars);
+  });
+  beforeEach(() => {
+    setEnvironmentVariables(envVars);
+  });
 
-  return (newEnvVars: EnvVarSet) => setEnvVars(newEnvVars);
+  afterAll(() => {
+    mockEnvVarGet.mockRestore();
+  });
+
+  return (newEnvironmentVariables: EnvVarSet) => {
+    setEnvironmentVariables(newEnvironmentVariables);
+  };
 }
