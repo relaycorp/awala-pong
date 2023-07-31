@@ -7,7 +7,8 @@ plugins:
   - - '@semantic-release/exec'
     - prepareCmd: docker tag relaycorp/awala-pong:ci ghcr.io/relaycorp/awala-pong:${nextRelease.version}
       publishCmd: docker push ghcr.io/relaycorp/awala-pong:${nextRelease.version}
-  - - '@semantic-release/exec'
+    - prepareCmd: docker tag relaycorp/awala-pong:ci relaycorp/awala-pong:${nextRelease.version}
+      publishCmd: docker push relaycorp/awala-pong:${nextRelease.version}
   - - '@semantic-release/github'
     - assets:
         - path: k8s/*.yml
