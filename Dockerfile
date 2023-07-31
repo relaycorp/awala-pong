@@ -1,7 +1,7 @@
 FROM node:20.5.0 as build
 WORKDIR /tmp/awala-pong
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . ./
 RUN npm run build && npm prune --omit=dev && rm -r src
 
