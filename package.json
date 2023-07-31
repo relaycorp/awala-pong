@@ -15,7 +15,7 @@
     "static-checks:lint": "eslint -c .eslintrc.cjs src",
     "static-checks:prettier": "prettier \"src/**/*.ts\" --list-different",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-    "test:functional": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config src/functionalTests/jest.config.cjs --runInBand --detectOpenHandles",
+    "test:functional": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config src/functionalTests/jest.config.mjs --runInBand --detectOpenHandles",
     "clean": "del-cli build test coverage",
     "start": "skaffold dev"
   },
@@ -32,7 +32,7 @@
   "devDependencies": {
     "@jest/globals": "^29.5.0",
     "@relaycorp/eslint-config": "^1.1.114",
-    "@relaycorp/shared-config": "^1.9.1",
+    "@relaycorp/shared-config": "^1.13.0",
     "@types/jest": "^29.5.3",
     "@types/node": "^20.3.3",
     "@types/split2": "^4.2.0",
