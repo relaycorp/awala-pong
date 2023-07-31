@@ -6,14 +6,14 @@ spec:
   template:
     metadata:
       annotations:
-        autoscaling.knative.dev/min-scale: "1"
+        autoscaling.knative.dev/min-scale: '1'
     spec:
       containers:
         - name: mock-ce-broker
           image: mockserver/mockserver:5.15.0
           env:
             - name: MOCKSERVER_SERVER_PORT
-              value: "8080"
+              value: '8080'
             - name: MOCKSERVER_LIVENESS_HTTP_GET_PATH
               value: /mockserver/status
           livenessProbe:
