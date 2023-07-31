@@ -39,7 +39,7 @@
     "env-var": "^7.3.1",
     "fastify": "^4.3.0",
     "is-valid-domain": "^0.1.6",
-    "keyv": "^4.3.0",
+    "keyv": "^4.5.3",
     "make-promises-safe": "^5.1.0",
     "pino": "^8.14.2",
     "uuid4": "^2.0.3",
