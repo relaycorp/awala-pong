@@ -2,10 +2,43 @@
 
 This is a server-side implementation of the [Awala Ping service](https://specs.awala.network/RS-014), implemented as an [Awala Internet Endpoint](https://docs.relaycorp.tech/awala-pong/) backend.
 
-# Environment variables
+## Architecture
 
-- `VERSION`
-- `CE_TRANSPORT` and `CE_CHANNEL`
+This is a trivial server that simply listens for _ping_ messages and responds with a _pong_ message. Its only backing service is a [CloudEvents](https://cloudevents.io) broker supported by [`@relaycorp/cloudevents-transport`](https://www.npmjs.com/package/@relaycorp/cloudevents-transport), so that it can communicate with the Awala Internet Endpoint.
+
+## Install
+
+The app is distributed as a Docker image in the following registries:
+
+- [Docker Hub](https://hub.docker.com/r/relaycorp/awala-pong): `relaycorp/awala-pong`
+- [GitHub Container Registry](https://github.com/relaycorp/awala-pong/pkgs/container/awala-pong): `ghcr.io/relaycorp/awala-pong`
+
+## Container configuration
+
+The app listens on port `8080`, and comes with a default command that starts the server.
+
+The server uses the following environment variables:
+
+- [`@relaycorp/cloudevents-transport`](https://www.npmjs.com/package/@relaycorp/cloudevents-transport) configuration:
+  - `CE_TRANSPORT` (default: `ce-http-binary`): The transport to use.
+  - `CE_CHANNEL` (required): The transport channel to use. It can be a URL to a CloudEvents server or the name of a Google PubSub topic, for example.
+- Logging configuration:
+  - `LOG_TARGET` (optional): The [`@relaycorp/pino-cloud`](https://www.npmjs.com/package/@relaycorp/pino-cloud) target (e.g., `gcp`).
+  - `LOG_LEVEL` (default: `info`): The [`pino` log level](https://github.com/pinojs/pino/blob/master/docs/api.md#levels).
+- Instrumentation configuration:
+  - `VERSION` (required): The version of the image being used. This value is used when reporting errors.
+  - `REQUEST_ID_HEADER` (default: `X-Request-Id`): The name of the HTTP header that contains the request id.
+
+The endpoint `GET /` can be used for health checks.
+
+For a working example, refer to the [Kubernetes resources used by the functional test suite](k8s).
+
+# Awala service messages
+
+As an implementation of the Awala Ping Service, this app supports the following Awala service messages:
+
+- `application/vnd.awala.ping-v1.ping` (incoming messages only).
+- `application/vnd.awala.ping-v1.pong` (outgoing messages only).
 
 # Development
 
