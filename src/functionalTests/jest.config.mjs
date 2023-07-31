@@ -9,7 +9,6 @@ const config = {
   ...mainJestConfig,
   roots: [currentDirName],
   testPathIgnorePatterns: [],
-  preset: null,
 };
 
 export default config;
