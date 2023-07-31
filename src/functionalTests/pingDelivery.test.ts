@@ -4,7 +4,7 @@ import { PONG_CONTENT_TYPE } from '../utilities/ping.js';
 
 import { post } from './utils/http.js';
 import { postEvent } from './utils/events.js';
-import { PONG_ENDPOIINT_URL } from './utils/pong.js';
+import { PONG_ENDPOINT_URL } from './utils/pong.js';
 import { getMockServerRequests, setMockServerExpectation } from './utils/mockServer.js';
 
 const MOCK_CE_BROKER_SVC_NAME = 'mock-ce-broker';
@@ -13,7 +13,7 @@ describe('Ping delivery', () => {
   test('Malformed event should be refused', async () => {
     await setMockServerExpectation(MOCK_CE_BROKER_SVC_NAME);
 
-    const response = await post(PONG_ENDPOIINT_URL, { body: 'malformed' });
+    const response = await post(PONG_ENDPOINT_URL, { body: 'malformed' });
 
     expect(response.status).toStrictEqual(HTTP_STATUS_CODES.BAD_REQUEST);
     const requests = await getMockServerRequests(MOCK_CE_BROKER_SVC_NAME);
@@ -24,7 +24,7 @@ describe('Ping delivery', () => {
     const invalidEvent = makePingEvent().cloneWith({ expiry: undefined }, false);
     await setMockServerExpectation(MOCK_CE_BROKER_SVC_NAME);
 
-    const response = await postEvent(invalidEvent, PONG_ENDPOIINT_URL);
+    const response = await postEvent(invalidEvent, PONG_ENDPOINT_URL);
 
     expect(response.status).toStrictEqual(HTTP_STATUS_CODES.BAD_REQUEST);
     const requests = await getMockServerRequests(MOCK_CE_BROKER_SVC_NAME);
@@ -37,7 +37,7 @@ describe('Ping delivery', () => {
       httpResponse: { statusCode: HTTP_STATUS_CODES.ACCEPTED },
     });
 
-    const response = await postEvent(pingEvent, PONG_ENDPOIINT_URL);
+    const response = await postEvent(pingEvent, PONG_ENDPOINT_URL);
 
     expect(response.status).toStrictEqual(HTTP_STATUS_CODES.NO_CONTENT);
     const requests = await getMockServerRequests(MOCK_CE_BROKER_SVC_NAME);
