@@ -3,12 +3,13 @@ import path from 'node:path';
 
 import mainJestConfig from '../../jest.config.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentDirName = path.dirname(fileURLToPath(import.meta.url));
 
-export default {
+const config = {
   ...mainJestConfig,
-  roots: [__dirname],
+  roots: [currentDirName],
   testPathIgnorePatterns: [],
   preset: null,
 };
+
+export default config;
