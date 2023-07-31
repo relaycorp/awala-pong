@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import type { FastifyInstance } from 'fastify';
-import pino from 'pino';
+import { pino } from 'pino';
 
 import { configureMockEnvVars } from '../../testUtils/envVars.js';
 import { getMockContext, getMockInstance, mockSpy } from '../../testUtils/jest.js';

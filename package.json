@@ -32,7 +32,7 @@
   "devDependencies": {
     "@jest/globals": "^29.5.0",
     "@relaycorp/eslint-config": "^1.1.114",
-    "@relaycorp/shared-config": "^1.13.0",
+    "@relaycorp/shared-config": "^1.14.1",
     "@types/jest": "^29.5.3",
     "@types/node": "^20.3.3",
     "@types/split2": "^4.2.0",

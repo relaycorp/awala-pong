@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import pino from 'pino';
+import { pino } from 'pino';
 import type { FastifyInstance } from 'fastify';
 
 import { mockSpy } from '../testUtils/jest.js';
