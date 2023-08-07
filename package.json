@@ -27,7 +27,7 @@
     "env-var": "^7.3.0",
     "fastify": "4.21.0",
     "fastify-plugin": "^4.5.0",
-    "pino": "^8.11.0"
+    "pino": "^8.15.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
