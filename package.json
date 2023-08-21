@@ -34,7 +34,7 @@
     "@relaycorp/eslint-config": "^1.1.134",
     "@relaycorp/shared-config": "^1.14.1",
     "@types/jest": "^29.5.3",
-    "@types/node": "^20.5.0",
+    "@types/node": "^20.5.1",
     "@types/split2": "^4.2.0",
     "del-cli": "^5.0.0",
     "get-port": "^7.0.0",
