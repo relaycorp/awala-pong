@@ -18,5 +18,6 @@ jobs:
     uses: relaycorp/shared-workflows/.github/workflows/server-release.yml@main
     with:
       dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+      enable_docs: false
     secrets:
       dockerhub_password: ${{ secrets.DOCKERHUB_PUSH_PASSWORD }}
